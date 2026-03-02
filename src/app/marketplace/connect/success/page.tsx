@@ -36,9 +36,9 @@ export default function SuccessPage() {
           <div className="text-center space-y-6">
             {/* Success Icon */}
             <div className="flex justify-center">
-              <div className="w-16 h-16 bg-accent/20 rounded-full flex items-center justify-center">
+              <div className="w-16 h-16 my-button rounded-full flex items-center justify-center">
                 <svg
-                  className="w-8 h-8 text-accent"
+                  className="w-8 h-8 text-primary-foreground"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -93,8 +93,8 @@ export default function SuccessPage() {
 
             {/* Action Buttons */}
             <div className="space-y-2">
-              <Button className="w-full h-11 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => router.push('/')}>
-                  Go to Dashboard
+              <Button className="w-full h-11 text-base font-semibold my-button hover:bg-primary/90 text-primary-foreground" onClick={() => router.push('/')}>
+                  Go to Marketplace
                 </Button>
               <Button
                 variant="outline"

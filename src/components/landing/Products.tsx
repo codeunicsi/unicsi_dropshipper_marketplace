@@ -350,4 +350,5 @@ const Products = ({ isInView }: PopularProductsProps) => {
   );
 };
 
+
 export default Products;

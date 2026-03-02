@@ -36,9 +36,9 @@ export default function Page() {
       <div className="container mx-auto px-4 py-12">
         {/* Header */}
         <div className="mb-12 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 my-button rounded-full mb-6">
             <svg
-              className="w-8 h-8 text-primary"
+              className="w-8 h-8 text-primary-foreground"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -126,7 +126,7 @@ export default function Page() {
                   <Button
                     variant="outline"
                     className="w-full h-11 text-base font-semibold"
-                    onClick={() => router.push('/partner/connect')}
+                    onClick={() => router.push('/marketplace/connect')}
                   >
                     Connect Another Store
                   </Button>
@@ -138,9 +138,9 @@ export default function Page() {
               <div className="text-center space-y-6">
                 {/* Empty State */}
                 <div className="flex justify-center">
-                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+                  <div className="w-16 h-16 my-button rounded-full flex items-center justify-center">
                     <svg
-                      className="w-8 h-8 text-muted-foreground"
+                      className="w-8 h-8 text-primary-foreground"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -165,7 +165,7 @@ export default function Page() {
                 {/* Setup Steps */}
                 <div className="space-y-3 text-left">
                   <div className="flex gap-3">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full my-button text-primary-foreground font-bold text-sm">
                       1
                     </div>
                     <div>
@@ -174,7 +174,7 @@ export default function Page() {
                     </div>
                   </div>
                   <div className="flex gap-3">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full my-button text-primary-foreground font-bold text-sm">
                       2
                     </div>
                     <div>
@@ -183,7 +183,7 @@ export default function Page() {
                     </div>
                   </div>
                   <div className="flex gap-3">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full my-button text-primary-foreground font-bold text-sm">
                       3
                     </div>
                     <div>
@@ -194,7 +194,7 @@ export default function Page() {
                 </div>
 
                 {/* CTA Button */}
-                <Button className="w-full h-11 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => router.push('/partner/connect')}>
+                <Button className="w-full h-11 text-base font-semibold my-button text-primary-foreground" onClick={() => router.push('/marketplace/connect')}>
                   Connect Your Shopify Store
                 </Button>
               </div>

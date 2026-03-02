@@ -80,6 +80,7 @@ export default function ConnectPage() {
       setIsLoading(false)
     }
   }
+  console.log("storeUrl ==>", storeUrl);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-background to-secondary/20">

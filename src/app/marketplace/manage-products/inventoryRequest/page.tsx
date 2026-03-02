@@ -1,3 +1,3 @@
-export default function InventoryRequestPage() {
-    return <div>Inventory Request</div>
+export default function InventoryRequestsPage() {
+  return <div>Inventory Requests Table Here</div>;
 }

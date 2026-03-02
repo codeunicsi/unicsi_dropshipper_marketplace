@@ -1,3 +1,3 @@
-export default function PushedToShopifyPage() {
-    return <div>Pushed to Shopify</div>
+export default function PushToShopifyPage() {
+  return <div>Push To Shopify Table Here</div>;
 }
