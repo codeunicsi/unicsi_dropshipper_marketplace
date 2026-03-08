@@ -64,6 +64,9 @@ export default function PendingApprovalsPage() {
   const handleUpdate = async (productId: string, updates: Partial<PendingProduct>) => {
     try {
       await updateProduct(productId, updates)
+      setSelectedProduct((prev) =>
+        prev && prev.product_id === productId ? { ...prev, ...updates } : prev
+      )
     } catch (error) {
       console.error('[v0] Error updating product:', error)
     }

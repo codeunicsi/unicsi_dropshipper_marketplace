@@ -8,8 +8,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { PendingProduct } from '@/hooks/usePendingProducts'
-import { useState } from 'react'
+import { PendingProduct, ProductVariant } from '@/hooks/usePendingProducts'
+import { cn } from '@/lib/utils'
+import { useState, useCallback } from 'react'
 import { ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react'
 
 interface ProductReviewModalProps {
@@ -36,6 +37,60 @@ export function ProductReviewModal({
   const [rejectionReason, setRejectionReason] = useState('')
   const [editedProduct, setEditedProduct] = useState<Partial<PendingProduct>>({})
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [variantDimensions, setVariantDimensions] = useState<Record<string, { h: number; l: number; w: number }>>({})
+
+  const normalizeDimensions = useCallback((dim: unknown): { h: number; l: number; w: number } => {
+    const d = dim as Record<string, unknown> | null | undefined
+    if (!d || typeof d !== 'object') return { h: 0, l: 0, w: 0 }
+    const h = Number(d.h ?? d.height ?? 0) || 0
+    const l = Number(d.l ?? d.length ?? 0) || 0
+    const w = Number(d.w ?? d.width ?? 0) || 0
+    return { h, l, w }
+  }, [])
+
+  const handleEnterEditMode = useCallback(() => {
+    if (!product) return
+    const variants = product.variants ?? []
+    const normalizedVariants = variants.map((v) => ({
+      ...v,
+      dimensions_cm: normalizeDimensions(v.dimensions_cm),
+    }))
+    const dimensionsByVariantId: Record<string, { h: number; l: number; w: number }> = {}
+    normalizedVariants.forEach((v) => {
+      dimensionsByVariantId[v.variant_id] = v.dimensions_cm as { h: number; l: number; w: number }
+    })
+    setVariantDimensions(dimensionsByVariantId)
+    setEditedProduct((prev) => ({ ...prev, variants: normalizedVariants }))
+    setEditMode(true)
+  }, [product, normalizeDimensions])
+
+  const updateVariant = useCallback(
+    (index: number, field: keyof ProductVariant, value: string | number | boolean | { h: number; l: number; w: number }) => {
+      setEditedProduct((prev) => ({
+        ...prev,
+        variants:
+          prev.variants?.map((v, i) =>
+            i === index ? { ...v, [field]: value } : v
+          ) ?? [],
+      }))
+    },
+    []
+  )
+
+  const setDimension = useCallback(
+    (variantId: string, axis: 'h' | 'l' | 'w', value: number) => {
+      setVariantDimensions((prev) => ({
+        ...prev,
+        [variantId]: {
+          h: prev[variantId]?.h ?? 0,
+          l: prev[variantId]?.l ?? 0,
+          w: prev[variantId]?.w ?? 0,
+          [axis]: value,
+        },
+      }))
+    },
+    []
+  )
 
   if (!product) return null
 
@@ -43,9 +98,20 @@ export function ProductReviewModal({
 
   const handleSaveChanges = async () => {
     try {
-      await onUpdate(product.product_id, editedProduct)
+      const payload: Partial<PendingProduct> = {
+        title: editedProduct.title ?? product.title,
+        description: editedProduct.description ?? product.description,
+        brand: editedProduct.brand ?? product.brand,
+      }
+      const baseVariants = editedProduct.variants ?? product.variants ?? []
+      payload.variants = baseVariants.map((v) => ({
+        ...v,
+        dimensions_cm: variantDimensions[v.variant_id] ?? normalizeDimensions(v.dimensions_cm),
+      }))
+      await onUpdate(product.product_id, payload)
       setEditMode(false)
       setEditedProduct({})
+      setVariantDimensions({})
     } catch (error) {
       console.error('[v0] Error saving changes:', error)
     }
@@ -172,15 +238,26 @@ export function ProductReviewModal({
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Status</Label>
-                    <Badge variant="outline" className="mt-1">
+                    <Badge
+                      className={cn(
+                        'mt-1 border',
+                        product.approval_status === 'approved' && 'bg-green-100 text-green-800 border-green-200',
+                        product.approval_status === 'rejected' && 'bg-red-100 text-red-800 border-red-200',
+                        (product.approval_status === 'submitted' || product.approval_status === 'under_review') &&
+                          'bg-amber-100 text-amber-800 border-amber-200'
+                      )}
+                    >
                       {product.approval_status.charAt(0).toUpperCase() + product.approval_status.slice(1)}
                     </Badge>
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Lifecycle</Label>
                     <Badge
-                      variant={product.lifecycle_status === 'active' ? 'default' : 'secondary'}
-                      className="mt-1"
+                      className={cn(
+                        'mt-1 border',
+                        product.lifecycle_status === 'active' && 'bg-green-100 text-green-800 border-green-200',
+                        product.lifecycle_status !== 'active' && 'bg-muted text-muted-foreground border-border'
+                      )}
                     >
                       {product.lifecycle_status.charAt(0).toUpperCase() + product.lifecycle_status.slice(1)}
                     </Badge>
@@ -190,58 +267,186 @@ export function ProductReviewModal({
             </Card>
 
             {/* Variants */}
-            {product.variants && product.variants.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Product Variants</CardTitle>
-                  <CardDescription>{product.variants.length} variant(s)</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {product.variants.map((variant) => (
-                    <div key={variant.variant_id} className="border rounded-lg p-4">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div>
-                          <p className="text-xs text-muted-foreground">SKU</p>
-                          <p className="font-medium text-sm">{variant.sku}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Variant Name</p>
-                          <p className="font-medium text-sm">{variant.variant_name}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Price</p>
-                          <p className="font-medium text-sm">₹{variant.variant_price}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Stock</p>
-                          <p className="font-medium text-sm">{variant.variant_stock} units</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Weight</p>
-                          <p className="font-medium text-sm">{variant.weight_grams}g</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">HSN Code</p>
-                          <p className="font-medium text-sm">{variant.hsn_code}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Dimensions (cm)</p>
-                          <p className="font-medium text-sm">
-                            {variant.dimensions_cm.h} × {variant.dimensions_cm.l} × {variant.dimensions_cm.w}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Status</p>
-                          <Badge variant={variant.is_active ? 'default' : 'secondary'} className="text-xs">
-                            {variant.is_active ? 'Active' : 'Inactive'}
-                          </Badge>
+            {(() => {
+              const productVariants = product.variants ?? []
+              const variants = editMode
+                ? editedProduct.variants?.length === productVariants.length
+                  ? editedProduct.variants!
+                  : productVariants.map((v) => ({ ...v, dimensions_cm: normalizeDimensions(v.dimensions_cm) }))
+                : productVariants
+              if (variants.length === 0) return null
+              return (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Product Variants</CardTitle>
+                    <CardDescription>{variants.length} variant(s)</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {variants.map((variant, index) => (
+                      <div key={variant.variant_id} className="border rounded-lg p-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="min-w-0">
+                            <Label className="text-xs text-muted-foreground">SKU</Label>
+                            {editMode ? (
+                              <Input
+                                value={variant.sku}
+                                onChange={(e) => updateVariant(index, 'sku', e.target.value)}
+                                className="mt-1 h-8 text-sm w-full min-w-0"
+                              />
+                            ) : (
+                              <p className="font-medium text-sm mt-1 truncate">{variant.sku}</p>
+                            )}
+                          </div>
+                          <div className="min-w-0 md:col-span-2">
+                            <Label className="text-xs text-muted-foreground">Variant Name</Label>
+                            {editMode ? (
+                              <Input
+                                value={variant.variant_name}
+                                onChange={(e) => updateVariant(index, 'variant_name', e.target.value)}
+                                className="mt-1 h-8 text-sm w-full min-w-0"
+                              />
+                            ) : (
+                              <p className="font-medium text-sm mt-1 truncate">{variant.variant_name}</p>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <Label className="text-xs text-muted-foreground">Price (₹)</Label>
+                            {editMode ? (
+                              <Input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={variant.variant_price}
+                                onChange={(e) => updateVariant(index, 'variant_price', e.target.value)}
+                                className="mt-1 h-8 text-sm w-full min-w-0"
+                              />
+                            ) : (
+                              <p className="font-medium text-sm mt-1">₹{variant.variant_price}</p>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <Label className="text-xs text-muted-foreground">Stock</Label>
+                            {editMode ? (
+                              <Input
+                                type="number"
+                                min="0"
+                                value={variant.variant_stock}
+                                onChange={(e) => updateVariant(index, 'variant_stock', parseInt(e.target.value, 10) || 0)}
+                                className="mt-1 h-8 text-sm w-full min-w-0"
+                              />
+                            ) : (
+                              <p className="font-medium text-sm mt-1">{variant.variant_stock} units</p>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <Label className="text-xs text-muted-foreground">Weight (g)</Label>
+                            {editMode ? (
+                              <Input
+                                type="number"
+                                min="0"
+                                value={variant.weight_grams}
+                                onChange={(e) => updateVariant(index, 'weight_grams', parseInt(e.target.value, 10) || 0)}
+                                className="mt-1 h-8 text-sm w-full min-w-0"
+                              />
+                            ) : (
+                              <p className="font-medium text-sm mt-1">{variant.weight_grams}g</p>
+                            )}
+                          </div>
+                          <div className="min-w-0 md:min-w-[8rem]">
+                            <Label className="text-xs text-muted-foreground">HSN Code</Label>
+                            {editMode ? (
+                              <Input
+                                value={variant.hsn_code}
+                                onChange={(e) => updateVariant(index, 'hsn_code', e.target.value)}
+                                className="mt-1 h-8 text-sm w-full min-w-0"
+                              />
+                            ) : (
+                              <p className="font-medium text-sm mt-1 break-all">{variant.hsn_code}</p>
+                            )}
+                          </div>
+                          <div className="min-w-0 md:col-span-2">
+                            <Label className="text-xs text-muted-foreground">Dimensions (h × l × w cm)</Label>
+                            {editMode ? (() => {
+                              const dim = variantDimensions[variant.variant_id] ?? { h: 0, l: 0, w: 0 }
+                              return (
+                                <div className="flex gap-2 mt-1 items-center flex-wrap">
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    placeholder="H"
+                                    value={dim.h}
+                                    onChange={(e) => setDimension(variant.variant_id, 'h', Number(e.target.value) || 0)}
+                                    className="h-9 w-14 text-sm text-center tabular-nums"
+                                  />
+                                  <span className="text-muted-foreground text-xs">×</span>
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    placeholder="L"
+                                    value={dim.l}
+                                    onChange={(e) => setDimension(variant.variant_id, 'l', Number(e.target.value) || 0)}
+                                    className="h-9 w-14 text-sm text-center tabular-nums"
+                                  />
+                                  <span className="text-muted-foreground text-xs">×</span>
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    placeholder="W"
+                                    value={dim.w}
+                                    onChange={(e) => setDimension(variant.variant_id, 'w', Number(e.target.value) || 0)}
+                                    className="h-9 w-14 text-sm text-center tabular-nums"
+                                  />
+                                  <span className="text-muted-foreground text-xs">cm</span>
+                                </div>
+                              )
+                            })() : (
+                              (() => {
+                                const d = normalizeDimensions(variant.dimensions_cm)
+                                return (
+                                  <p className="font-medium text-sm mt-1">
+                                    {d.h} × {d.l} × {d.w} <span className="text-muted-foreground">cm</span>
+                                  </p>
+                                )
+                              })()
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <Label className="text-xs text-muted-foreground">Status</Label>
+                            {editMode ? (
+                              <div className="mt-1">
+                                <select
+                                  value={variant.is_active ? 'active' : 'inactive'}
+                                  onChange={(e) => updateVariant(index, 'is_active', e.target.value === 'active')}
+                                  className={cn(
+                                    'h-8 text-sm rounded-md border px-2 w-full font-medium',
+                                    variant.is_active
+                                      ? 'bg-green-50 text-green-800 border-green-200'
+                                      : 'bg-red-50 text-red-800 border-red-200'
+                                  )}
+                                >
+                                  <option value="active">Active</option>
+                                  <option value="inactive">Inactive</option>
+                                </select>
+                              </div>
+                            ) : (
+                              <Badge
+                                className={cn(
+                                  'text-xs mt-1 border',
+                                  variant.is_active && 'bg-green-100 text-green-800 border-green-200',
+                                  !variant.is_active && 'bg-red-100 text-red-800 border-red-200'
+                                )}
+                              >
+                                {variant.is_active ? 'Active' : 'Inactive'}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
+                    ))}
+                  </CardContent>
+                </Card>
+              )
+            })()}
 
             {/* Attributes */}
             {product.variants?.[0]?.attributes && (
@@ -291,7 +496,7 @@ export function ProductReviewModal({
             <div className="flex gap-3 justify-end pt-4 border-t">
               {!editMode ? (
                 <>
-                  <Button variant="outline" onClick={() => setEditMode(true)}>
+                  <Button variant="outline" onClick={handleEnterEditMode}>
                     Edit Product
                   </Button>
                   <Button variant="destructive" onClick={() => setRejectionDialogOpen(true)} disabled={loading}>
@@ -303,7 +508,14 @@ export function ProductReviewModal({
                 </>
               ) : (
                 <>
-                  <Button variant="outline" onClick={() => setEditMode(false)}>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setEditMode(false)
+                      setEditedProduct({})
+                      setVariantDimensions({})
+                    }}
+                  >
                     Cancel
                   </Button>
                   <Button onClick={handleSaveChanges} disabled={loading}>
