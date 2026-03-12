@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -12,13 +12,58 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Search, Filter, Trash2, Eye } from 'lucide-react'
+import { Search, Trash2, Eye } from 'lucide-react'
 import { useLiveProducts } from '@/hooks/useLiveProducts'
+import type { LiveProduct } from '@/hooks/useLiveProducts'
+import { ProductReviewModal } from '@/components/dashboard/product-review-models'
+import type { PendingProduct } from '@/hooks/usePendingProducts'
+
+/** Normalize a Live product to the shape expected by ProductReviewModal (PendingProduct). */
+function liveToPendingShape(p: LiveProduct): PendingProduct {
+  const images = (p.images || []).map((img) =>
+    typeof img === 'string' ? { id: '', product_id: p.product_id, image_url: img, sort_order: 0, createdAt: '', updatedAt: '' } : { id: '', product_id: p.product_id, image_url: (img as { image_url?: string }).image_url ?? '', sort_order: 0, createdAt: '', updatedAt: '' }
+  )
+  const variants = (p.variants || []).map((v: Record<string, unknown>) => ({
+    variant_id: (v.variant_id ?? v.id ?? '') as string,
+    product_id: (v.product_id ?? p.product_id) as string,
+    sku: (v.sku ?? '') as string,
+    variant_name: (v.variant_name ?? v.variant_name ?? '') as string,
+    variant_price: String(v.variant_price ?? v.variant_price ?? 0),
+    variant_stock: Number(v.variant_stock ?? v.variant_stock ?? 0),
+    attributes: (v.attributes as Record<string, string>) ?? {},
+    weight_grams: Number(v.weight_grams ?? 500),
+    dimensions_cm: (v.dimensions_cm as { h: number; l: number; w: number }) ?? { h: 0, l: 0, w: 0 },
+    hsn_code: (v.hsn_code ?? '') as string,
+    is_active: (v.is_active ?? true) as boolean,
+    createdAt: (v.createdAt ?? '') as string,
+    updatedAt: (v.updatedAt ?? '') as string,
+  }))
+  return {
+    product_id: p.product_id ?? (p.id as string),
+    supplier_id: p.supplier_id ?? '',
+    title: p.title ?? '',
+    description: p.description ?? '',
+    category_id: null,
+    brand: p.brand ?? '',
+    approval_status: 'approved',
+    lifecycle_status: (p.lifecycle_status === 'paused' ? 'inactive' : 'active') as 'active' | 'inactive',
+    createdAt: (p as { created_at?: string }).created_at ?? new Date().toISOString(),
+    updatedAt: (p as { updated_at?: string }).updated_at ?? new Date().toISOString(),
+    imageCount: String(images.length),
+    variants,
+    images,
+    supplierName: p.supplier?.name ?? '',
+  }
+}
 
 export default function LiveProductsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
-  const { products, stats, loading, error } = useLiveProducts()
+  const { products, stats, loading, error, deleteProduct, updateProductStatus, updateProduct } = useLiveProducts()
+  const [archivingId, setArchivingId] = useState<string | null>(null)
+  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null)
+  const [detailProduct, setDetailProduct] = useState<LiveProduct | null>(null)
+  const modalProduct = useMemo(() => (detailProduct ? liveToPendingShape(detailProduct) : null), [detailProduct])
 
   console.log("product-items", products)
 
@@ -75,9 +120,12 @@ export default function LiveProductsPage() {
             className="px-3 py-2 rounded-lg border bg-background text-sm"
           >
             <option value="">All Categories</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
+            {categories.map((cat, index) => (
+              <option
+                key={cat != null && cat !== '' ? String(cat) : `category-${index}`}
+                value={cat ?? ''}
+              >
+                {cat ?? 'Uncategorized'}
               </option>
             ))}
           </select>
@@ -150,8 +198,8 @@ export default function LiveProductsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredProducts.map((product) => (
-                    <TableRow key={product.id}>
+                  {filteredProducts.map((product, index) => (
+                    <TableRow key={product?.product_id ?? product?.id ?? `live-${index}`}>
                       <TableCell>
                         <div className="font-medium">{product?.title}</div>
                         <div className="text-xs text-muted-foreground">{product.brand}</div>
@@ -176,9 +224,29 @@ export default function LiveProductsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="default">
-                          {product.approval_status === 'approved' ? 'Live' : 'Out of Stock'}
-                        </Badge>
+                        <select
+                          className="rounded-md border bg-background px-2 py-1 text-sm"
+                          value={
+                            product?.lifecycle_status === 'paused'
+                              ? 'out_of_stock'
+                              : 'live'
+                          }
+                          disabled={statusUpdatingId === (product?.product_id ?? product?.id)}
+                          onChange={async (e) => {
+                            const id = product?.product_id ?? product?.id
+                            if (!id) return
+                            const newStatus = e.target.value as 'live' | 'out_of_stock'
+                            setStatusUpdatingId(id)
+                            try {
+                              await updateProductStatus(id, newStatus)
+                            } finally {
+                              setStatusUpdatingId(null)
+                            }
+                          }}
+                        >
+                          <option value="live">Live</option>
+                          <option value="out_of_stock">Out of Stock</option>
+                        </select>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -187,10 +255,27 @@ export default function LiveProductsPage() {
                             size="sm"
                             className="gap-2"
                             title="View product details"
+                            onClick={() => setDetailProduct(product)}
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" className="gap-2 text-red-600">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="gap-2 text-red-600"
+                            title="Archive product (remove from live)"
+                            disabled={archivingId === (product?.product_id ?? product?.id)}
+                            onClick={async () => {
+                              const id = product?.product_id ?? product?.id
+                              if (!id) return
+                              setArchivingId(id)
+                              try {
+                                await deleteProduct(id)
+                              } finally {
+                                setArchivingId(null)
+                              }
+                            }}
+                          >
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
@@ -203,6 +288,28 @@ export default function LiveProductsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Product detail modal – same as Pending (Edit + Close only) */}
+      <ProductReviewModal
+        product={modalProduct}
+        isOpen={!!detailProduct}
+        onClose={() => setDetailProduct(null)}
+        onUpdate={async (productId, updates) => {
+          await updateProduct(productId, updates as Partial<LiveProduct>)
+          setDetailProduct((prev) => {
+            if (!prev || (prev.product_id ?? prev.id) !== productId) return prev
+            return {
+              ...prev,
+              ...(updates.title !== undefined && { title: updates.title }),
+              ...(updates.description !== undefined && { description: updates.description }),
+              ...(updates.brand !== undefined && { brand: updates.brand }),
+              ...(updates.variants !== undefined && { variants: updates.variants as unknown as LiveProduct['variants'] }),
+            }
+          })
+        }}
+        liveOnly
+        loading={loading}
+      />
     </div>
   )
 }

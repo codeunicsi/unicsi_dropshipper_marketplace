@@ -33,6 +33,7 @@ export interface LiveProduct {
     variant_images: string[]
   }[]
   approval_status: string
+  lifecycle_status?: 'active' | 'inactive' | 'paused' | 'archived'
 }
 
 export interface LiveProductsStats {
@@ -42,7 +43,7 @@ export interface LiveProductsStats {
   new_this_week: number
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/'
 
 export function useLiveProducts(page = 1, limit = 20) {
   const [products, setProducts] = useState<LiveProduct[]>([])
@@ -56,10 +57,11 @@ export function useLiveProducts(page = 1, limit = 20) {
       try {
         setLoading(true)
         setError(null)
+        const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
 
         // Fetch live products
         const productsResponse = await fetch(
-          `${API_BASE_URL}admin/products/get-live-products`,
+          `${base}admin/products/get-live-products`,
         )
 
         if (!productsResponse.ok) {
@@ -72,10 +74,10 @@ export function useLiveProducts(page = 1, limit = 20) {
         setTotal(productsData?.data?.length || 0)
 
         // Fetch stats
-        const statsResponse = await fetch(`${API_BASE_URL}admin/products/live/stats`)
+        const statsResponse = await fetch(`${base}admin/products/live/stats`)
         if (statsResponse.ok) {
           const statsData = await statsResponse.json()
-          setStats(statsData.data)
+          setStats(statsData.data ?? statsData)
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to fetch live products'
@@ -91,7 +93,8 @@ export function useLiveProducts(page = 1, limit = 20) {
 
   const deleteProduct = useCallback(async (productId: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}admin/products/${productId}`, {
+      const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
+      const response = await fetch(`${base}admin/products/${productId}`, {
         method: 'DELETE',
       })
 
@@ -99,7 +102,7 @@ export function useLiveProducts(page = 1, limit = 20) {
         throw new Error('Failed to delete product')
       }
 
-      setProducts((prev) => prev.filter((p) => p.id !== productId))
+      setProducts((prev) => prev.filter((p) => (p.id ?? p.product_id) !== productId))
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete product'
       console.error('[v0] Delete product error:', errorMessage)
@@ -109,7 +112,8 @@ export function useLiveProducts(page = 1, limit = 20) {
   const updateProductStatus = useCallback(
     async (productId: string, status: 'live' | 'out_of_stock') => {
       try {
-        const response = await fetch(`${API_BASE_URL}admin/products/${productId}/status`, {
+        const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
+        const response = await fetch(`${base}admin/products/${productId}/status`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -121,13 +125,36 @@ export function useLiveProducts(page = 1, limit = 20) {
           throw new Error('Failed to update product status')
         }
 
+        const nextLifecycle = status === 'live' ? 'active' : 'paused'
         setProducts((prev) =>
-          prev.map((p) => (p.id === productId ? { ...p, status } : p)),
+          prev.map((p) =>
+            (p.id ?? p.product_id) === productId
+              ? { ...p, status, lifecycle_status: nextLifecycle }
+              : p
+          ),
         )
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to update product status'
         console.error('[v0] Update product status error:', errorMessage)
       }
+    },
+    [],
+  )
+
+  const updateProduct = useCallback(
+    async (productId: string, updates: Partial<LiveProduct>) => {
+      const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
+      const response = await fetch(`${base}admin/products/update-product`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_id: productId, ...updates }),
+      })
+      if (!response.ok) throw new Error('Failed to update product')
+      setProducts((prev) =>
+        prev.map((p) =>
+          (p.id ?? p.product_id) === productId ? { ...p, ...updates } : p
+        ),
+      )
     },
     [],
   )
@@ -140,5 +167,6 @@ export function useLiveProducts(page = 1, limit = 20) {
     total,
     deleteProduct,
     updateProductStatus,
+    updateProduct,
   }
 }

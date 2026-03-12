@@ -17,10 +17,12 @@ interface ProductReviewModalProps {
   product: PendingProduct | null
   isOpen: boolean
   onClose: () => void
-  onApprove: (productId: string) => void
-  onReject: (productId: string, reason: string) => void
+  onApprove?: (productId: string) => void
+  onReject?: (productId: string, reason: string) => void
   onUpdate: (productId: string, updates: Partial<PendingProduct>) => void
   loading?: boolean
+  /** When true, only show Edit and Close (no Approve/Reject). Use for Live products. */
+  liveOnly?: boolean
 }
 
 export function ProductReviewModal({
@@ -31,6 +33,7 @@ export function ProductReviewModal({
   onReject,
   onUpdate,
   loading,
+  liveOnly = false,
 }: ProductReviewModalProps) {
   const [editMode, setEditMode] = useState(false)
   const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false)
@@ -122,6 +125,7 @@ export function ProductReviewModal({
       alert('Please provide a rejection reason')
       return
     }
+    if (!onReject) return
     try {
       await onReject(product.product_id, rejectionReason)
       setRejectionDialogOpen(false)
@@ -133,6 +137,7 @@ export function ProductReviewModal({
   }
 
   const handleApprove = async () => {
+    if (!onApprove) return
     try {
       await onApprove(product.product_id)
       onClose()
@@ -497,13 +502,20 @@ export function ProductReviewModal({
               {!editMode ? (
                 <>
                   <Button variant="outline" onClick={handleEnterEditMode}>
-                    Edit Product
+                    Edit
                   </Button>
-                  <Button variant="destructive" onClick={() => setRejectionDialogOpen(true)} disabled={loading}>
-                    Reject
-                  </Button>
-                  <Button onClick={handleApprove} disabled={loading}>
-                    Approve & Publish
+                  {!liveOnly && onReject && (
+                    <Button variant="destructive" onClick={() => setRejectionDialogOpen(true)} disabled={loading}>
+                      Reject
+                    </Button>
+                  )}
+                  {!liveOnly && onApprove && (
+                    <Button onClick={handleApprove} disabled={loading}>
+                      Approve & Publish
+                    </Button>
+                  )}
+                  <Button variant="secondary" onClick={onClose}>
+                    Close
                   </Button>
                 </>
               ) : (
@@ -521,6 +533,9 @@ export function ProductReviewModal({
                   <Button onClick={handleSaveChanges} disabled={loading}>
                     Save Changes
                   </Button>
+                  <Button variant="secondary" onClick={onClose}>
+                    Close
+                  </Button>
                 </>
               )}
             </div>
@@ -528,7 +543,8 @@ export function ProductReviewModal({
         </DialogContent>
       </Dialog>
 
-      {/* Rejection Dialog */}
+      {/* Rejection Dialog (only when onReject provided) */}
+      {onReject && (
       <AlertDialog open={rejectionDialogOpen} onOpenChange={setRejectionDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -559,6 +575,7 @@ export function ProductReviewModal({
           </div>
         </AlertDialogContent>
       </AlertDialog>
+      )}
     </>
   )
 }

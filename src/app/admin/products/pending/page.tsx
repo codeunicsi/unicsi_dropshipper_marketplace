@@ -184,7 +184,7 @@ export default function PendingApprovalsPage() {
           <CardContent className="pt-6">
             <div className="text-center">
               <p className="text-3xl font-bold text-green-600">
-                {products.filter((p) => p.approval_status === 'approved').length}
+                {stats.approved ?? products.filter((p) => p.approval_status === 'approved').length}
               </p>
               <p className="text-sm text-muted-foreground">Approved</p>
             </div>
