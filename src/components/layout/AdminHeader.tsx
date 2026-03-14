@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, Bell, HelpCircle, LogOut } from 'lucide-react'
+import { Search, Bell, HelpCircle, LogOut, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -13,7 +13,12 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useUser, useLogout } from '@/hooks/useAuth'
 
-export function AdminHeader() {
+interface AdminHeaderProps {
+  onMenuClick?: () => void
+  sidebarOpen?: boolean
+}
+
+export function AdminHeader({ onMenuClick, sidebarOpen = true }: AdminHeaderProps) {
   const { data: user } = useUser()
   const { mutate: logout } = useLogout()
 
@@ -26,6 +31,19 @@ export function AdminHeader() {
   return (
     <header className="h-16 bg-background border-b border-border sticky top-0 z-40">
       <div className="h-full flex items-center justify-between px-6 gap-4">
+        {/* Hamburger to open sidebar when closed */}
+        {!sidebarOpen && onMenuClick ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onMenuClick}
+            className="shrink-0 rounded-lg"
+            aria-label="Open sidebar"
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
+        ) : null}
+
         {/* Search Bar */}
         <div className="flex-1 max-w-md">
           <div className="relative">

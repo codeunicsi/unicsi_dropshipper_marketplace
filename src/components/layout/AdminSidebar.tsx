@@ -1,10 +1,11 @@
 'use client'
 
+import React from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
   Home,
-  Activity,
   BarChart3,
   ShoppingCart,
   Package,
@@ -14,12 +15,9 @@ import {
   TrendingUp,
   Settings,
   Users,
-  FileText,
-  AlertCircle,
   ChevronRight,
-  GraduationCap,
-  MessageSquare,
   HelpCircle,
+  Menu,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -143,7 +141,12 @@ interface MenuItem {
   children?: Array<{ label: string; href: string }>
 }
 
-export function AdminSidebar() {
+interface AdminSidebarProps {
+  open?: boolean
+  onClose?: () => void
+}
+
+export function AdminSidebar({ open = true, onClose }: AdminSidebarProps) {
   const pathname = usePathname()
   const [expandedItems, setExpandedItems] = React.useState<Set<string>>(new Set())
 
@@ -165,17 +168,32 @@ export function AdminSidebar() {
     return children?.some((child) => pathname.startsWith(child.href))
   }
 
+  if (!open) return null
+
   return (
-    <aside className="w-64 bg-sidebar border-r border-sidebar-border h-screen overflow-y-auto flex flex-col sticky top-0">
-      {/* Logo Section */}
+    <aside className="w-64 bg-sidebar border-r border-sidebar-border h-screen overflow-y-auto flex flex-col sticky top-0 shrink-0">
+      {/* Logo Section + Hamburger */}
       <div className="p-6 border-b border-sidebar-border">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full my-button text-primary-foreground flex items-center justify-center">
-            <span className="text-sm font-bold text-primary">U</span>
-          </div>
-          <div>
-            <p className="font-bold text-sidebar-foreground">UNICSI</p>
-          </div>
+        <div className="flex items-center justify-between gap-2">
+          <Link href="/admin/dashboard" className="flex items-center min-w-0">
+            <Image
+              src="/images/logoWithoutBg.png"
+              alt="UNICSI"
+              width={140}
+              height={44}
+              className="object-contain h-11 w-auto max-w-[180px]"
+            />
+          </Link>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-border hover:text-sidebar-foreground transition-colors shrink-0"
+              aria-label="Close sidebar"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -254,5 +272,3 @@ export function AdminSidebar() {
     </aside>
   )
 }
-
-import React from 'react'

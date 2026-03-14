@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -14,10 +14,93 @@ import {
 } from '@/components/ui/table'
 import { Search, Eye, Trash2 } from 'lucide-react'
 import { useRejectedProducts } from '@/hooks/useRejectedProducts'
+import type { RejectedProduct } from '@/hooks/useRejectedProducts'
+import { ProductReviewModal } from '@/components/dashboard/product-review-models'
+import type { PendingProduct } from '@/hooks/usePendingProducts'
+
+/** Normalize raw product from GET /products/:id to PendingProduct for the modal. */
+function rawToPendingShape(
+  raw: Record<string, unknown> | null,
+  supplierName = ''
+): PendingProduct | null {
+  if (!raw || !raw.product_id) return null
+  const variants = ((raw.variants as Record<string, unknown>[]) || []).map((v) => ({
+    variant_id: (v.variant_id ?? v.id ?? '') as string,
+    product_id: (v.product_id ?? raw.product_id) as string,
+    sku: (v.sku ?? '') as string,
+    variant_name: (v.variant_name ?? '') as string,
+    variant_price: String(v.variant_price ?? 0),
+    variant_stock: Number(v.variant_stock ?? 0),
+    attributes: (v.attributes as Record<string, string>) ?? {},
+    weight_grams: Number(v.weight_grams ?? 500),
+    dimensions_cm: (v.dimensions_cm as { h: number; l: number; w: number }) ?? { h: 0, l: 0, w: 0 },
+    hsn_code: (v.hsn_code ?? '') as string,
+    is_active: (v.is_active ?? true) as boolean,
+    createdAt: (v.createdAt ?? '') as string,
+    updatedAt: (v.updatedAt ?? '') as string,
+  }))
+  const images = ((raw.images as { image_url?: string }[]) || []).map((img) => ({
+    id: '',
+    product_id: String(raw.product_id),
+    image_url: img?.image_url ?? '',
+    sort_order: 0,
+    createdAt: '',
+    updatedAt: '',
+  }))
+  return {
+    product_id: String(raw.product_id),
+    supplier_id: String(raw.supplier_id ?? ''),
+    title: (raw.title as string) ?? '',
+    description: (raw.description as string) ?? '',
+    category_id: null,
+    brand: (raw.brand as string) ?? '',
+    approval_status: 'rejected',
+    lifecycle_status: 'inactive',
+    createdAt: (raw.createdAt as string) ?? new Date().toISOString(),
+    updatedAt: (raw.updatedAt as string) ?? new Date().toISOString(),
+    imageCount: String(images.length),
+    variants,
+    images,
+    supplierName,
+  }
+}
 
 export default function RejectedProductsPage() {
   const [searchQuery, setSearchQuery] = useState('')
-  const { products, stats, loading, error } = useRejectedProducts()
+  const { products, stats, loading, error, deleteRejectedProduct, getProductById, updateProduct } =
+    useRejectedProducts()
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [detailProductId, setDetailProductId] = useState<string | null>(null)
+  const [detailListProduct, setDetailListProduct] = useState<RejectedProduct | null>(null)
+  const [fetchedProduct, setFetchedProduct] = useState<Record<string, unknown> | null>(null)
+  const [fetchingDetail, setFetchingDetail] = useState(false)
+
+  useEffect(() => {
+    if (!detailProductId) {
+      setFetchedProduct(null)
+      return
+    }
+    let cancelled = false
+    setFetchingDetail(true)
+    getProductById(detailProductId)
+      .then((data) => {
+        if (!cancelled && data) setFetchedProduct(data as Record<string, unknown>)
+      })
+      .catch(() => {
+        if (!cancelled) setDetailProductId(null)
+      })
+      .finally(() => {
+        if (!cancelled) setFetchingDetail(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [detailProductId, getProductById])
+
+  const modalProduct = useMemo(
+    () => rawToPendingShape(fetchedProduct, detailListProduct?.supplier_name ?? ''),
+    [fetchedProduct, detailListProduct]
+  )
 
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -155,7 +238,7 @@ export default function RejectedProductsPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredProducts.map((product) => (
-                    <TableRow key={product.id}>
+                    <TableRow key={product.product_id ?? product.id}>
                       <TableCell>
                         <div className="font-medium">{product.name}</div>
                         <div className="text-xs text-muted-foreground">{product.brand}</div>
@@ -184,10 +267,29 @@ export default function RejectedProductsPage() {
                             size="sm"
                             className="gap-2"
                             title="View product details"
+                            onClick={() => {
+                              setDetailProductId(product.product_id ?? product.id)
+                              setDetailListProduct(product)
+                            }}
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" className="gap-2 text-red-600">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="gap-2 text-red-600"
+                            title="Allow resubmit (remove from rejected)"
+                            disabled={deletingId === (product.product_id ?? product.id)}
+                            onClick={async () => {
+                              const id = product.product_id ?? product.id
+                              setDeletingId(id)
+                              try {
+                                await deleteRejectedProduct(id)
+                              } finally {
+                                setDeletingId(null)
+                              }
+                            }}
+                          >
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
@@ -200,6 +302,21 @@ export default function RejectedProductsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Product detail modal – same as Pending/Live (Edit + Close only) */}
+      <ProductReviewModal
+        product={modalProduct}
+        isOpen={!!detailProductId && !!modalProduct}
+        onClose={() => {
+          setDetailProductId(null)
+          setDetailListProduct(null)
+        }}
+        onUpdate={async (productId, updates) => {
+          await updateProduct(productId, updates as Record<string, unknown>)
+        }}
+        liveOnly
+        loading={loading}
+      />
     </div>
   )
 }

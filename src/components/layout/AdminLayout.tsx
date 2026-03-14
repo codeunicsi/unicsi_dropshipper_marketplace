@@ -1,19 +1,23 @@
-import React from "react"
+'use client'
+
+import React, { useState } from 'react'
 import { AdminSidebar } from './AdminSidebar'
 import { AdminHeader } from './AdminHeader'
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
-      <AdminSidebar />
+      <AdminSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <AdminHeader />
-
-        {/* Page Content */}
+        <AdminHeader
+          onMenuClick={() => setSidebarOpen(true)}
+          sidebarOpen={sidebarOpen}
+        />
         <main className="flex-1 overflow-y-auto">
           <div className="p-6">{children}</div>
         </main>

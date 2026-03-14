@@ -44,10 +44,11 @@ export function useRejectedProducts(page = 1, limit = 20) {
       try {
         setLoading(true)
         setError(null)
+        const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
 
         // Fetch rejected products
         const productsResponse = await fetch(
-          `${API_BASE_URL}/api/v1/admin/products/rejected?page=${page}&limit=${limit}`,
+          `${base}admin/products/rejected?page=${page}&limit=${limit}`,
         )
 
         if (!productsResponse.ok) {
@@ -59,10 +60,10 @@ export function useRejectedProducts(page = 1, limit = 20) {
         setTotal(productsData.total || 0)
 
         // Fetch stats
-        const statsResponse = await fetch(`${API_BASE_URL}/api/v1/admin/products/rejected/stats`)
+        const statsResponse = await fetch(`${base}admin/products/rejected/stats`)
         if (statsResponse.ok) {
           const statsData = await statsResponse.json()
-          setStats(statsData.data)
+          setStats(statsData.data ?? statsData)
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to fetch rejected products'
@@ -76,10 +77,40 @@ export function useRejectedProducts(page = 1, limit = 20) {
     fetchRejectedProducts()
   }, [page, limit])
 
+  const getProductById = useCallback(async (productId: string) => {
+    const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
+    const response = await fetch(`${base}admin/products/${productId}`)
+    if (!response.ok) throw new Error('Failed to fetch product')
+    const json = await response.json()
+    return json?.data ?? null
+  }, [])
+
+  const updateProduct = useCallback(async (productId: string, updates: Record<string, unknown>) => {
+    const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
+    const response = await fetch(`${base}admin/products/update-product`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product_id: productId, ...updates }),
+    })
+    if (!response.ok) throw new Error('Failed to update product')
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (p.product_id !== productId && p.id !== productId) return p
+        return {
+          ...p,
+          name: (updates.title as string) ?? p.name,
+          description: (updates.description as string) ?? p.description,
+          brand: (updates.brand as string) ?? p.brand,
+        }
+      })
+    )
+  }, [])
+
   const deleteRejectedProduct = useCallback(async (productId: string) => {
     try {
+      const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
       const response = await fetch(
-        `${API_BASE_URL}/api/v1/admin/products/${productId}/rejected`,
+        `${base}admin/products/${productId}/rejected`,
         {
           method: 'DELETE',
         },
@@ -103,6 +134,8 @@ export function useRejectedProducts(page = 1, limit = 20) {
     loading,
     error,
     total,
+    getProductById,
+    updateProduct,
     deleteRejectedProduct,
   }
 }
