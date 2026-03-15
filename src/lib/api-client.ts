@@ -5,18 +5,16 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/a
 export const apiClient = {
   get: async (endpoint: string) => {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      credentials: 'include', // Important for cookies
-      headers: {
-        'Content-Type': 'application/json',
-
-      },
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
     })
-    
+
+    const data = await response.json().catch(() => ({}))
     if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`)
+      const message = (data && typeof data.message === 'string') ? data.message : response.statusText
+      throw new Error(message)
     }
-    
-    return response.json()
+    return data
   },
 
   post: async (endpoint: string, data: any) => {
