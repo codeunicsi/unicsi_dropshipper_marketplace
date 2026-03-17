@@ -1,22 +1,20 @@
-'use client'
+"use client";
 
-import React from "react"
-import { PartnerSidebar } from './PartnerSidebar'
-import { PartnerHeader } from './PartnerHeader'
-import { useUser } from '@/hooks/useAuth'
-import { UnicsiLoader } from '../partner/unicsi-loader'
+import React from "react";
+import { PartnerSidebar } from "./PartnerSidebar";
+import { PartnerHeader } from "./PartnerHeader";
+import { useUser } from "@/hooks/useAuth";
+import { UnicsiLoader } from "../partner/unicsi-loader";
 
 export function PartnerLayout({ children }: { children: React.ReactNode }) {
   const { data: user, isLoading } = useUser();
 
-  console.log("user-data==>123", user);
+  // console.log("user-data==>123", user);
 
-  if(isLoading) return (
-     <UnicsiLoader />
-  )
+  if (isLoading) return <UnicsiLoader />;
 
   //shopify_access_token
-  if(!user?.data?.shopify_access_token && !user?.data?.shopify_store_url){
+  if (!user?.data?.shopify_access_token && !user?.data?.shopify_store_url) {
     return (
       <div className="flex h-screen bg-background">
         {/* Main Content */}
@@ -30,14 +28,13 @@ export function PartnerLayout({ children }: { children: React.ReactNode }) {
           </main>
         </div>
       </div>
-    )
+    );
   }
-
 
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
-       <PartnerSidebar />
+      <PartnerSidebar />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -50,5 +47,5 @@ export function PartnerLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
     </div>
-  )
+  );
 }
