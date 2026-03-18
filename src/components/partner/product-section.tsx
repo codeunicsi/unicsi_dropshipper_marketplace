@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import ProductCard from "./product-card";
 import CartDrawer from "./cart-drawer";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const PRODUCT_TABS = [
   "Push to Shopify",
@@ -55,6 +56,7 @@ function ProductsBlock({
   bgColor = "bg-white",
   showTabs,
 }: ProductsBlockProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState(0);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -66,6 +68,16 @@ function ProductsBlock({
       left: direction === "left" ? -300 : 300,
       behavior: "smooth",
     });
+  };
+
+  const handleBulkOrder = (product: (typeof SAMPLE_PRODUCTS)[number]) => {
+    const params = new URLSearchParams({
+      productId: product.id,
+      productName: product.name,
+      sellingPrice: String(product.price),
+    });
+
+    router.push(`/marketplace/bulk-order?${params.toString()}`);
   };
 
   return (
@@ -119,6 +131,7 @@ function ProductsBlock({
             key={product.id}
             {...product}
             onPushToShopify={() => setIsCartOpen(true)}
+            onBulkOrder={() => handleBulkOrder(product)}
           />
         ))}
       </div>
