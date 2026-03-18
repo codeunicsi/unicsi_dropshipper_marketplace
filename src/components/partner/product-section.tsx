@@ -14,7 +14,62 @@ const PRODUCT_TABS = [
   "Popular Demand",
 ];
 
-// ✅ Transform function (move OUTSIDE component)
+// ✅ Dummy product (matches backend structure)
+const dummyProducts: Product[] = [
+  {
+    product_id: "dummy-product-1",
+    supplier_id: "dummy-supplier",
+    title: "Premium Cotton T-Shirt",
+    description: "High quality cotton t-shirt for everyday wear",
+    category_id: null,
+    brand: "Unicsi",
+    approval_status: "approved",
+    lifecycle_status: "active",
+    approved_by: "dummy-admin",
+    approved_at: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+
+    variants: [
+      {
+        variant_id: "dummy-variant-1",
+        product_id: "dummy-product-1",
+        sku: "TS-WHT-S",
+        title: null,
+        price: "19.99",
+        compare_at_price: "25",
+        cost_price: null,
+        inventory_quantity: 80,
+        inventory_management: "shopify",
+        weight_grams: 250,
+        option1: "White",
+        option2: "S",
+        option3: null,
+        shopify_variant_id: null,
+        attributes: {},
+        is_active: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ],
+
+    images: [
+      {
+        id: "dummy-image-1",
+        product_id: "dummy-product-1",
+        variant_id: null,
+        image_url: "/placeholder.png",
+        shopify_image_id: null,
+        alt_text: "Premium Cotton T-Shirt",
+        sort_order: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ],
+  },
+];
+
+// ✅ Transform function (unchanged)
 const transformProducts = (products: Product[]) => {
   return products.map((product) => {
     const firstVariant = product.variants?.find((v) => v.is_active);
@@ -23,13 +78,9 @@ const transformProducts = (products: Product[]) => {
     return {
       id: product.product_id,
       name: product.title,
-
       price: Number(firstVariant?.price ?? 0),
-
-      image: firstImage?.image_url,
-
+      image: firstImage?.image_url || "/placeholder.png",
       stock: firstVariant?.inventory_quantity ?? 0,
-
       color: firstVariant?.option1 ?? "",
       size: firstVariant?.option2 ?? "",
     };
@@ -131,11 +182,18 @@ type ProductsSectionProps = {
 export default function ProductsSection({ products }: ProductsSectionProps) {
   return (
     <div className="w-full max-w-6xl mx-auto px-4">
-      <ProductsBlock title="All Products" showTabs products={products} />
+      {/* ✅ Real Products */}
+      <ProductsBlock
+        title="All Products"
+        showTabs
+        products={[...dummyProducts, ...products]}
+      />
+
+      {/* ✅ Dummy + Real Products */}
       <ProductsBlock
         title="Products for Testing"
         bgColor="bg-[#f1ebec]/60"
-        products={products}
+        products={[...dummyProducts, ...products]}
       />
     </div>
   );
