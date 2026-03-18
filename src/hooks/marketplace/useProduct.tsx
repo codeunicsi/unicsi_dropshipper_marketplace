@@ -37,13 +37,26 @@ export interface ProductVariant {
   variant_id: string;
   product_id: string;
   sku: string;
-  variant_name: string;
-  variant_price: string; // change to number if backend returns number
-  variant_stock: number;
-  attributes: VariantAttributes;
+
+  // ✅ Updated fields based on API
+  title: string | null;
+  price: string;
+  compare_at_price: string | null;
+  cost_price: string | null;
+
+  inventory_quantity: number;
+  inventory_management: string;
+
   weight_grams: number;
-  dimensions_cm: VariantDimensions;
-  hsn_code: string;
+
+  option1: string | null; // color
+  option2: string | null; // size
+  option3: string | null;
+
+  shopify_variant_id: string | null;
+
+  attributes: Record<string, any>;
+
   is_active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -63,7 +76,10 @@ export interface VariantDimensions {
 export interface ProductImage {
   id: string;
   product_id: string;
+  variant_id: string | null;
   image_url: string;
+  shopify_image_id: string | null;
+  alt_text: string | null;
   sort_order: number;
   createdAt: string;
   updatedAt: string;

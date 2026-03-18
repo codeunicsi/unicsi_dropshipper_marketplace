@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import ProductCard from "./product-card";
 import CartDrawer from "./cart-drawer";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Product } from "@/hooks/marketplace/useProduct";
 
 const PRODUCT_TABS = [
   "Push to Shopify",
@@ -13,51 +14,46 @@ const PRODUCT_TABS = [
   "Popular Demand",
 ];
 
-const SAMPLE_PRODUCTS = [
-  {
-    id: "1",
-    name: "Nike Shoes - Men",
-    price: 3999,
-    image:
-      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop",
-  },
-  {
-    id: "2",
-    name: "Running Sneakers Pro",
-    price: 4499,
-    image:
-      "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=400&h=400&fit=crop",
-  },
-  {
-    id: "3",
-    name: "Casual Canvas Shoes",
-    price: 2499,
-    image:
-      "https://images.unsplash.com/photo-1441239372925-ac0b51c4c250?w=400&h=400&fit=crop",
-  },
-  {
-    id: "4",
-    name: "Premium Leather Boots",
-    price: 5999,
-    image:
-      "https://images.unsplash.com/photo-1543163521-9733539c2d7f?w=400&h=400&fit=crop",
-  },
-];
+// ✅ Transform function (move OUTSIDE component)
+const transformProducts = (products: Product[]) => {
+  return products.map((product) => {
+    const firstVariant = product.variants?.find((v) => v.is_active);
+    const firstImage = product.images?.[0];
+
+    return {
+      id: product.product_id,
+      name: product.title,
+
+      price: Number(firstVariant?.price ?? 0),
+
+      image: firstImage?.image_url,
+
+      stock: firstVariant?.inventory_quantity ?? 0,
+
+      color: firstVariant?.option1 ?? "",
+      size: firstVariant?.option2 ?? "",
+    };
+  });
+};
 
 type ProductsBlockProps = {
   title: string;
   bgColor?: string;
   showTabs?: boolean;
+  products: Product[];
 };
 
 function ProductsBlock({
   title,
   bgColor = "bg-white",
   showTabs,
+  products,
 }: ProductsBlockProps) {
   const [activeTab, setActiveTab] = useState(0);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  const formattedProducts = transformProducts(products);
 
   const handleScroll = (direction: "left" | "right") => {
     if (!scrollRef.current) return;
@@ -114,7 +110,7 @@ function ProductsBlock({
         ref={scrollRef}
         className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
       >
-        {SAMPLE_PRODUCTS.map((product) => (
+        {formattedProducts.map((product) => (
           <ProductCard
             key={product.id}
             {...product}
@@ -128,11 +124,19 @@ function ProductsBlock({
   );
 }
 
-export default function ProductsSection() {
+type ProductsSectionProps = {
+  products: Product[];
+};
+
+export default function ProductsSection({ products }: ProductsSectionProps) {
   return (
     <div className="w-full max-w-6xl mx-auto px-4">
-      <ProductsBlock title="All Products" showTabs />
-      <ProductsBlock title="Products for Testing" bgColor="bg-[#f1ebec]/60" />
+      <ProductsBlock title="All Products" showTabs products={products} />
+      <ProductsBlock
+        title="Products for Testing"
+        bgColor="bg-[#f1ebec]/60"
+        products={products}
+      />
     </div>
   );
 }
