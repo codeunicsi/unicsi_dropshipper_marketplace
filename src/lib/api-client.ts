@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/'
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/'
 
 
 
@@ -60,11 +60,13 @@ export const apiClient = {
         'Content-Type': 'application/json',
       },
     })
-    
+
+    const data = await response.json().catch(() => ({}))
     if (!response.ok) {
-      throw new Error('Failed to delete')
+      const message = (data && typeof data.message === 'string') ? data.message : response.statusText
+      throw new Error(message || 'Failed to delete')
     }
-    
-    return response.json()
+
+    return data
   },
 }
