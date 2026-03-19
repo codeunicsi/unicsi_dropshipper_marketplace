@@ -67,4 +67,28 @@ export const apiClient = {
     
     return response.json()
   },
+
+
+  postImage: async (endpoint: string, data: any) => {
+    const isFormData = data instanceof FormData;
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: "POST",
+      credentials: "include",
+      headers: isFormData
+        ? undefined // ✅ Let browser set multipart boundary
+        : {
+            "Content-Type": "application/json",
+          },
+      body: isFormData ? data : JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Something went wrong");
+    }
+
+    return response.json();
+  },
 }
+
