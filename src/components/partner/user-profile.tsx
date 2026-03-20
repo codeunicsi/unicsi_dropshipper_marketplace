@@ -27,6 +27,12 @@ interface BankFormState {
   ifscCode: string;
   proofFileName: string;
 }
+interface BankApiData {
+  holderName: string | null;
+  accountNumber: string | null;
+  ifsc: string | null;
+  bankDetailProof: string | null;
+}
 interface GstFormState {
   nameAsPerGst: string;
   gstId: string;
@@ -48,22 +54,23 @@ const UserProfilePage = () => {
 
   /* ---------------- BANK ---------------- */
   const { data: bankDetails } = useBankDetails();
-
-  useEffect(() => {
-    console.log("BANK_DETAILS:", bankDetails);
-  }, [bankDetails]);
-
-  const { mutate: createBank } = useCreateBankDetails();
-  const { mutate: updateBank } = useUpdateBankDetails();
+  const { mutateAsync: createBank, isPending: isCreatingBank } =
+    useCreateBankDetails();
+  const { mutateAsync: updateBank, isPending: isUpdatingBank } =
+    useUpdateBankDetails();
 
   /* ---------------- GST ---------------- */
   const { data: gstDetails } = useGstDetails();
+
+  console.log("GST-DATA:", gstDetails);
   const { mutate: createGst } = useCreateGstDetails();
   const { mutate: updateGst } = useUpdateGstDetails();
 
   const [isEditing, setIsEditing] = useState(false);
   const [isBankEditing, setIsBankEditing] = useState(false);
   const [isGstEditing, setIsGstEditing] = useState(false);
+  const [bankError, setBankError] = useState("");
+  const [bankProofFile, setBankProofFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const gstFileInputRef = useRef<HTMLInputElement | null>(null);
   const panFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -90,13 +97,24 @@ const UserProfilePage = () => {
   /* ---------------- BANK FORM ---------------- */
   const initialBankData = useMemo<BankFormState>(
     () => ({
-      accountHolderName: bankDetails?.data?.accountHolderName ?? "",
-      bankAccountNumber: bankDetails?.data?.bankAccountNumber ?? "",
-      ifscCode: bankDetails?.data?.ifscCode ?? "",
-      proofFileName: bankDetails?.data?.proofFileName ?? "No File Selected",
+      accountHolderName: bankDetails?.data?.holderName ?? "",
+      bankAccountNumber: bankDetails?.data?.accountNumber ?? "",
+      ifscCode: bankDetails?.data?.ifsc ?? "",
+      proofFileName: bankDetails?.data?.bankDetailProof ?? "No File Selected",
     }),
     [bankDetails],
   );
+
+  const hasExistingBankDetails = useMemo(() => {
+    const bankData = bankDetails?.data as BankApiData | null | undefined;
+    if (!bankData) return false;
+
+    return [bankData.holderName, bankData.accountNumber, bankData.ifsc].some(
+      (value) => typeof value === "string" && value.trim() !== "",
+    );
+  }, [bankDetails]);
+
+  const isBankSaving = isCreatingBank || isUpdatingBank;
 
   const [bankFormData, setBankFormData] =
     useState<BankFormState>(initialBankData);
@@ -104,6 +122,7 @@ const UserProfilePage = () => {
   useEffect(() => {
     if (!isBankEditing) {
       setBankFormData(initialBankData);
+      setBankProofFile(null);
     }
   }, [initialBankData, isBankEditing]);
 
@@ -151,21 +170,58 @@ const UserProfilePage = () => {
 
   /* ---------------- BANK ACTIONS ---------------- */
   const onBankEdit = () => {
+    setBankError("");
     setIsBankEditing(true);
   };
 
   const onBankCancel = () => {
     setBankFormData(initialBankData);
+    setBankProofFile(null);
+    setBankError("");
     setIsBankEditing(false);
   };
 
-  const onBankSave = () => {
-    if (bankDetails?.data !== null) {
-      updateBank(bankFormData);
-    } else {
-      createBank(bankFormData);
+  const onBankSave = async () => {
+    setBankError("");
+
+    const holderName = bankFormData.accountHolderName.trim();
+    const accountNumber = bankFormData.bankAccountNumber.trim();
+    const ifsc = bankFormData.ifscCode.trim().toUpperCase();
+
+    if (!holderName || !accountNumber || !ifsc) {
+      setBankError(
+        "Account holder name, account number and IFSC are required.",
+      );
+      return;
     }
-    setIsBankEditing(false);
+
+    if (!bankProofFile && !hasExistingBankDetails) {
+      setBankError("Bank detail proof file is required.");
+      return;
+    }
+
+    const payload = new FormData();
+    payload.append("holderName", holderName);
+    payload.append("accountNumber", accountNumber);
+    payload.append("ifsc", ifsc);
+    if (bankProofFile) {
+      payload.append("bankDetailProof", bankProofFile);
+    }
+
+    try {
+      if (hasExistingBankDetails) {
+        await updateBank(payload);
+      } else {
+        await createBank(payload);
+      }
+      setIsBankEditing(false);
+    } catch (error) {
+      setBankError(
+        error instanceof Error
+          ? error.message
+          : "Unable to save bank details. Please try again.",
+      );
+    }
   };
 
   /* ---------------- GST ACTIONS ---------------- */
@@ -319,9 +375,10 @@ const UserProfilePage = () => {
                 type="button"
                 className="my-button h-12 px-4 text-sm font-semibold text-white"
                 onClick={onBankSave}
+                disabled={isBankSaving}
               >
                 <Check className="h-5 w-5" />
-                Save
+                {isBankSaving ? "Saving..." : "Save"}
               </Button>
             </div>
           ) : (
@@ -407,6 +464,7 @@ const UserProfilePage = () => {
                 onChange={(e) => {
                   const selectedFile = e.target.files?.[0];
                   if (!selectedFile) return;
+                  setBankProofFile(selectedFile);
                   setBankFormData((prev) => ({
                     ...prev,
                     proofFileName: selectedFile.name,
@@ -431,6 +489,9 @@ const UserProfilePage = () => {
               Uploaded image should clearly show the account holder&apos;s name
               and bank account number.
             </p>
+            {bankError && (
+              <p className="text-xs font-medium text-red-600">{bankError}</p>
+            )}
           </div>
         </div>
       </div>
