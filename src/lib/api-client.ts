@@ -1,70 +1,72 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/'
-
-
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1/";
 
 export const apiClient = {
   get: async (endpoint: string) => {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-    })
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+    });
 
-    const data = await response.json().catch(() => ({}))
+    const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      const message = (data && typeof data.message === 'string') ? data.message : response.statusText
-      throw new Error(message)
+      const message =
+        data && typeof data.message === "string"
+          ? data.message
+          : response.statusText;
+      throw new Error(message);
     }
-    return data
+    return data;
   },
 
   post: async (endpoint: string, data: any) => {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: 'POST',
-      credentials: 'include',
+      method: "POST",
+      credentials: "include",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
-    })
-    
+    });
+
     if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Something went wrong')
+      const error = await response.json();
+      throw new Error(error.message || "Something went wrong");
     }
-    
-    return response.json()
+
+    return response.json();
   },
 
   put: async (endpoint: string, data: any) => {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: 'PUT',
-      credentials: 'include',
+      method: "PUT",
+      credentials: "include",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
-    })
-    
+    });
+
     if (!response.ok) {
-      throw new Error('Failed to update')
+      throw new Error("Failed to update");
     }
-    
-    return response.json()
+
+    return response.json();
   },
 
   delete: async (endpoint: string) => {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: 'DELETE',
-      credentials: 'include',
+      method: "DELETE",
+      credentials: "include",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
-    })
-    
+    });
+
     if (!response.ok) {
-      throw new Error('Failed to delete')
+      throw new Error("Failed to delete");
     }
-    
-    return response.json()
+
+    return response.json();
   },
-}
+};

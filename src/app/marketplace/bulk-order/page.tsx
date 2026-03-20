@@ -19,9 +19,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const MOQ = 10;
 const DEFAULT_MARGIN = 8;
+const ADMIN_PAYMENT_DETAILS = {
+  upiId: "payments@unicsi",
+  accountName: "Unicsi Marketplace Pvt Ltd",
+  accountNumber: "50200099887766",
+  ifsc: "HDFC0000456",
+  bankName: "HDFC Bank",
+};
 
 const ORDER_STEPS = [
   "Customer visits a product page",
@@ -82,8 +97,11 @@ export default function BulkOrderPage() {
   const [transactionId, setTransactionId] = useState("");
   const [paymentScreenshot, setPaymentScreenshot] = useState<File | null>(null);
   const [orderCreated, setOrderCreated] = useState(false);
+  const [paymentWindowCompleted, setPaymentWindowCompleted] = useState(false);
   const [paymentSubmitted, setPaymentSubmitted] = useState(false);
   const [adminVerified, setAdminVerified] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isOrderPlacedModalOpen, setIsOrderPlacedModalOpen] = useState(false);
 
   const pricing = useMemo(() => {
     const sellingPrice =
@@ -122,7 +140,15 @@ export default function BulkOrderPage() {
     phone.trim() &&
     deliveryAddress.trim();
   const canSubmitPayment =
-    orderCreated && transactionId.trim() && Boolean(paymentScreenshot);
+    orderCreated &&
+    paymentWindowCompleted &&
+    transactionId.trim() &&
+    Boolean(paymentScreenshot);
+
+  const handleOK = () => {
+    console.log("CLICKED OK!");
+    setIsOrderPlacedModalOpen(false);
+  };
 
   return (
     <main className="min-h-screen bg-slate-50 py-8">
@@ -220,16 +246,24 @@ export default function BulkOrderPage() {
               </div>
 
               <Button
-                className="w-full bg-cyan-700 text-white hover:bg-cyan-800"
+                className="w-full border border-cyan-700 bg-cyan-700 hover:bg-cyan-600 text-white shadow-lg cursor-pointer"
                 disabled={!canCreateOrder}
                 onClick={() => {
                   setOrderCreated(true);
+                  setPaymentWindowCompleted(false);
                   setPaymentSubmitted(false);
                   setAdminVerified(false);
+                  setIsPaymentModalOpen(true);
                 }}
               >
                 Create Order (Status: Pending Payment)
               </Button>
+              {paymentWindowCompleted && (
+                <p className="text-xs font-medium text-emerald-700">
+                  Payment window completed. Now upload transaction ID and
+                  screenshot.
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -266,6 +300,7 @@ export default function BulkOrderPage() {
               <div className="grid gap-2 sm:grid-cols-2">
                 <Button
                   variant="outline"
+                  className="hover:bg-gray-100 cursor-pointer"
                   disabled={!canSubmitPayment}
                   onClick={() => {
                     setPaymentSubmitted(true);
@@ -277,8 +312,11 @@ export default function BulkOrderPage() {
                 </Button>
                 <Button
                   disabled={!paymentSubmitted}
-                  className="bg-emerald-600 text-white hover:bg-emerald-700"
-                  onClick={() => setAdminVerified(true)}
+                  className="border border-white bg-emerald-700 hover:bg-emerald-700 text-white shadow-lg cursor-pointer"
+                  onClick={() => {
+                    setAdminVerified(true);
+                    setIsOrderPlacedModalOpen(true);
+                  }}
                 >
                   <CheckCircle2 className="mr-2 h-4 w-4" />
                   Mark Admin Verified
@@ -526,6 +564,93 @@ export default function BulkOrderPage() {
           </Card>
         </section> */}
       </div>
+
+      <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Pay to Unicsi Admin Account</DialogTitle>
+            <DialogDescription>
+              Customer can pay manually via UPI or bank transfer. After
+              successful payment, click the button below to close this window.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-lg border border-cyan-100 bg-cyan-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-cyan-700">
+                UPI Payment
+              </p>
+              <p className="mt-2 text-sm text-slate-700">UPI ID</p>
+              <p className="font-semibold text-slate-900">
+                {ADMIN_PAYMENT_DETAILS.upiId}
+              </p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                Bank Transfer
+              </p>
+              <p className="mt-2 text-sm text-slate-700">
+                Account Name:{" "}
+                <span className="font-semibold text-slate-900">
+                  {ADMIN_PAYMENT_DETAILS.accountName}
+                </span>
+              </p>
+              <p className="text-sm text-slate-700">
+                Account Number:{" "}
+                <span className="font-semibold text-slate-900">
+                  {ADMIN_PAYMENT_DETAILS.accountNumber}
+                </span>
+              </p>
+              <p className="text-sm text-slate-700">
+                IFSC:{" "}
+                <span className="font-semibold text-slate-900">
+                  {ADMIN_PAYMENT_DETAILS.ifsc}
+                </span>
+              </p>
+              <p className="text-sm text-slate-700">
+                Bank:{" "}
+                <span className="font-semibold text-slate-900">
+                  {ADMIN_PAYMENT_DETAILS.bankName}
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              className="bg-emerald-600 text-white hover:bg-emerald-700"
+              onClick={() => {
+                setPaymentWindowCompleted(true);
+                setIsPaymentModalOpen(false);
+              }}
+            >
+              Payment Successful
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isOrderPlacedModalOpen}
+        onOpenChange={setIsOrderPlacedModalOpen}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Order placed Successfully!</DialogTitle>
+            <DialogDescription>
+              Your order has been confirmed and will be processed soon.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              onClick={handleOK}
+              className="border border-cyan-100 bg-linear-to-r from-cyan-700 to-teal-600 text-white shadow-lg cursor-pointer"
+            >
+              OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
