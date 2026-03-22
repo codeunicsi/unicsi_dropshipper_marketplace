@@ -12,21 +12,19 @@ const SourceProductPage = () => {
 
   const [loading, setLoading] = useState(false);
 
-  // Handle image change
   const handleImageChange = (file: File | null) => {
     if (file) {
       setImage(file);
-      setUrl(""); // clear URL if image selected
+      setUrl("");
     } else {
       setImage(null);
     }
   };
 
-  // Handle URL change
   const handleUrlChange = (value: string) => {
     setUrl(value);
     if (value) {
-      setImage(null); // clear image if URL entered
+      setImage(null);
     }
   };
 
@@ -46,18 +44,15 @@ const SourceProductPage = () => {
     try {
       setLoading(true);
 
-      // ✅ Use FormData instead of JSON
       const formData = new FormData();
-
       formData.append("productName", productName.trim());
       formData.append("productCategory", category);
       formData.append("expectedPrice", price);
 
-      // ✅ Conditional append
       if (image) {
-        formData.append("productImage", image); // file
+        formData.append("productImage", image);
       } else if (url) {
-        formData.append("productImageUrl", url); // string
+        formData.append("productImageUrl", url);
       }
 
       const res = await apiClient.postImage(
@@ -69,7 +64,6 @@ const SourceProductPage = () => {
 
       alert("✅ Request submitted successfully");
 
-      // Reset form
       setProductName("");
       setCategory("");
       setPrice("");
@@ -84,89 +78,91 @@ const SourceProductPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center">
-      {/* Left Section */}
-      <div className="w-1/2 hidden md:block px-10">
-        <h1 className="text-3xl font-bold text-gray-800 mb-4">
-          Can’t find what you need?
-        </h1>
-        <p className="text-gray-600">
-          Tell us what you're looking for and we'll try to source it.
-        </p>
-      </div>
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-6">
+      <div className="w-full max-w-7xl grid md:grid-cols-5 gap-10 items-center">
+        {/* LEFT SECTION - 40% */}
+        <div className="md:col-span-2">
+          <h1 className="text-4xl font-bold text-gray-800 mb-4">
+            Can’t find what you need?
+          </h1>
+          <p className="text-lg text-gray-600">
+            Tell us what you're looking for and we'll try to source it for you.
+          </p>
+        </div>
 
-      {/* Right Section */}
-      <div className="w-full md:w-1/2 flex justify-end px-4">
-        <div className="w-full max-w-md bg-white rounded-xl shadow-md p-6">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">
-            Your Search Ends Here!
-          </h2>
+        {/* RIGHT SECTION - 60% */}
+        <div className="md:col-span-3 flex justify-center">
+          <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lg p-10 md:p-12">
+            <h2 className="text-3xl font-semibold text-gray-800 mb-6">
+              Your Search Ends Here!
+            </h2>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Product Name */}
-            <input
-              type="text"
-              value={productName}
-              onChange={(e) => setProductName(e.target.value)}
-              placeholder="Enter product name"
-              className="w-full px-3 py-2 border rounded-md text-sm"
-            />
-
-            {/* Category */}
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md text-sm"
-            >
-              <option value="">Select category</option>
-              <option>Electronics</option>
-              <option>Clothing</option>
-              <option>Accessories</option>
-            </select>
-
-            {/* Image + URL */}
-            <div className="grid grid-cols-2 gap-3">
-              {/* Image Upload */}
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Product Name */}
               <input
-                type="file"
-                disabled={!!url}
-                onChange={(e) => handleImageChange(e.target.files?.[0] || null)}
-                className={`text-sm border rounded-md p-1 ${
-                  url ? "opacity-50 cursor-not-allowed" : ""
-                }`}
+                type="text"
+                value={productName}
+                onChange={(e) => setProductName(e.target.value)}
+                placeholder="Enter product name"
+                className="w-full px-4 py-3.5 border rounded-lg text-[15px]"
               />
 
-              {/* URL Input */}
+              {/* Category */}
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full px-4 py-3.5 border rounded-lg text-[15px]"
+              >
+                <option value="">Select category</option>
+                <option>Electronics</option>
+                <option>Clothing</option>
+                <option>Accessories</option>
+              </select>
+
+              {/* Image + URL */}
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="file"
+                  disabled={!!url}
+                  onChange={(e) =>
+                    handleImageChange(e.target.files?.[0] || null)
+                  }
+                  className={`text-sm border rounded-lg p-2 ${
+                    url ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                />
+
+                <input
+                  type="url"
+                  value={url}
+                  disabled={!!image}
+                  onChange={(e) => handleUrlChange(e.target.value)}
+                  placeholder="https://product-link.com"
+                  className={`px-4 py-3.5 border rounded-lg text-[15px] ${
+                    image ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                />
+              </div>
+
+              {/* Price */}
               <input
-                type="url"
-                value={url}
-                disabled={!!image}
-                onChange={(e) => handleUrlChange(e.target.value)}
-                placeholder="https://product-link.com"
-                className={`px-3 py-2 border rounded-md text-sm ${
-                  image ? "opacity-50 cursor-not-allowed" : ""
-                }`}
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="Enter expected price"
+                className="w-full px-4 py-3.5 border rounded-lg text-[15px]"
               />
-            </div>
 
-            {/* Price */}
-            <input
-              type="number"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="Enter expected price"
-              className="w-full px-3 py-2 border rounded-md text-sm"
-            />
-
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#61ca6b] text-white py-2 rounded-md hover:opacity-90"
-            >
-              {loading ? "Submitting..." : "Submit Request"}
-            </button>
-          </form>
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-[#61ca6b] text-white py-3.5 rounded-lg text-lg font-medium hover:opacity-90 transition"
+              >
+                {loading ? "Submitting..." : "Submit Request"}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>
