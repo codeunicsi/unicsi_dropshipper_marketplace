@@ -1,17 +1,19 @@
-"use client";
-import Banner from "@/components/partner/banner";
-import TopCategories from "@/components/partner/top-categories";
-import ProductsSection from "@/components/partner/product-section";
-import { Product, useProducts } from "@/hooks/marketplace/useProduct";
+'use client'
 
-export default function Marketplace() {
-  const { data: products, isLoading, error } = useProducts();
-  console.log("products ==>", products?.data);
+import { useSearchParams } from 'next/navigation'
+import Banner from '@/components/partner/banner'
+import TopCategories from '@/components/partner/top-categories'
+import ProductsSection from '@/components/partner/product-section'
+
+export default function MarketplaceHome() {
+  const searchParams = useSearchParams()
+  const categoryId = searchParams?.get('categoryId') ?? undefined
+
   return (
     <>
       <Banner />
       <TopCategories />
-      <ProductsSection products={products?.data || []} />
+      <ProductsSection categoryId={categoryId} />
     </>
-  );
+  )
 }
