@@ -57,12 +57,20 @@ export default function ProductCard({
       <div className="flex-1">
         {/* Image */}
         <div className="relative w-full h-36 mb-3 bg-slate-100 rounded-md overflow-hidden">
-          <Image
-            src={image || "/placeholder.png"}
-            alt={name}
-            fill
-            className="object-cover hover:scale-105 transition-transform duration-200"
-          />
+          {image ? (
+            <img
+              src={image}
+              alt={name}
+              className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src =
+                  "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop";
+                (e.target as HTMLImageElement).onerror = null;
+              }}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">No image</div>
+          )}
         </div>
 
         {/* Info */}
