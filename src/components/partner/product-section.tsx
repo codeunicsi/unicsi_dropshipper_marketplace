@@ -15,51 +15,97 @@ const PRODUCT_TABS = [
   "Popular Demand",
 ];
 
-const SAMPLE_PRODUCTS = [
+// ✅ Dummy product (matches backend structure)
+const dummyProducts: Product[] = [
   {
-    id: "1",
-    name: "Nike Shoes - Men",
-    price: 3999,
-    image:
-      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop",
-  },
-  {
-    id: "2",
-    name: "Running Sneakers Pro",
-    price: 4499,
-    image:
-      "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=400&h=400&fit=crop",
-  },
-  {
-    id: "3",
-    name: "Casual Canvas Shoes",
-    price: 2499,
-    image:
-      "https://images.unsplash.com/photo-1441239372925-ac0b51c4c250?w=400&h=400&fit=crop",
-  },
-  {
-    id: "4",
-    name: "Premium Leather Boots",
-    price: 5999,
-    image:
-      "https://images.unsplash.com/photo-1543163521-9733539c2d7f?w=400&h=400&fit=crop",
+    product_id: "dummy-product-1",
+    supplier_id: "dummy-supplier",
+    title: "Premium Cotton T-Shirt",
+    description: "High quality cotton t-shirt for everyday wear",
+    category_id: null,
+    brand: "Unicsi",
+    approval_status: "approved",
+    lifecycle_status: "active",
+    approved_by: "dummy-admin",
+    approved_at: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+
+    variants: [
+      {
+        variant_id: "dummy-variant-1",
+        product_id: "dummy-product-1",
+        sku: "TS-WHT-S",
+        title: null,
+        price: "19.99",
+        compare_at_price: "25",
+        cost_price: null,
+        inventory_quantity: 80,
+        inventory_management: "shopify",
+        weight_grams: 250,
+        option1: "White",
+        option2: "S",
+        option3: null,
+        shopify_variant_id: null,
+        attributes: {},
+        is_active: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ],
+
+    images: [
+      {
+        id: "dummy-image-1",
+        product_id: "dummy-product-1",
+        variant_id: null,
+        image_url: "/placeholder.png",
+        shopify_image_id: null,
+        alt_text: "Premium Cotton T-Shirt",
+        sort_order: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ],
   },
 ];
+
+// ✅ Transform function (unchanged)
+const transformProducts = (products: Product[]) => {
+  return products.map((product) => {
+    const firstVariant = product.variants?.find((v) => v.is_active);
+    const firstImage = product.images?.[0];
+
+    return {
+      id: product.product_id,
+      name: product.title,
+      price: Number(firstVariant?.price ?? 0),
+      image: firstImage?.image_url || "/placeholder.png",
+      stock: firstVariant?.inventory_quantity ?? 0,
+      color: firstVariant?.option1 ?? "",
+      size: firstVariant?.option2 ?? "",
+    };
+  });
+};
 
 type ProductsBlockProps = {
   title: string;
   bgColor?: string;
   showTabs?: boolean;
+  products: Product[];
 };
 
 function ProductsBlock({
   title,
   bgColor = "bg-white",
   showTabs,
+  products,
 }: ProductsBlockProps) {
   const [activeTab, setActiveTab] = useState(0);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  const formattedProducts = transformProducts(products);
 
   const handleScroll = (direction: "left" | "right") => {
     if (!scrollRef.current) return;
@@ -116,7 +162,7 @@ function ProductsBlock({
         ref={scrollRef}
         className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
       >
-        {SAMPLE_PRODUCTS.map((product) => (
+        {formattedProducts.map((product) => (
           <ProductCard
             key={product.id}
             {...product}
