@@ -76,8 +76,8 @@ const menuItems = [
   },
   {
     icon: Truck,
-    label: "Source a Product",
-    href: "/marketplace/source-a-product",
+    label: "Hands a Product",
+    href: "/marketplace/hands-a-product",
     // children: [
     //   { label: 'Courier Partners', href: '/admin/logistics/partners' },
     //   { label: 'Serviceability', href: '/admin/logistics/serviceability' },

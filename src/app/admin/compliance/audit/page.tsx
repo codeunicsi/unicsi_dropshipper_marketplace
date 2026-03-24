@@ -1,17 +1,19 @@
-'use client'
+"use client";
 
-import { Card, CardContent } from '@/components/ui/card'
-import { Search } from 'lucide-react'
-import { useSearchParams } from 'next/navigation'
-import { Suspense } from 'react'
-import Loading from './loading'
+import { Card, CardContent } from "@/components/ui/card";
+import { Search } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import Loading from "./loading";
 
 export default function AuditLogsPage() {
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Audit Logs</h1>
-        <p className="text-muted-foreground">Complete system activity and change tracking</p>
+        <p className="text-muted-foreground">
+          Complete system activity and change tracking
+        </p>
       </div>
 
       <Card>
@@ -70,5 +72,5 @@ export default function AuditLogsPage() {
         </Card>
       </Suspense>
     </div>
-  )
+  );
 }
