@@ -27,9 +27,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useOrder } from "@/hooks/useOrder";
 
 const MOQ = 10;
 const DEFAULT_MARGIN = 8;
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const LEGACY_PRODUCT_ID_MAP: Record<string, string> = {
+  "1": "8f7b8d8f-3c2f-4d7a-9c2a-4c8f9d24a101",
+  "2": "2c3de35c-7e1e-4b0c-b82f-3e5957d9b202",
+  "3": "b9b64e2e-2c94-4e31-8f09-12e41b16c303",
+  "4": "4d90f6d3-c8f9-45f8-a9bd-7dd8f4c4d404",
+};
 const ADMIN_PAYMENT_DETAILS = {
   upiId: "payments@unicsi",
   accountName: "Unicsi Marketplace Pvt Ltd",
@@ -83,10 +92,16 @@ const MODULES = [
 ];
 
 export default function BulkOrderPage() {
+  const { createBulkOrder } = useOrder();
   const searchParams = useSearchParams();
-  const productId = searchParams.get("productId") || "N/A";
+  const rawProductId =
+    searchParams.get("productId") || searchParams.get("id") || "";
+  const productId =
+    LEGACY_PRODUCT_ID_MAP[rawProductId.trim()] || rawProductId.trim();
   const productName =
     searchParams.get("productName") || "Selected Marketplace Product";
+  const productIdDisplay = productId || "N/A";
+  const isValidProductId = UUID_REGEX.test(productId);
   const sellingPriceInput = Number(searchParams.get("sellingPrice") || 100);
 
   const [quantity, setQuantity] = useState(MOQ);
@@ -102,6 +117,18 @@ export default function BulkOrderPage() {
   const [adminVerified, setAdminVerified] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isOrderPlacedModalOpen, setIsOrderPlacedModalOpen] = useState(false);
+  const [orderError, setOrderError] = useState("");
+  const [orderPayload, setOrderPayload] = useState<{
+    productId: string;
+    quantity: number;
+    customerName: string;
+    customerPhone: string;
+    customerEmail?: string;
+    deliveryAddress: string;
+    paymentMode: string;
+    amount: number;
+    notes?: string;
+  } | null>(null);
 
   const pricing = useMemo(() => {
     const sellingPrice =
@@ -135,6 +162,7 @@ export default function BulkOrderPage() {
         : 4;
   const isQuantityValid = quantity >= MOQ;
   const canCreateOrder =
+    isValidProductId &&
     isQuantityValid &&
     customerName.trim() &&
     phone.trim() &&
@@ -167,7 +195,7 @@ export default function BulkOrderPage() {
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl bg-white/15 p-3">
               <p className="text-xs text-cyan-100">Product ID</p>
-              <p className="font-semibold">{productId}</p>
+              <p className="font-semibold">{productIdDisplay}</p>
             </div>
             <div className="rounded-xl bg-white/15 p-3">
               <p className="text-xs text-cyan-100">Product Name</p>
@@ -249,6 +277,21 @@ export default function BulkOrderPage() {
                 className="w-full border border-cyan-700 bg-cyan-700 hover:bg-cyan-600 text-white shadow-lg cursor-pointer"
                 disabled={!canCreateOrder}
                 onClick={() => {
+                  setOrderError("");
+                  const payload = {
+                    productId,
+                    quantity,
+                    customerName,
+                    customerPhone: phone,
+                    customerEmail: email,
+                    deliveryAddress,
+                    paymentMode: "upi",
+                    amount: pricing.totalAmount,
+                    notes: "",
+                  };
+
+                  setOrderPayload(payload); // ✅ save locally
+
                   setOrderCreated(true);
                   setPaymentWindowCompleted(false);
                   setPaymentSubmitted(false);
@@ -262,6 +305,12 @@ export default function BulkOrderPage() {
                 <p className="text-xs font-medium text-emerald-700">
                   Payment window completed. Now upload transaction ID and
                   screenshot.
+                </p>
+              )}
+              {!isValidProductId && (
+                <p className="text-xs font-medium text-red-600">
+                  Invalid product ID. Please open bulk order from product card
+                  again.
                 </p>
               )}
             </CardContent>
@@ -313,15 +362,39 @@ export default function BulkOrderPage() {
                 <Button
                   disabled={!paymentSubmitted}
                   className="border border-white bg-emerald-700 hover:bg-emerald-700 text-white shadow-lg cursor-pointer"
-                  onClick={() => {
-                    setAdminVerified(true);
-                    setIsOrderPlacedModalOpen(true);
+                  onClick={async () => {
+                    try {
+                      setOrderError("");
+                      if (!orderPayload || !paymentScreenshot) return;
+                      if (!isValidProductId) {
+                        setOrderError("Invalid productId. Please select a valid product.");
+                        return;
+                      }
+
+                      await createBulkOrder.mutateAsync({
+                        ...orderPayload,
+                        transactionReference: transactionId,
+                        paymentScreenshot,
+                      });
+
+                      setAdminVerified(true);
+                      setIsOrderPlacedModalOpen(true);
+                    } catch (error) {
+                      const message =
+                        error instanceof Error
+                          ? error.message
+                          : "Unable to create bulk order";
+                      setOrderError(message);
+                    }
                   }}
                 >
                   <CheckCircle2 className="mr-2 h-4 w-4" />
                   Mark Admin Verified
                 </Button>
               </div>
+              {orderError && (
+                <p className="text-xs font-medium text-red-600">{orderError}</p>
+              )}
             </CardContent>
           </Card>
         </section>
@@ -377,192 +450,6 @@ export default function BulkOrderPage() {
             </CardContent>
           </Card>
         </section>
-
-        {/* <section className="mt-6 grid gap-4 lg:grid-cols-2">
-          <Card className="gap-4">
-            <CardHeader>
-              <CardTitle>Operational Flow (Step by Step)</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {ORDER_STEPS.map((step, index) => {
-                const isDone = index + 1 <= currentStep;
-                return (
-                  <div
-                    key={step}
-                    className={`flex items-start gap-3 rounded-lg border p-3 ${
-                      isDone
-                        ? "border-emerald-200 bg-emerald-50"
-                        : "border-slate-200 bg-white"
-                    }`}
-                  >
-                    <div
-                      className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                        isDone
-                          ? "bg-emerald-600 text-white"
-                          : "bg-slate-200 text-slate-700"
-                      }`}
-                    >
-                      {index + 1}
-                    </div>
-                    <p className="text-sm text-slate-700">{step}</p>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-
-          <Card className="gap-4">
-            <CardHeader>
-              <CardTitle>Main System Modules</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {MODULES.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <div
-                    key={item.title}
-                    className="flex items-center gap-3 rounded-lg border border-slate-200 p-3"
-                  >
-                    <div className="rounded-md bg-cyan-50 p-2 text-cyan-700">
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-900">
-                        {item.title}
-                      </p>
-                      <p className="text-sm text-slate-600">{item.note}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-        </section> */}
-
-        {/* <section className="mt-6 grid gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5 text-cyan-700" />
-                Database Structure Overview
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <SchemaBlock
-                title="Users"
-                fields={["user_id", "name", "phone", "email", "role", "address"]}
-              />
-              <SchemaBlock
-                title="Suppliers"
-                fields={[
-                  "supplier_id",
-                  "business_name",
-                  "contact_person",
-                  "pickup_address",
-                  "bank_details",
-                ]}
-              />
-              <SchemaBlock
-                title="Products"
-                fields={[
-                  "product_id",
-                  "supplier_id",
-                  "product_name",
-                  "supplier_price",
-                  "platform_margin",
-                  "selling_price",
-                  "stock",
-                  "weight",
-                ]}
-              />
-              <SchemaBlock
-                title="Orders"
-                fields={[
-                  "order_id",
-                  "customer_id",
-                  "product_id",
-                  "supplier_id",
-                  "quantity",
-                  "total_amount",
-                  "order_status",
-                  "payment_status",
-                ]}
-              />
-              <SchemaBlock
-                title="Payments"
-                fields={[
-                  "payment_id",
-                  "order_id",
-                  "transaction_id",
-                  "payment_screenshot",
-                  "verification_status",
-                ]}
-              />
-              <SchemaBlock
-                title="Shipping"
-                fields={[
-                  "shipment_id",
-                  "order_id",
-                  "courier_name",
-                  "tracking_number",
-                  "shipping_status",
-                ]}
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <IndianRupee className="h-5 w-5 text-cyan-700" />
-                Profit Model Example
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                <p>Supplier Price = INR 90</p>
-                <p>Platform Margin = INR 10</p>
-                <p>Selling Price = INR 100</p>
-                <p className="mt-2 font-semibold">If customer orders 100 units:</p>
-                <p>Total Sale = INR 10,000</p>
-                <p>Supplier Payment = INR 9,000</p>
-                <p>Platform Profit = INR 1,000</p>
-              </div>
-              <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-4 text-sm text-cyan-900">
-                <p className="font-semibold">Settlement Logic</p>
-                <p className="mt-2">1. Customer pays to platform account.</p>
-                <p>2. Platform deducts margin.</p>
-                <p>3. Remaining amount is paid to supplier.</p>
-                <p>4. Supplier payouts can run weekly.</p>
-              </div>
-            </CardContent>
-          </Card>
-        </section> */}
-
-        {/* <section className="mt-6">
-          <Card>
-            <CardContent className="flex flex-col gap-3 py-6 text-sm sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 text-slate-700">
-                <PackageCheck className="h-5 w-5 text-cyan-700" />
-                <span>
-                  Current Status:{" "}
-                  <strong>
-                    {adminVerified
-                      ? "Confirmed - Ready for Supplier Dispatch"
-                      : paymentSubmitted
-                        ? "Payment Under Admin Verification"
-                        : orderCreated
-                          ? "Pending Payment"
-                          : "Draft / Fill Form"}
-                  </strong>
-                </span>
-              </div>
-              <Button className="bg-cyan-700 text-white hover:bg-cyan-800">
-                Generate Platform Invoice
-              </Button>
-            </CardContent>
-          </Card>
-        </section> */}
       </div>
 
       <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>

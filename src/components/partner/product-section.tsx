@@ -16,28 +16,28 @@ const PRODUCT_TABS = [
 
 const SAMPLE_PRODUCTS = [
   {
-    id: "1",
+    id: "8f7b8d8f-3c2f-4d7a-9c2a-4c8f9d24a101",
     name: "Nike Shoes - Men",
     price: 3999,
     image:
       "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop",
   },
   {
-    id: "2",
+    id: "2c3de35c-7e1e-4b0c-b82f-3e5957d9b202",
     name: "Running Sneakers Pro",
     price: 4499,
     image:
       "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=400&h=400&fit=crop",
   },
   {
-    id: "3",
+    id: "b9b64e2e-2c94-4e31-8f09-12e41b16c303",
     name: "Casual Canvas Shoes",
     price: 2499,
     image:
       "https://images.unsplash.com/photo-1441239372925-ac0b51c4c250?w=400&h=400&fit=crop",
   },
   {
-    id: "4",
+    id: "4d90f6d3-c8f9-45f8-a9bd-7dd8f4c4d404",
     name: "Premium Leather Boots",
     price: 5999,
     image:
