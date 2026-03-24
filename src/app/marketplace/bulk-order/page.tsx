@@ -102,7 +102,6 @@ export default function BulkOrderPage() {
     error: adminBankError,
   } = useAdminBankDetails();
   const sellingPriceInput = Number(searchParams.get("sellingPrice") || 100);
-
   const [quantity, setQuantity] = useState(MOQ);
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
@@ -143,7 +142,8 @@ export default function BulkOrderPage() {
         companyBank?.accountNumber ??
         "Not available",
       ifsc: companyBank?.ifsc_code ?? companyBank?.ifscCode ?? "Not available",
-      bankName: companyBank?.bank_name ?? companyBank?.bankName ?? "Not available",
+      bankName:
+        companyBank?.bank_name ?? companyBank?.bankName ?? "Not available",
       qrCode: companyBank?.qr_code ?? companyBank?.qrCode ?? "",
     };
   }, [adminBankDetailsResponse]);
@@ -308,8 +308,7 @@ export default function BulkOrderPage() {
                     notes: "",
                   };
 
-                  setOrderPayload(payload); // ✅ save locally
-
+                  setOrderPayload(payload); // save locally
                   setOrderCreated(true);
                   setPaymentWindowCompleted(false);
                   setPaymentSubmitted(false);
