@@ -27,12 +27,24 @@ interface BankFormState {
   ifscCode: string;
   proofFileName: string;
 }
+interface BankApiData {
+  holderName: string | null;
+  accountNumber: string | null;
+  ifsc: string | null;
+  bankDetailProof: string | null;
+}
 interface GstFormState {
   nameAsPerGst: string;
   gstId: string;
   gstCertificateFileName: string;
   panCardNumber: string;
   panCardFileName: string;
+}
+interface GstApiData {
+  gstNumber: string | null;
+  gstCertificate: string | null;
+  panCardNumber: string | null;
+  panCardNumberImage: string | null;
 }
 const UserProfilePage = () => {
   const { data: user } = useUser();
@@ -48,22 +60,28 @@ const UserProfilePage = () => {
 
   /* ---------------- BANK ---------------- */
   const { data: bankDetails } = useBankDetails();
-
-  useEffect(() => {
-    console.log("BANK_DETAILS:", bankDetails);
-  }, [bankDetails]);
-
-  const { mutate: createBank } = useCreateBankDetails();
-  const { mutate: updateBank } = useUpdateBankDetails();
+  const { mutateAsync: createBank, isPending: isCreatingBank } =
+    useCreateBankDetails();
+  const { mutateAsync: updateBank, isPending: isUpdatingBank } =
+    useUpdateBankDetails();
 
   /* ---------------- GST ---------------- */
   const { data: gstDetails } = useGstDetails();
-  const { mutate: createGst } = useCreateGstDetails();
-  const { mutate: updateGst } = useUpdateGstDetails();
+  const { mutateAsync: createGst, isPending: isCreatingGst } =
+    useCreateGstDetails();
+  const { mutateAsync: updateGst, isPending: isUpdatingGst } =
+    useUpdateGstDetails();
 
   const [isEditing, setIsEditing] = useState(false);
   const [isBankEditing, setIsBankEditing] = useState(false);
   const [isGstEditing, setIsGstEditing] = useState(false);
+  const [bankError, setBankError] = useState("");
+  const [gstError, setGstError] = useState("");
+  const [bankProofFile, setBankProofFile] = useState<File | null>(null);
+  const [gstCertificateFile, setGstCertificateFile] = useState<File | null>(
+    null,
+  );
+  const [panCardFile, setPanCardFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const gstFileInputRef = useRef<HTMLInputElement | null>(null);
   const panFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -90,13 +108,24 @@ const UserProfilePage = () => {
   /* ---------------- BANK FORM ---------------- */
   const initialBankData = useMemo<BankFormState>(
     () => ({
-      accountHolderName: bankDetails?.data?.accountHolderName ?? "",
-      bankAccountNumber: bankDetails?.data?.bankAccountNumber ?? "",
-      ifscCode: bankDetails?.data?.ifscCode ?? "",
-      proofFileName: bankDetails?.data?.proofFileName ?? "No File Selected",
+      accountHolderName: bankDetails?.data?.holderName ?? "",
+      bankAccountNumber: bankDetails?.data?.accountNumber ?? "",
+      ifscCode: bankDetails?.data?.ifsc ?? "",
+      proofFileName: bankDetails?.data?.bankDetailProof ?? "No File Selected",
     }),
     [bankDetails],
   );
+
+  const hasExistingBankDetails = useMemo(() => {
+    const bankData = bankDetails?.data as BankApiData | null | undefined;
+    if (!bankData) return false;
+
+    return [bankData.holderName, bankData.accountNumber, bankData.ifsc].some(
+      (value) => typeof value === "string" && value.trim() !== "",
+    );
+  }, [bankDetails]);
+
+  const isBankSaving = isCreatingBank || isUpdatingBank;
 
   const [bankFormData, setBankFormData] =
     useState<BankFormState>(initialBankData);
@@ -104,27 +133,45 @@ const UserProfilePage = () => {
   useEffect(() => {
     if (!isBankEditing) {
       setBankFormData(initialBankData);
+      setBankProofFile(null);
     }
   }, [initialBankData, isBankEditing]);
 
   /* ---------------- GST FORM ---------------- */
   const initialGstData = useMemo<GstFormState>(
     () => ({
-      nameAsPerGst: gstDetails?.data?.nameAsPerGst ?? "",
-      gstId: gstDetails?.data?.gstId ?? "",
+      nameAsPerGst: profile?.data?.name ?? "",
+      gstId: gstDetails?.data?.gstNumber ?? "",
       gstCertificateFileName:
-        gstDetails?.data?.gstCertificateFileName ?? "No File Selected",
+        gstDetails?.data?.gstCertificate ?? "No File Selected",
       panCardNumber: gstDetails?.data?.panCardNumber ?? "",
-      panCardFileName: gstDetails?.data?.panCardFileName ?? "No File Selected",
+      panCardFileName:
+        gstDetails?.data?.panCardNumberImage ?? "No File Selected",
     }),
-    [gstDetails],
+    [gstDetails, profile?.data?.name],
   );
+
+  const hasExistingGstDetails = useMemo(() => {
+    const gstData = gstDetails?.data as GstApiData | null | undefined;
+    if (!gstData) return false;
+
+    return [
+      gstData.gstNumber,
+      gstData.panCardNumber,
+      gstData.gstCertificate,
+      gstData.panCardNumberImage,
+    ].some((value) => typeof value === "string" && value.trim() !== "");
+  }, [gstDetails]);
+
+  const isGstSaving = isCreatingGst || isUpdatingGst;
 
   const [gstFormData, setGstFormData] = useState<GstFormState>(initialGstData);
 
   useEffect(() => {
     if (!isGstEditing) {
       setGstFormData(initialGstData);
+      setGstCertificateFile(null);
+      setPanCardFile(null);
     }
   }, [initialGstData, isGstEditing]);
 
@@ -151,40 +198,119 @@ const UserProfilePage = () => {
 
   /* ---------------- BANK ACTIONS ---------------- */
   const onBankEdit = () => {
+    setBankError("");
     setIsBankEditing(true);
   };
 
   const onBankCancel = () => {
     setBankFormData(initialBankData);
+    setBankProofFile(null);
+    setBankError("");
     setIsBankEditing(false);
   };
 
-  const onBankSave = () => {
-    if (bankDetails?.data !== null) {
-      updateBank(bankFormData);
-    } else {
-      createBank(bankFormData);
+  const onBankSave = async () => {
+    setBankError("");
+
+    const holderName = bankFormData.accountHolderName.trim();
+    const accountNumber = bankFormData.bankAccountNumber.trim();
+    const ifsc = bankFormData.ifscCode.trim().toUpperCase();
+
+    if (!holderName || !accountNumber || !ifsc) {
+      setBankError(
+        "Account holder name, account number and IFSC are required.",
+      );
+      return;
     }
-    setIsBankEditing(false);
+
+    if (!bankProofFile && !hasExistingBankDetails) {
+      setBankError("Bank detail proof file is required.");
+      return;
+    }
+
+    const payload = new FormData();
+    payload.append("holderName", holderName);
+    payload.append("accountNumber", accountNumber);
+    payload.append("ifsc", ifsc);
+    if (bankProofFile) {
+      payload.append("bankDetailProof", bankProofFile);
+    }
+
+    try {
+      if (hasExistingBankDetails) {
+        await updateBank(payload);
+      } else {
+        await createBank(payload);
+      }
+      setIsBankEditing(false);
+    } catch (error) {
+      setBankError(
+        error instanceof Error
+          ? error.message
+          : "Unable to save bank details. Please try again.",
+      );
+    }
   };
 
   /* ---------------- GST ACTIONS ---------------- */
   const onGstEdit = () => {
+    setGstError("");
     setIsGstEditing(true);
   };
 
   const onGstCancel = () => {
     setGstFormData(initialGstData);
+    setGstCertificateFile(null);
+    setPanCardFile(null);
+    setGstError("");
     setIsGstEditing(false);
   };
 
-  const onGstSave = () => {
-    if (gstDetails?.data) {
-      updateGst(gstFormData);
-    } else {
-      createGst(gstFormData);
+  const onGstSave = async () => {
+    setGstError("");
+
+    const gstNumber = gstFormData.gstId.trim().toUpperCase();
+    const panCardNumber = gstFormData.panCardNumber.trim().toUpperCase();
+
+    if (!gstNumber || !panCardNumber) {
+      setGstError("GST number and PAN card number are required.");
+      return;
     }
-    setIsGstEditing(false);
+
+    if (!gstCertificateFile && !hasExistingGstDetails) {
+      setGstError("GST certificate image is required.");
+      return;
+    }
+
+    if (!panCardFile && !hasExistingGstDetails) {
+      setGstError("PAN card image is required.");
+      return;
+    }
+
+    const payload = new FormData();
+    payload.append("gstNumber", gstNumber);
+    payload.append("panCardNumber", panCardNumber);
+    if (gstCertificateFile) {
+      payload.append("gstCertificate", gstCertificateFile);
+    }
+    if (panCardFile) {
+      payload.append("panCardNumberImage", panCardFile);
+    }
+
+    try {
+      if (hasExistingGstDetails) {
+        await updateGst(payload);
+      } else {
+        await createGst(payload);
+      }
+      setIsGstEditing(false);
+    } catch (error) {
+      setGstError(
+        error instanceof Error
+          ? error.message
+          : "Unable to save GST details. Please try again.",
+      );
+    }
   };
 
   return (
@@ -319,9 +445,10 @@ const UserProfilePage = () => {
                 type="button"
                 className="my-button h-12 px-4 text-sm font-semibold text-white"
                 onClick={onBankSave}
+                disabled={isBankSaving}
               >
                 <Check className="h-5 w-5" />
-                Save
+                {isBankSaving ? "Saving..." : "Save"}
               </Button>
             </div>
           ) : (
@@ -407,6 +534,7 @@ const UserProfilePage = () => {
                 onChange={(e) => {
                   const selectedFile = e.target.files?.[0];
                   if (!selectedFile) return;
+                  setBankProofFile(selectedFile);
                   setBankFormData((prev) => ({
                     ...prev,
                     proofFileName: selectedFile.name,
@@ -431,6 +559,9 @@ const UserProfilePage = () => {
               Uploaded image should clearly show the account holder&apos;s name
               and bank account number.
             </p>
+            {bankError && (
+              <p className="text-xs font-medium text-red-600">{bankError}</p>
+            )}
           </div>
         </div>
       </div>
@@ -457,9 +588,10 @@ const UserProfilePage = () => {
                 type="button"
                 className="my-button h-12 px-4 text-sm font-semibold text-white"
                 onClick={onGstSave}
+                disabled={isGstSaving}
               >
                 <Check className="h-5 w-5" />
-                Save
+                {isGstSaving ? "Saving..." : "Save"}
               </Button>
             </div>
           ) : (
@@ -529,6 +661,7 @@ const UserProfilePage = () => {
                   onChange={(e) => {
                     const selectedFile = e.target.files?.[0];
                     if (!selectedFile) return;
+                    setGstCertificateFile(selectedFile);
                     setGstFormData((prev) => ({
                       ...prev,
                       gstCertificateFileName: selectedFile.name,
@@ -591,6 +724,7 @@ const UserProfilePage = () => {
                   onChange={(e) => {
                     const selectedFile = e.target.files?.[0];
                     if (!selectedFile) return;
+                    setPanCardFile(selectedFile);
                     setGstFormData((prev) => ({
                       ...prev,
                       panCardFileName: selectedFile.name,
@@ -610,6 +744,9 @@ const UserProfilePage = () => {
               <p className="text-xs text-muted-foreground">
                 File type: JPG, PNG | Max file size: 200 kb
               </p>
+              {gstError && (
+                <p className="text-xs font-medium text-red-600">{gstError}</p>
+              )}
             </div>
           </div>
         </div>

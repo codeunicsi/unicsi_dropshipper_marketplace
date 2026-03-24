@@ -7,12 +7,16 @@ const parseJsonSafe = async (response: Response) => {
 const extractErrorMessage = (data: any, fallback: string) => {
   if (!data || typeof data !== "object") return fallback;
 
+  if (typeof data.message === "string" && data.message.trim())
+    return data.message;
   if (typeof data.message === "string" && data.message.trim()) return data.message;
   if (typeof data.error === "string" && data.error.trim()) return data.error;
   if (typeof data.detail === "string" && data.detail.trim()) return data.detail;
   if (Array.isArray(data.errors) && data.errors.length > 0) {
     const firstError = data.errors[0];
     if (typeof firstError === "string") return firstError;
+    if (firstError && typeof firstError.message === "string")
+      return firstError.message;
     if (firstError && typeof firstError.message === "string") return firstError.message;
   }
 
@@ -51,6 +55,23 @@ export const apiClient = {
   post: async (endpoint: string, data: any) => {
     const { body, headers } = buildBodyAndHeaders(data);
 
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: "POST",
+      credentials: "include",
+      headers,
+      body,
+    });
+
+    const responseData = await parseJsonSafe(response);
+    if (!response.ok) {
+      const message = extractErrorMessage(
+        responseData,
+        `Request failed (${response.status})`,
+      );
+      throw new Error(message);
+    }
+
+    return responseData;
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: "POST",
       credentials: "include",
@@ -115,6 +136,20 @@ export const apiClient = {
       headers: {
         "Content-Type": "application/json",
       },
+    });
+
+    const responseData = await parseJsonSafe(response);
+    if (!response.ok) {
+      const message = extractErrorMessage(
+        responseData,
+        `Request failed (${response.status})`,
+      );
+      throw new Error(message);
+    }
+
+    return responseData;
+  },
+};
     })
 
     const data = await response.json().catch(() => ({}))
