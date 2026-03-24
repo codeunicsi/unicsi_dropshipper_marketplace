@@ -35,6 +35,22 @@ export const apiClient = {
     return response.json()
   },
 
+  /** Multipart POST (do not set Content-Type — browser sets boundary). */
+  postForm: async (endpoint: string, formData: FormData) => {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      const message =
+        (data && typeof data.message === 'string') ? data.message : response.statusText
+      throw new Error(message)
+    }
+    return data
+  },
+
   put: async (endpoint: string, data: any) => {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'PUT',

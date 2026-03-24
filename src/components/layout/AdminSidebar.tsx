@@ -103,6 +103,7 @@ const menuItems = [
       { label: 'Settlement Reports', href: '/admin/payouts/settlement' },
       { label: 'Transaction History', href: '/admin/payouts/transactions' },
       { label: 'Wallet Management', href: '/admin/payouts/wallet' },
+      { label: 'Platform payment ', href: '/admin/payouts/platform-payment' },
     ],
   },
   {
