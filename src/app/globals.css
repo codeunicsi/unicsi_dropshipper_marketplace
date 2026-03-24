@@ -328,7 +328,7 @@
   opacity: 0;
   transition: opacity 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   border-radius: inherit;
-  z-index: 0;
+  z-index: -1;
 }
 
 .my-button:hover::before {
