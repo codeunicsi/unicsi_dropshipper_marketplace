@@ -28,6 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useOrder } from "@/hooks/useOrder";
+import { useAdminBankDetails } from "@/hooks/useAdminBankDetail";
 
 const MOQ = 10;
 const DEFAULT_MARGIN = 8;
@@ -38,13 +39,6 @@ const LEGACY_PRODUCT_ID_MAP: Record<string, string> = {
   "2": "2c3de35c-7e1e-4b0c-b82f-3e5957d9b202",
   "3": "b9b64e2e-2c94-4e31-8f09-12e41b16c303",
   "4": "4d90f6d3-c8f9-45f8-a9bd-7dd8f4c4d404",
-};
-const ADMIN_PAYMENT_DETAILS = {
-  upiId: "payments@unicsi",
-  accountName: "Unicsi Marketplace Pvt Ltd",
-  accountNumber: "50200099887766",
-  ifsc: "HDFC0000456",
-  bankName: "HDFC Bank",
 };
 
 const ORDER_STEPS = [
@@ -102,6 +96,11 @@ export default function BulkOrderPage() {
     searchParams.get("productName") || "Selected Marketplace Product";
   const productIdDisplay = productId || "N/A";
   const isValidProductId = UUID_REGEX.test(productId);
+  const {
+    data: adminBankDetailsResponse,
+    isLoading: isAdminBankLoading,
+    error: adminBankError,
+  } = useAdminBankDetails();
   const sellingPriceInput = Number(searchParams.get("sellingPrice") || 100);
 
   const [quantity, setQuantity] = useState(MOQ);
@@ -129,6 +128,25 @@ export default function BulkOrderPage() {
     amount: number;
     notes?: string;
   } | null>(null);
+
+  const adminPaymentDetails = useMemo(() => {
+    const data = adminBankDetailsResponse?.data;
+    const companyBank = data?.companyBankDetails || data;
+    return {
+      upiId: companyBank?.upi_id ?? companyBank?.upiId ?? "Not available",
+      accountName:
+        companyBank?.account_holder_name ??
+        companyBank?.accountHolderName ??
+        "Not available",
+      accountNumber:
+        companyBank?.account_number ??
+        companyBank?.accountNumber ??
+        "Not available",
+      ifsc: companyBank?.ifsc_code ?? companyBank?.ifscCode ?? "Not available",
+      bankName: companyBank?.bank_name ?? companyBank?.bankName ?? "Not available",
+      qrCode: companyBank?.qr_code ?? companyBank?.qrCode ?? "",
+    };
+  }, [adminBankDetailsResponse]);
 
   const pricing = useMemo(() => {
     const sellingPrice =
@@ -309,8 +327,8 @@ export default function BulkOrderPage() {
               )}
               {!isValidProductId && (
                 <p className="text-xs font-medium text-red-600">
-                  Invalid product ID. Please open bulk order from product card
-                  again.
+                  Invalid product ID. Please open bulk order from a real product
+                  card (GUID required).
                 </p>
               )}
             </CardContent>
@@ -367,7 +385,9 @@ export default function BulkOrderPage() {
                       setOrderError("");
                       if (!orderPayload || !paymentScreenshot) return;
                       if (!isValidProductId) {
-                        setOrderError("Invalid productId. Please select a valid product.");
+                        setOrderError(
+                          "Invalid productId. Please select a valid product.",
+                        );
                         return;
                       }
 
@@ -469,7 +489,7 @@ export default function BulkOrderPage() {
               </p>
               <p className="mt-2 text-sm text-slate-700">UPI ID</p>
               <p className="font-semibold text-slate-900">
-                {ADMIN_PAYMENT_DETAILS.upiId}
+                {adminPaymentDetails.upiId}
               </p>
             </div>
             <div className="rounded-lg border border-slate-200 bg-white p-4">
@@ -479,29 +499,54 @@ export default function BulkOrderPage() {
               <p className="mt-2 text-sm text-slate-700">
                 Account Name:{" "}
                 <span className="font-semibold text-slate-900">
-                  {ADMIN_PAYMENT_DETAILS.accountName}
+                  {adminPaymentDetails.accountName}
                 </span>
               </p>
               <p className="text-sm text-slate-700">
                 Account Number:{" "}
                 <span className="font-semibold text-slate-900">
-                  {ADMIN_PAYMENT_DETAILS.accountNumber}
+                  {adminPaymentDetails.accountNumber}
                 </span>
               </p>
               <p className="text-sm text-slate-700">
                 IFSC:{" "}
                 <span className="font-semibold text-slate-900">
-                  {ADMIN_PAYMENT_DETAILS.ifsc}
+                  {adminPaymentDetails.ifsc}
                 </span>
               </p>
               <p className="text-sm text-slate-700">
                 Bank:{" "}
                 <span className="font-semibold text-slate-900">
-                  {ADMIN_PAYMENT_DETAILS.bankName}
+                  {adminPaymentDetails.bankName}
                 </span>
               </p>
             </div>
           </div>
+          {isAdminBankLoading && (
+            <p className="text-xs font-medium text-slate-500">
+              Loading admin bank details...
+            </p>
+          )}
+          {adminBankError && (
+            <p className="text-xs font-medium text-red-600">
+              {adminBankError instanceof Error
+                ? adminBankError.message
+                : "Unable to load admin bank details from API."}
+            </p>
+          )}
+          {adminPaymentDetails.qrCode && (
+            <p className="text-xs text-slate-600">
+              QR Code URL:{" "}
+              <a
+                href={adminPaymentDetails.qrCode}
+                target="_blank"
+                rel="noreferrer"
+                className="text-cyan-700 underline"
+              >
+                View QR
+              </a>
+            </p>
+          )}
 
           <DialogFooter>
             <Button
