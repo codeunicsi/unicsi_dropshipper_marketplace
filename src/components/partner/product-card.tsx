@@ -15,6 +15,7 @@ interface ProductCardProps {
   reviews?: number;
   inStock?: boolean;
   onPushToShopify?: () => void;
+  onBulkOrder?: () => void;
 }
 
 export default function ProductCard({
@@ -26,6 +27,7 @@ export default function ProductCard({
   reviews = 26,
   inStock = true,
   onPushToShopify,
+  onBulkOrder,
 }: ProductCardProps) {
   const router = useRouter();
 
@@ -121,8 +123,8 @@ export default function ProductCard({
         </Button>
 
         <Button
-          onClick={handleBulkOrder}
-          className="flex-1 bg-white text-xs text-amber-900 border border-amber-900 hover:bg-amber-900/10 font-semibold py-2 rounded-lg"
+          onClick={onBulkOrder}
+          className="flex-1 bg-white text-xs text-amber-900 border border-amber-900 hover:bg-amber-900/10 font-semibold py-2 rounded-lg flex items-center justify-center cursor-pointer"
         >
           Bulk Order
         </Button>

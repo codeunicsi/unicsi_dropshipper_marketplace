@@ -3,9 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import ProductCard from "./product-card";
 import CartDrawer from "./cart-drawer";
-import { ChevronLeft, ChevronRight, Loader2, Package } from "lucide-react";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1/";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const PRODUCT_TABS = [
   "Push to Shopify",
@@ -15,58 +14,34 @@ const PRODUCT_TABS = [
   "Popular Demand",
 ];
 
-// ✅ Dummy product (matches backend structure)
-const dummyProducts: Product[] = [
+const SAMPLE_PRODUCTS = [
   {
-    product_id: "dummy-product-1",
-    supplier_id: "dummy-supplier",
-    title: "Premium Cotton T-Shirt",
-    description: "High quality cotton t-shirt for everyday wear",
-    category_id: null,
-    brand: "Unicsi",
-    approval_status: "approved",
-    lifecycle_status: "active",
-    approved_by: "dummy-admin",
-    approved_at: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-
-    variants: [
-      {
-        variant_id: "dummy-variant-1",
-        product_id: "dummy-product-1",
-        sku: "TS-WHT-S",
-        title: null,
-        price: "19.99",
-        compare_at_price: "25",
-        cost_price: null,
-        inventory_quantity: 80,
-        inventory_management: "shopify",
-        weight_grams: 250,
-        option1: "White",
-        option2: "S",
-        option3: null,
-        shopify_variant_id: null,
-        attributes: {},
-        is_active: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ],
-
-    images: [
-      {
-        id: "dummy-image-1",
-        product_id: "dummy-product-1",
-        variant_id: null,
-        image_url: "/placeholder.png",
-        shopify_image_id: null,
-        alt_text: "Premium Cotton T-Shirt",
-        sort_order: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ],
+    id: "8f7b8d8f-3c2f-4d7a-9c2a-4c8f9d24a101",
+    name: "Nike Shoes - Men",
+    price: 3999,
+    image:
+      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop",
+  },
+  {
+    id: "2c3de35c-7e1e-4b0c-b82f-3e5957d9b202",
+    name: "Running Sneakers Pro",
+    price: 4499,
+    image:
+      "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=400&h=400&fit=crop",
+  },
+  {
+    id: "b9b64e2e-2c94-4e31-8f09-12e41b16c303",
+    name: "Casual Canvas Shoes",
+    price: 2499,
+    image:
+      "https://images.unsplash.com/photo-1441239372925-ac0b51c4c250?w=400&h=400&fit=crop",
+  },
+  {
+    id: "4d90f6d3-c8f9-45f8-a9bd-7dd8f4c4d404",
+    name: "Premium Leather Boots",
+    price: 5999,
+    image:
+      "https://images.unsplash.com/photo-1543163521-9733539c2d7f?w=400&h=400&fit=crop",
   },
 ];
 
@@ -101,6 +76,7 @@ function ProductsBlock({
   showTabs,
   products,
 }: ProductsBlockProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState(0);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -114,6 +90,16 @@ function ProductsBlock({
       left: direction === "left" ? -300 : 300,
       behavior: "smooth",
     });
+  };
+
+  const handleBulkOrder = (product: (typeof SAMPLE_PRODUCTS)[number]) => {
+    const params = new URLSearchParams({
+      productId: product.id,
+      productName: product.name,
+      sellingPrice: String(product.price),
+    });
+
+    router.push(`/marketplace/bulk-order?${params.toString()}`);
   };
 
   return (
@@ -167,6 +153,7 @@ function ProductsBlock({
             key={product.id}
             {...product}
             onPushToShopify={() => setIsCartOpen(true)}
+            onBulkOrder={() => handleBulkOrder(product)}
           />
         ))}
       </div>
