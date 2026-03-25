@@ -47,7 +47,7 @@ const SAMPLE_PRODUCTS = [
 
 // ✅ Transform function (unchanged)
 const transformProducts = (products: Product[]) => {
-  return products.map((product) => {
+  return SAMPLE_PRODUCTS.map((product) => {
     const firstVariant = product.variants?.find((v) => v.is_active);
     const firstImage = product.images?.[0];
 
@@ -148,7 +148,7 @@ function ProductsBlock({
         ref={scrollRef}
         className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
       >
-        {formattedProducts.map((product) => (
+        {SAMPLE_PRODUCTS.map((product) => (
           <ProductCard
             key={product.id}
             {...product}
