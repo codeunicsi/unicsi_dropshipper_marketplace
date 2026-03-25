@@ -1,130 +1,168 @@
 "use client";
 import React, { useState } from "react";
+import { apiClient } from "@/lib/api-client";
 
 const SourceProductPage = () => {
-  const [image, setImage] = useState(null);
+  const [image, setImage] = useState<File | null>(null);
   const [url, setUrl] = useState("");
 
-  const handleSubmit = (e) => {
+  const [productName, setProductName] = useState("");
+  const [category, setCategory] = useState("");
+  const [price, setPrice] = useState("");
+
+  const [loading, setLoading] = useState(false);
+
+  const handleImageChange = (file: File | null) => {
+    if (file) {
+      setImage(file);
+      setUrl("");
+    } else {
+      setImage(null);
+    }
+  };
+
+  const handleUrlChange = (value: string) => {
+    setUrl(value);
+    if (value) {
+      setImage(null);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!productName.trim() || !category || !price) {
+      alert("All fields are required");
+      return;
+    }
+
     if (!image && !url) {
-      alert("Please provide either Product Image or Product URL");
+      alert("Provide either Image or URL");
       return;
     }
 
-    if (image && url) {
-      alert("Only one is allowed: Image OR URL");
-      return;
-    }
+    try {
+      setLoading(true);
 
-    console.log({ image, url });
+      const formData = new FormData();
+      formData.append("productName", productName.trim());
+      formData.append("productCategory", category);
+      formData.append("expectedPrice", price);
+
+      if (image) {
+        formData.append("productImage", image);
+      } else if (url) {
+        formData.append("productImageUrl", url);
+      }
+
+      const res = await apiClient.postImage(
+        "dropshipper/source-requests",
+        formData,
+      );
+
+      console.log("API RESPONSE:", res.data);
+
+      alert("✅ Request submitted successfully");
+
+      setProductName("");
+      setCategory("");
+      setPrice("");
+      setUrl("");
+      setImage(null);
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.response?.data?.message || err.message || "Failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center">
-      {/* Left side */}
-      <div className="w-1/2 hidden md:block px-10">
-        <h1 className="text-3xl font-bold text-gray-800 mb-4">
-          Can’t find what you need?
-        </h1>
-        <p className="text-gray-600">
-          Tell us what you're looking for and we'll try to source it for you.
-        </p>
-      </div>
-
-      {/* Right side */}
-      <div className="w-full md:w-1/2 flex justify-end px-4">
-        <div className="w-full max-w-md bg-white rounded-xl shadow-md p-6">
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">
-            Your Search Ends Here!
-          </h2>
-          <p className="text-sm text-gray-500 mb-6">
-            When you don’t find your desired product, let us know, we will try
-            our best to source it.
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-6">
+      <div className="w-full max-w-7xl grid md:grid-cols-5 gap-10 items-center">
+        {/* LEFT SECTION - 40% */}
+        <div className="md:col-span-2">
+          <h1 className="text-4xl font-bold text-gray-800 mb-4">
+            Can’t find what you need?
+          </h1>
+          <p className="text-lg text-gray-600">
+            Tell us what you're looking for and we'll try to source it for you.
           </p>
+        </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Product Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Product Name
-              </label>
+        {/* RIGHT SECTION - 60% */}
+        <div className="md:col-span-3 flex justify-center">
+          <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lg p-10 md:p-12">
+            <h2 className="text-3xl font-semibold text-gray-800 mb-6">
+              Your Search Ends Here!
+            </h2>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Product Name */}
               <input
                 type="text"
+                value={productName}
+                onChange={(e) => setProductName(e.target.value)}
                 placeholder="Enter product name"
-                className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#61ca6b]"
+                className="w-full px-4 py-3.5 border rounded-lg text-[15px]"
               />
-            </div>
 
-            {/* Category */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Product Category
-              </label>
-              <select className="w-full px-3 py-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#61ca6b]">
-                <option value="">select</option>
+              {/* Category */}
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full px-4 py-3.5 border rounded-lg text-[15px]"
+              >
+                <option value="">Select category</option>
                 <option>Electronics</option>
                 <option>Clothing</option>
                 <option>Accessories</option>
               </select>
-            </div>
 
-            {/* Image + URL */}
-            <div className="grid grid-cols-2 gap-3">
-              {/* Image */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Product Image
-                </label>
+              {/* Image + URL */}
+              <div className="grid grid-cols-2 gap-4">
                 <input
                   type="file"
                   disabled={!!url}
-                  onChange={(e) => setImage(e.target.files[0])}
-                  className={`w-full text-sm border rounded-md p-1 ${
-                    url ? "bg-gray-100 cursor-not-allowed" : ""
+                  onChange={(e) =>
+                    handleImageChange(e.target.files?.[0] || null)
+                  }
+                  className={`text-sm border rounded-lg p-2 ${
+                    url ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                 />
-              </div>
 
-              {/* URL */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Product URL
-                </label>
                 <input
                   type="url"
                   value={url}
                   disabled={!!image}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://..."
-                  className={`w-full px-3 py-2 border rounded-md text-sm ${
-                    image ? "bg-gray-100 cursor-not-allowed" : ""
-                  } focus:outline-none focus:ring-2 focus:ring-[#61ca6b]`}
+                  onChange={(e) => handleUrlChange(e.target.value)}
+                  placeholder="https://product-link.com"
+                  className={`px-4 py-3.5 border rounded-lg text-[15px] ${
+                    image ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 />
               </div>
-            </div>
 
-            {/* Price */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Expected Price
-              </label>
+              {/* Price */}
               <input
                 type="number"
-                placeholder="Enter price"
-                className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#61ca6b]"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="Enter expected price"
+                className="w-full px-4 py-3.5 border rounded-lg text-[15px]"
               />
-            </div>
 
-            {/* Submit */}
-            <button
-              type="submit"
-              className="w-full bg-[#61ca6b] hover:opacity-90 text-white py-2 rounded-md text-sm font-medium transition"
-            >
-              Submit Request
-            </button>
-          </form>
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-[#61ca6b] text-white py-3.5 rounded-lg text-lg font-medium hover:opacity-90 transition"
+              >
+                {loading ? "Submitting..." : "Submit Request"}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>

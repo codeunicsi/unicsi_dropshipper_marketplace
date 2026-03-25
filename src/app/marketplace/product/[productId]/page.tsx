@@ -34,6 +34,15 @@ type ProductInfoProps = {
 
 const SAMPLE_PRODUCTS: Product[] = [
   {
+    id: "dummy-product-1",
+    name: "Premium Cotton T-Shirt",
+    price: 1999,
+    image:
+      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&h=800&fit=crop",
+    description:
+      "Product Name: Premium Cotton T-Shirt. Package Contains: 1 piece. Material: 100% premium cotton. Product Dimension: Standard sizing available in S, M, L, XL. Additional Information: Breathable and comfortable for everyday wear, pre-shrunk fabric, machine washable.",
+  },
+  {
     id: "1",
     name: "Nike Shoes - Men",
     price: 3999,

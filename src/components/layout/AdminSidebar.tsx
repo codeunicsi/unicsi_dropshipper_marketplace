@@ -42,7 +42,7 @@ const menuItems = [
       { label: 'Pending Approvals', href: '/admin/products/pending' },
       { label: 'Live Products', href: '/admin/products/live' },
       { label: 'Rejected Products', href: '/admin/products/rejected' },
-      // { label: 'Categories', href: '/admin/products/categories' },
+      { label: 'Product Categories', href: '/admin/products/categories' },
       // { label: 'Attributes', href: '/admin/products/attributes' },
     ],
   },

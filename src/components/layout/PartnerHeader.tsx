@@ -1,27 +1,28 @@
-'use client'
+"use client";
 
-import { Search, Bell, HelpCircle, LogOut } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Search, Bell, HelpCircle, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { useUser, useLogout } from '@/hooks/useAuth'
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useUser, useLogout } from "@/hooks/useAuth";
+import Link from "next/link";
 
 export function PartnerHeader() {
-  const { data: user } = useUser()
-  const { mutate: logout } = useLogout()
+  const { data: user } = useUser();
+  const { mutate: logout } = useLogout();
 
-  console.log("user-data", user);
+  // console.log("user-data", user);
 
-  const userName = user?.data?.name
-  const userEmail = user?.data?.email
-  const userInitials = user?.data?.name?.substring(0, 2).toUpperCase()
+  const userName = user?.data?.name;
+  const userEmail = user?.data?.email;
+  const userInitials = user?.data?.name?.substring(0, 2).toUpperCase();
 
   return (
     <header className="h-16 bg-background border-b border-border sticky top-0 z-40">
@@ -72,18 +73,24 @@ export function PartnerHeader() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="text-left hidden sm:block">
-                  <p className="text-sm font-medium text-foreground">{userName}</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {userName}
+                  </p>
                   <p className="text-xs text-muted-foreground">{userEmail}</p>
                 </div>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <div className="px-2 py-1.5">
-                <p className="text-sm font-medium text-foreground">{userName}</p>
+                <p className="text-sm font-medium text-foreground">
+                  {userName}
+                </p>
                 <p className="text-xs text-muted-foreground">{userEmail}</p>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Profile Settings</DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/marketplace/profile">Profile Setting</Link>
+              </DropdownMenuItem>
               <DropdownMenuItem>Change Password</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-destructive focus:text-destructive flex items-center gap-2">
@@ -95,5 +102,5 @@ export function PartnerHeader() {
         </div>
       </div>
     </header>
-  )
+  );
 }

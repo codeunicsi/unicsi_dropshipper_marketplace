@@ -20,7 +20,7 @@ const Navbar = () => {
   ];
 
   const solutionItems = [
-    { label: "Bulk Order", href: "/bulk-order" },
+    { label: "Bulk Order", href: "/marketplace/bulk-order" },
     { label: "Profit Calculator", href: "/profit-calculator" },
     { label: "Print on Demand", href: "/print-on-demand" },
   ];

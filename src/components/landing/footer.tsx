@@ -97,7 +97,7 @@ const Footer = () => {
 
   const supplierLinks = [
     { label: "Become a Supplier", href: "https://supplier.unicsi.com/login" },
-    { label: "Bulk Order", href: "/bulk-order" },
+    { label: "Bulk Order", href: "/marketplace/bulk-order" },
     { label: "Privacy Policy", href: "/privacy-policy" },
   ];
 

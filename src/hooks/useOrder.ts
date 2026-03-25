@@ -1,0 +1,63 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiClient } from "@/lib/api-client";
+
+const BULK_ORDER_ENDPOINT = "dropshipper/bulk/orders";
+
+export interface BulkOrderPayload {
+  productId: string;
+  quantity: number;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  deliveryAddress: string;
+  transactionReference: string;
+  paymentMode: string;
+  amount: number;
+  paymentScreenshot: File;
+  notes?: string;
+}
+
+const toBulkOrderFormData = (payload: BulkOrderPayload) => {
+  const formData = new FormData();
+  formData.append("productId", payload.productId);
+  formData.append("quantity", String(payload.quantity));
+  formData.append("customerName", payload.customerName);
+  formData.append("customerPhone", payload.customerPhone);
+  if (payload.customerEmail) {
+    formData.append("customerEmail", payload.customerEmail);
+  }
+  formData.append("deliveryAddress", payload.deliveryAddress);
+  formData.append("transactionReference", payload.transactionReference);
+  formData.append("paymentMode", payload.paymentMode);
+  formData.append("amount", String(payload.amount));
+  if (payload.notes) {
+    formData.append("notes", payload.notes);
+  }
+  formData.append("paymentScreenshot", payload.paymentScreenshot);
+
+  return formData;
+};
+
+export const useOrder = () => {
+  const queryClient = useQueryClient();
+
+  const createBulkOrder = useMutation({
+    mutationFn: (data: BulkOrderPayload) =>
+      apiClient.post(BULK_ORDER_ENDPOINT, toBulkOrderFormData(data)),
+
+    onSuccess: (data) => {
+      // Optional: invalidate or refetch related queries
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+
+      console.log("Bulk order created successfully", data);
+    },
+
+    onError: (error: any) => {
+      console.error("Error creating bulk order:", error.message);
+    },
+  });
+
+  return {
+    createBulkOrder,
+  };
+};
