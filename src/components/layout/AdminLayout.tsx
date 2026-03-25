@@ -18,8 +18,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           onMenuClick={() => setSidebarOpen(true)}
           sidebarOpen={sidebarOpen}
         />
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-6">{children}</div>
+        <main className="min-w-0 flex-1 overflow-y-auto">
+          <div className="min-w-0 max-w-full p-6">{children}</div>
         </main>
       </div>
     </div>

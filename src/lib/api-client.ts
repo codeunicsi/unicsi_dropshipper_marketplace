@@ -1,6 +1,6 @@
+import { formatApiErrorBody } from './api-error'
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/'
-
-
 
 export const apiClient = {
   get: async (endpoint: string) => {
@@ -11,8 +11,7 @@ export const apiClient = {
 
     const data = await response.json().catch(() => ({}))
     if (!response.ok) {
-      const message = (data && typeof data.message === 'string') ? data.message : response.statusText
-      throw new Error(message)
+      throw new Error(formatApiErrorBody(data) || response.statusText)
     }
     return data
   },
@@ -60,12 +59,28 @@ export const apiClient = {
       },
       body: JSON.stringify(data),
     })
-    
+
+    const resData = await response.json().catch(() => ({}))
     if (!response.ok) {
-      throw new Error('Failed to update')
+      throw new Error(formatApiErrorBody(resData) || 'Failed to update')
     }
-    
-    return response.json()
+    return resData
+  },
+
+  patch: async (endpoint: string, data?: Record<string, unknown>) => {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: data !== undefined ? JSON.stringify(data) : undefined,
+    })
+    const resData = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      throw new Error(formatApiErrorBody(resData) || 'Request failed')
+    }
+    return resData
   },
 
   delete: async (endpoint: string) => {
@@ -77,10 +92,10 @@ export const apiClient = {
       },
     })
     
+    const resData = await response.json().catch(() => ({}))
     if (!response.ok) {
-      throw new Error('Failed to delete')
+      throw new Error(formatApiErrorBody(resData) || 'Failed to delete')
     }
-    
-    return response.json()
+    return resData
   },
 }

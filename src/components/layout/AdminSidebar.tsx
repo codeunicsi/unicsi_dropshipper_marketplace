@@ -67,6 +67,8 @@ const menuItems = [
       { label: 'Shipped', href: '/admin/orders/shipped' },
       { label: 'Delivered', href: '/admin/orders/delivered' },
       { label: 'Cancelled', href: '/admin/orders/cancelled' },
+      { label: 'Bulk order configuration', href: '/admin/orders/bulk-config' },
+      { label: 'Bulk payment queue', href: '/admin/orders/bulk-review' },
     ],
   },
   {
@@ -103,7 +105,7 @@ const menuItems = [
       { label: 'Settlement Reports', href: '/admin/payouts/settlement' },
       { label: 'Transaction History', href: '/admin/payouts/transactions' },
       { label: 'Wallet Management', href: '/admin/payouts/wallet' },
-      { label: 'Platform payment ', href: '/admin/payouts/platform-payment' },
+      { label: 'Platform payment', href: '/admin/payouts/platform-payment' },
     ],
   },
   {
