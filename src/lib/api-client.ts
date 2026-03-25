@@ -1,38 +1,6 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/'
+import { formatApiErrorBody } from './api-error'
 
-const parseJsonSafe = async (response: Response) => {
-  return response.json().catch(() => ({}));
-};
-
-const extractErrorMessage = (data: any, fallback: string) => {
-  if (!data || typeof data !== "object") return fallback;
-
-  if (typeof data.message === "string" && data.message.trim())
-    return data.message;
-  if (typeof data.message === "string" && data.message.trim()) return data.message;
-  if (typeof data.error === "string" && data.error.trim()) return data.error;
-  if (typeof data.detail === "string" && data.detail.trim()) return data.detail;
-  if (Array.isArray(data.errors) && data.errors.length > 0) {
-    const firstError = data.errors[0];
-    if (typeof firstError === "string") return firstError;
-    if (firstError && typeof firstError.message === "string")
-      return firstError.message;
-    if (firstError && typeof firstError.message === "string") return firstError.message;
-  }
-
-  return fallback;
-};
-
-const buildBodyAndHeaders = (data?: any) => {
-  if (data instanceof FormData) {
-    return { body: data, headers: {} as Record<string, string> };
-  }
-
-  return {
-    body: data !== undefined ? JSON.stringify(data) : undefined,
-    headers: { "Content-Type": "application/json" },
-  };
-};
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/'
 
 export const apiClient = {
   get: async (endpoint: string) => {
@@ -43,11 +11,7 @@ export const apiClient = {
 
     const data = await parseJsonSafe(response);
     if (!response.ok) {
-      const message = extractErrorMessage(
-        data,
-        `Request failed (${response.status})`,
-      );
-      throw new Error(message);
+      throw new Error(formatApiErrorBody(data) || response.statusText)
     }
     return data;
   },
@@ -111,22 +75,35 @@ export const apiClient = {
     const { body, headers } = buildBodyAndHeaders(data);
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: "PUT",
-      credentials: "include",
-      headers,
-      body,
-    });
+      method: 'PUT',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    })
 
-    const responseData = await parseJsonSafe(response);
+    const resData = await response.json().catch(() => ({}))
     if (!response.ok) {
-      const message = extractErrorMessage(
-        responseData,
-        `Request failed (${response.status})`,
-      );
-      throw new Error(message);
+      throw new Error(formatApiErrorBody(resData) || 'Failed to update')
     }
+    return resData
+  },
 
-    return responseData;
+  patch: async (endpoint: string, data?: Record<string, unknown>) => {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: data !== undefined ? JSON.stringify(data) : undefined,
+    })
+    const resData = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      throw new Error(formatApiErrorBody(resData) || 'Request failed')
+    }
+    return resData
   },
 
   delete: async (endpoint: string) => {
@@ -151,37 +128,12 @@ export const apiClient = {
   },
 };
     })
-
-    const data = await response.json().catch(() => ({}))
+    
+    const resData = await response.json().catch(() => ({}))
     if (!response.ok) {
-      const message = (data && typeof data.message === 'string') ? data.message : response.statusText
-      throw new Error(message || 'Failed to delete')
+      throw new Error(formatApiErrorBody(resData) || 'Failed to delete')
     }
-
-    return data
-  },
-
-
-  postImage: async (endpoint: string, data: any) => {
-    const isFormData = data instanceof FormData;
-
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: "POST",
-      credentials: "include",
-      headers: isFormData
-        ? undefined // ✅ Let browser set multipart boundary
-        : {
-            "Content-Type": "application/json",
-          },
-      body: isFormData ? data : JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Something went wrong");
-    }
-
-    return response.json();
+    return resData
   },
 }
 
