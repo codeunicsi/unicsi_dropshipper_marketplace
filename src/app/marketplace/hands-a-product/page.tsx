@@ -55,7 +55,7 @@ const SourceProductPage = () => {
         formData.append("productImageUrl", url);
       }
 
-      const res = await apiClient.postImage(
+      const res = await apiClient.postForm(
         "dropshipper/source-requests",
         formData,
       );
