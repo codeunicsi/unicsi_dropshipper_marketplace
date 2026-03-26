@@ -85,6 +85,10 @@ export interface ProductImage {
   updatedAt: string;
 }
 
+type GetProductResponse = {
+  data: Product;
+};
+
 export const useProducts = () => {
   return useQuery<
     GetProductsResponse,
@@ -97,5 +101,26 @@ export const useProducts = () => {
       await apiClient.get<GetProductsResponse>(
         "dropshipper/shopify/get-products",
       ),
+  });
+};
+
+export const useGetAllProducts = () => {
+  return useQuery<
+    GetProductsResponse,
+    Error,
+    GetProductsResponse,
+    readonly unknown[]
+  >({
+    queryKey: ["getAllProducts"],
+    queryFn: async () => await apiClient.get("dropshipper/products"),
+  });
+};
+
+export const useGetProductById = (productId: string) => {
+  return useQuery<GetProductResponse>({
+    queryKey: ["product", productId],
+    queryFn: async () =>
+      await apiClient.get(`dropshipper/products/${productId}`),
+    enabled: !!productId,
   });
 };
