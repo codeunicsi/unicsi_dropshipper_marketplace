@@ -2,17 +2,31 @@
 
 import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
-const chartData = [
-  { date: 'Jan 1', orders: 0, confirmed: 0, shipped: 0 },
-  { date: 'Jan 2', orders: 0, confirmed: 0, shipped: 0 },
-  { date: 'Jan 3', orders: 0, confirmed: 0, shipped: 0 },
-  { date: 'Jan 4', orders: 0, confirmed: 0, shipped: 0 },
-  { date: 'Jan 5', orders: 0, confirmed: 0, shipped: 0 },
-  { date: 'Jan 6', orders: 0, confirmed: 0, shipped: 0 },
-  { date: 'Jan 7', orders: 0, confirmed: 0, shipped: 0 },
-]
+import type { DashboardTrendPoint } from '@/hooks/useAdminDashboard'
 
-export function OrdersChart() {
+type OrdersChartProps = {
+  /** When omitted, renders a flat 7-day zero series (partner shell / loading). */
+  data?: DashboardTrendPoint[]
+}
+
+const defaultSevenDayZeros = (): DashboardTrendPoint[] => {
+  const out: DashboardTrendPoint[] = []
+  const now = new Date()
+  for (let i = 6; i >= 0; i -= 1) {
+    const d = new Date(now)
+    d.setDate(now.getDate() - i)
+    out.push({
+      date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      submissions: 0,
+      approved: 0,
+      rejected: 0,
+    })
+  }
+  return out
+}
+
+export function OrdersChart({ data }: OrdersChartProps) {
+  const chartData = data && data.length > 0 ? data : defaultSevenDayZeros()
   return (
     <ResponsiveContainer width="100%" height={300}>
       <LineChart data={chartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
@@ -30,29 +44,29 @@ export function OrdersChart() {
         <Legend />
         <Line
           type="monotone"
-          dataKey="orders"
+          dataKey="submissions"
           stroke="#0097B2"
           strokeWidth={2}
-          name="Total Orders"
+          name="Submissions"
           dot={{ fill: '#0097B2', r: 4 }}
           activeDot={{ r: 6 }}
         />
         <Line
           type="monotone"
-          dataKey="confirmed"
+          dataKey="approved"
           stroke="#7ED957"
           strokeWidth={2}
-          name="Confirmed"
+          name="Approved"
           dot={{ fill: '#7ED957', r: 4 }}
           activeDot={{ r: 6 }}
         />
         <Line
           type="monotone"
-          dataKey="shipped"
-          stroke="#06B6D4"
+          dataKey="rejected"
+          stroke="#ef4444"
           strokeWidth={2}
-          name="Shipped"
-          dot={{ fill: '#06B6D4', r: 4 }}
+          name="Rejected"
+          dot={{ fill: '#ef4444', r: 4 }}
           activeDot={{ r: 6 }}
         />
       </LineChart>
