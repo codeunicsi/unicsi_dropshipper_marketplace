@@ -34,9 +34,9 @@ export default function TopCategories() {
   };
 
   const handleCategoryClick = (category: Category) => {
-    const params = new URLSearchParams(searchParams?.toString() ?? "");
-    params.set("categoryId", category.id);
-    router.push(`/marketplace?${params.toString()}`);
+    router.push(
+      `/marketplace/category/${category.id}?name=${encodeURIComponent(category.name)}`,
+    );
   };
 
   if (!loading && categories.length === 0) return null;
@@ -69,7 +69,9 @@ export default function TopCategories() {
           {loading ? (
             <div className="flex items-center gap-4 py-8">
               <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
-              <span className="text-sm text-slate-500">Loading categories…</span>
+              <span className="text-sm text-slate-500">
+                Loading categories…
+              </span>
             </div>
           ) : (
             categories.map((category) => (
@@ -78,13 +80,17 @@ export default function TopCategories() {
                 role="button"
                 tabIndex={0}
                 onClick={() => handleCategoryClick(category)}
-                onKeyDown={(e) => e.key === "Enter" && handleCategoryClick(category)}
+                onKeyDown={(e) =>
+                  e.key === "Enter" && handleCategoryClick(category)
+                }
                 className="shrink-0 w-36 text-center cursor-pointer group"
               >
                 <div className="bg-white rounded-3xl p-4 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer">
                   <div className="overflow-hidden rounded-2xl">
                     <img
-                      src={category.image_url || "/images/placeholder-category.jpg"}
+                      src={
+                        category.image_url || "/images/placeholder-category.jpg"
+                      }
                       alt={category.name}
                       className="w-full h-28 object-cover transition-transform duration-300 group-hover:scale-105"
                       onError={(e) => {
