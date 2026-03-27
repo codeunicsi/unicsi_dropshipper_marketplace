@@ -3,8 +3,10 @@
 import { useState, useRef, useEffect } from "react";
 import ProductCard from "./product-card";
 import CartDrawer from "./cart-drawer";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Package } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { Product, useGetAllProducts } from "@/hooks/marketplace/useProduct";
+import { API_BASE_URL } from "@/lib/api-client";
 
 const PRODUCT_TABS = [
   "Push to Shopify",
@@ -14,51 +16,30 @@ const PRODUCT_TABS = [
   "Popular Demand",
 ];
 
-const SAMPLE_PRODUCTS = [
-  {
-    id: "8f7b8d8f-3c2f-4d7a-9c2a-4c8f9d24a101",
-    name: "Nike Shoes - Men",
-    price: 3999,
-    image:
-      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop",
-  },
-  {
-    id: "2c3de35c-7e1e-4b0c-b82f-3e5957d9b202",
-    name: "Running Sneakers Pro",
-    price: 4499,
-    image:
-      "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=400&h=400&fit=crop",
-  },
-  {
-    id: "b9b64e2e-2c94-4e31-8f09-12e41b16c303",
-    name: "Casual Canvas Shoes",
-    price: 2499,
-    image:
-      "https://images.unsplash.com/photo-1441239372925-ac0b51c4c250?w=400&h=400&fit=crop",
-  },
-  {
-    id: "4d90f6d3-c8f9-45f8-a9bd-7dd8f4c4d404",
-    name: "Premium Leather Boots",
-    price: 5999,
-    image:
-      "https://images.unsplash.com/photo-1543163521-9733539c2d7f?w=400&h=400&fit=crop",
-  },
-];
+type UIProduct = {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+  stock?: number;
+  color?: string;
+  size?: string;
+};
 
-// ✅ Transform function (unchanged)
-const transformProducts = (products: Product[]) => {
-  return SAMPLE_PRODUCTS.map((product) => {
-    const firstVariant = product.variants?.find((v) => v.is_active);
-    const firstImage = product.images?.[0];
+// ✅ Transform
+const transformProducts = (products: Product[]): UIProduct[] => {
+  return products.map((product) => {
+    const variant = product.variants?.find((v) => v.is_active);
+    const image = product.images?.[0];
 
     return {
       id: product.product_id,
       name: product.title,
-      price: Number(firstVariant?.price ?? 0),
-      image: firstImage?.image_url || "/placeholder.png",
-      stock: firstVariant?.inventory_quantity ?? 0,
-      color: firstVariant?.option1 ?? "",
-      size: firstVariant?.option2 ?? "",
+      price: Number(variant?.price ?? 0),
+      image: image?.image_url || "/placeholder.png",
+      stock: variant?.inventory_quantity ?? 0,
+      color: variant?.option1 ?? "",
+      size: variant?.option2 ?? "",
     };
   });
 };
@@ -67,7 +48,7 @@ type ProductsBlockProps = {
   title: string;
   bgColor?: string;
   showTabs?: boolean;
-  products: Product[];
+  products: UIProduct[];
 };
 
 function ProductsBlock({
@@ -81,18 +62,14 @@ function ProductsBlock({
   const [isCartOpen, setIsCartOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
-  const formattedProducts = transformProducts(products);
-
   const handleScroll = (direction: "left" | "right") => {
-    if (!scrollRef.current) return;
-
-    scrollRef.current.scrollBy({
+    scrollRef.current?.scrollBy({
       left: direction === "left" ? -300 : 300,
       behavior: "smooth",
     });
   };
 
-  const handleBulkOrder = (product: (typeof SAMPLE_PRODUCTS)[number]) => {
+  const handleBulkOrder = (product: UIProduct) => {
     const params = new URLSearchParams({
       productId: product.id,
       productName: product.name,
@@ -131,10 +108,10 @@ function ProductsBlock({
             <button
               key={index}
               onClick={() => setActiveTab(index)}
-              className={`px-4 py-2 rounded-full font-medium whitespace-nowrap text-sm transition-colors duration-200 ${
+              className={`px-4 py-2 rounded-full text-sm ${
                 activeTab === index
                   ? "bg-teal-600 text-white"
-                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  : "bg-slate-100 text-slate-700"
               }`}
             >
               {tab}
@@ -148,7 +125,7 @@ function ProductsBlock({
         ref={scrollRef}
         className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
       >
-        {SAMPLE_PRODUCTS.map((product) => (
+        {products.map((product) => (
           <ProductCard
             key={product.id}
             {...product}
@@ -170,17 +147,31 @@ type MarketplaceProduct = {
   variants?: { variant_price?: string | number }[];
 };
 
-export default function ProductsSection({ categoryId }: { categoryId?: string }) {
-  const [categoryProducts, setCategoryProducts] = useState<MarketplaceProduct[]>([]);
+export default function ProductsSection({
+  categoryId,
+}: {
+  categoryId?: string;
+}) {
+  const { data, isLoading, isPending } = useGetAllProducts();
+  
+
+  const [categoryProducts, setCategoryProducts] = useState<
+    MarketplaceProduct[]
+  >([]);
   const [categoryLoading, setCategoryLoading] = useState(false);
 
+  // ✅ Extract + transform API data
+  const rawProducts: Product[] = data?.data || data?.rows || [];
+  const products = transformProducts(rawProducts);
+
   useEffect(() => {
-    if (!categoryId) {
-      setCategoryProducts([]);
-      return;
-    }
+    if (!categoryId) return;
+
     setCategoryLoading(true);
-    fetch(`${API_BASE}marketplace/products?categoryId=${encodeURIComponent(categoryId)}&limit=24`)
+
+    fetch(
+      `${API_BASE_URL}marketplace/products?categoryId=${encodeURIComponent(categoryId)}&limit=24`,
+    )
       .then((res) => res.json())
       .then((data) => {
         const rows = data?.rows ?? data?.data ?? [];
@@ -190,46 +181,53 @@ export default function ProductsSection({ categoryId }: { categoryId?: string })
       .finally(() => setCategoryLoading(false));
   }, [categoryId]);
 
+  // ✅ Global loading
+  if (isLoading || isPending) {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-6xl mx-auto px-4">
+      {/* Category Section */}
       {categoryId && (
         <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-8">
-          <h2 className="text-2xl font-bold text-slate-900 mb-6">Products in this category</h2>
+          <h2 className="text-2xl font-bold mb-6">Products in this category</h2>
+
           {categoryLoading ? (
-            <div className="flex items-center gap-2 py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
-              <span className="text-sm text-slate-500">Loading products…</span>
-            </div>
+            <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
           ) : categoryProducts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Package className="w-12 h-12 text-slate-300 mb-3" />
-              <p className="text-slate-600 font-medium">No products in this category yet.</p>
-              <p className="text-sm text-slate-500 mt-1">Products will appear here once they are added and approved.</p>
+            <div className="text-center py-12">
+              <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <p>No products found</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {categoryProducts.map((p) => {
-                const img = p.images?.[0]?.image_url ?? "";
-                const price = p.variants?.[0]?.variant_price != null
-                  ? Number(p.variants[0].variant_price)
-                  : 0;
-                return (
-                  <ProductCard
-                    key={p.product_id}
-                    id={p.product_id}
-                    name={p.title}
-                    price={price}
-                    image={img}
-                    onPushToShopify={() => {}}
-                  />
-                );
-              })}
+            <div className="grid grid-cols-4 gap-4">
+              {categoryProducts.map((p) => (
+                <ProductCard
+                  key={p.product_id}
+                  id={p.product_id}
+                  name={p.title}
+                  price={Number(p.variants?.[0]?.variant_price ?? 0)}
+                  image={p.images?.[0]?.image_url ?? ""}
+                  onPushToShopify={() => {}}
+                />
+              ))}
             </div>
           )}
         </div>
       )}
-      <ProductsBlock title="All Products" showTabs />
-      <ProductsBlock title="Products for Testing" bgColor="bg-[#f1ebec]/60" />
+
+      {/* Main Sections */}
+      <ProductsBlock title="All Products" products={products} showTabs />
+      <ProductsBlock
+        title="Products for Testing"
+        products={products}
+        bgColor="bg-[#f1ebec]/60"
+      />
     </div>
   );
 }
