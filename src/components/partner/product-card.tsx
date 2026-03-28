@@ -31,34 +31,31 @@ export default function ProductCard({
 }: ProductCardProps) {
   const router = useRouter();
 
-  // ✅ Main redirect
+  // ✅ Image click → product detail
   const handleRedirect = () => {
     if (!id) return;
     router.push(`/marketplace/product/${id}`);
   };
 
-  // ✅ Prevent redirect when clicking buttons
-  const stopPropagation = (e: MouseEvent) => {
-    e.stopPropagation();
-  };
-
   const handlePushToShopify = (e: MouseEvent<HTMLButtonElement>) => {
-    stopPropagation(e);
+    e.stopPropagation();
     onPushToShopify?.();
   };
 
+  // ✅ Bulk Order → /marketplace/bulk-order
   const handleBulkOrder = (e: MouseEvent<HTMLButtonElement>) => {
-    stopPropagation(e);
+    e.stopPropagation();
+    router.push(`/marketplace/bulk-order/${id}`);
   };
 
   return (
-    <div
-      onClick={handleRedirect}
-      className="flex flex-col h-full bg-white rounded-lg shadow-sm p-2 hover:shadow-md transition-shadow duration-200 cursor-pointer"
-    >
+    <div className="flex flex-col h-full bg-white rounded-lg shadow-sm p-2 hover:shadow-md transition-shadow duration-200">
       <div className="flex-1">
-        {/* Image */}
-        <div className="relative w-full h-36 mb-3 bg-slate-100 rounded-md overflow-hidden">
+        {/* Image — clicking navigates to product detail */}
+        <div
+          onClick={handleRedirect}
+          className="relative w-full h-36 mb-3 bg-slate-100 rounded-md overflow-hidden cursor-pointer"
+        >
           {image ? (
             <img
               src={image}
@@ -125,7 +122,7 @@ export default function ProductCard({
         </Button>
 
         <Button
-          onClick={onBulkOrder}
+          onClick={handleBulkOrder}
           className="flex-1 bg-white text-xs text-amber-900 border border-amber-900 hover:bg-amber-900/10 font-semibold py-2 rounded-lg flex items-center justify-center cursor-pointer"
         >
           Bulk Order
