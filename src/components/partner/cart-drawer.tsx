@@ -45,7 +45,11 @@ const CartItem = ({
 }) => (
   <div className="flex items-start gap-3 bg-gray-100 rounded-md p-3">
     <div className="h-16 shrink-0">
-      <img src={image} alt="Product" className="w-full h-full object-contain rounded-md" />
+      <img
+        src={image}
+        alt="Product"
+        className="w-full h-full object-contain rounded-md"
+      />
     </div>
 
     <div className="flex flex-col gap-1 flex-1">
@@ -79,17 +83,26 @@ const CartDrawer = ({
 }: CartDrawerProps) => {
   const product = response?.productData?.product;
   const firstVariant = product?.variants?.[0];
-  const selectedVariantPrice = Number(firstVariant?.price ?? selectedProduct?.price ?? 0);
+  const selectedVariantPrice = Number(
+    firstVariant?.price ?? selectedProduct?.price ?? 0,
+  );
   const shippingDiscount = 57;
-  const effectiveCloutPrice = Math.max(selectedVariantPrice - shippingDiscount, 0);
+  const effectiveCloutPrice = Math.max(
+    selectedVariantPrice - shippingDiscount,
+    0,
+  );
   const margin = 0;
   const effectiveEarnings = margin + shippingDiscount;
 
   const productTitle =
-    product?.title || selectedProduct?.name || "Tangerine Vita C Dark Spot Care Cream 100gm Each (Pack of 2)";
+    product?.title ||
+    selectedProduct?.name ||
+    "Tangerine Vita C Dark Spot Care Cream 100gm Each (Pack of 2)";
   const productCode = selectedProduct?.id || firstVariant?.sku || "C2463343";
   const productImage =
-    selectedProduct?.image || product?.images?.[0]?.src || "/images/vita-c.webp";
+    selectedProduct?.image ||
+    product?.images?.[0]?.src ||
+    "/images/vita-c.webp";
 
   return (
     <div className="fixed inset-0 z-50 flex">
@@ -109,7 +122,11 @@ const CartDrawer = ({
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
           {/* Cart Item */}
-          <CartItem name={productTitle} productId={productCode} image={productImage} />
+          <CartItem
+            name={productTitle}
+            productId={productCode}
+            image={productImage}
+          />
 
           {/* Store Section */}
           <SectionTitle icon={Store} title="Store" />
@@ -150,9 +167,15 @@ const CartDrawer = ({
             </p>
 
             <div className="text-xs space-y-1">
-              <p className="font-semibold">Effective Clout Price: ₹{effectiveCloutPrice}</p>
-              <p className="text-gray-600">Difference amount will be given as</p>
-              <p className="font-semibold text-gray-500">Shipping Discount: ₹{shippingDiscount}</p>
+              <p className="font-semibold">
+                Effective Clout Price: ₹{effectiveCloutPrice}
+              </p>
+              <p className="text-gray-600">
+                Difference amount will be given as
+              </p>
+              <p className="font-semibold text-gray-500">
+                Shipping Discount: ₹{shippingDiscount}
+              </p>
             </div>
 
             {/* Margin Box */}
@@ -164,7 +187,9 @@ const CartDrawer = ({
 
               <div className="flex justify-between px-3 py-2">
                 <div className="flex gap-1">
-                  <span className="font-semibold text-black/80">+ Shipping Discount</span>
+                  <span className="font-semibold text-black/80">
+                    + Shipping Discount
+                  </span>
                   <span>(1-59 orders)</span>
                 </div>
                 <span className="font-semibold">₹{shippingDiscount}</span>
@@ -178,8 +203,11 @@ const CartDrawer = ({
 
             {/* RTO Info */}
             <div className="text-xs bg-gray-100 rounded-sm p-4 text-center">
-              RTO and RVP charges are applicable and vary depending on the product weight.{" "}
-              <span className="underline font-medium">view charges for this product</span>
+              RTO and RVP charges are applicable and vary depending on the
+              product weight.{" "}
+              <span className="underline font-medium">
+                view charges for this product
+              </span>
             </div>
           </div>
 
