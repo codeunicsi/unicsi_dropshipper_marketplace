@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { PendingProduct, ProductVariant } from '@/hooks/usePendingProducts'
 import { cn } from '@/lib/utils'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react'
 
 interface ProductReviewModalProps {
@@ -41,6 +41,85 @@ export function ProductReviewModal({
   const [editedProduct, setEditedProduct] = useState<Partial<PendingProduct>>({})
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [variantDimensions, setVariantDimensions] = useState<Record<string, { h: number; l: number; w: number }>>({})
+  const [platformPricing, setPlatformPricing] = useState({
+    commission: '',
+    rvp_enabled: true,
+    rto_enabled: true,
+  })
+
+  const firstVariantPriceKey = product?.variants?.[0]?.variant_price
+
+  useEffect(() => {
+    if (!product) return
+    const fromTransfer = Number(product.transfer_price)
+    const fromVariant = Number(product.variants?.[0]?.variant_price)
+    const supplierBase =
+      Number.isFinite(fromTransfer) && fromTransfer > 0 ? fromTransfer : fromVariant
+    const bulk = Number(product.bulk_price)
+    let commissionStr = ''
+    if (Number.isFinite(supplierBase) && supplierBase > 0 && Number.isFinite(bulk) && bulk >= supplierBase) {
+      commissionStr = String(Number((bulk - supplierBase).toFixed(2)))
+    }
+    setPlatformPricing({
+      commission: commissionStr,
+      rvp_enabled: product.rvp_enabled !== false,
+      rto_enabled: product.rto_enabled !== false,
+    })
+  }, [
+    product?.product_id,
+    product?.transfer_price,
+    product?.bulk_price,
+    product?.rvp_enabled,
+    product?.rto_enabled,
+    firstVariantPriceKey,
+  ])
+
+  const supplierDisplayName =
+    product?.supplierName?.trim() ||
+    product?.supplier?.name?.trim() ||
+    ''
+
+  /** Supplier-set unit amount: product transfer_price if set, else first variant list price. */
+  const supplierUnitPrice = (() => {
+    if (!product) return 0
+    const t = Number(product.transfer_price)
+    if (Number.isFinite(t) && t > 0) return t
+    const vars =
+      editMode && editedProduct.variants && editedProduct.variants.length > 0
+        ? editedProduct.variants
+        : product.variants
+    const v0 = vars?.[0]
+    return Number(v0?.variant_price) || 0
+  })()
+
+  const commissionAmountNum = (() => {
+    const c = parseFloat(platformPricing.commission.trim())
+    return Number.isFinite(c) ? c : 0
+  })()
+
+  const finalBulkUnitPrice =
+    supplierUnitPrice > 0 ? supplierUnitPrice + commissionAmountNum : null
+
+  const buildPricingPayload = (): Pick<
+    PendingProduct,
+    'bulk_price' | 'transfer_price' | 'rvp_enabled' | 'rto_enabled'
+  > => {
+    const sup = supplierUnitPrice
+    if (sup <= 0) {
+      return {
+        transfer_price: null,
+        bulk_price: null,
+        rvp_enabled: platformPricing.rvp_enabled,
+        rto_enabled: platformPricing.rto_enabled,
+      }
+    }
+    return {
+      transfer_price: sup,
+      bulk_price: sup + commissionAmountNum,
+      rvp_enabled: platformPricing.rvp_enabled,
+      rto_enabled: platformPricing.rto_enabled,
+    }
+  }
 
   const normalizeDimensions = useCallback((dim: unknown): { h: number; l: number; w: number } => {
     const d = dim as Record<string, unknown> | null | undefined
@@ -50,6 +129,32 @@ export function ProductReviewModal({
     const w = Number(d.w ?? d.width ?? 0) || 0
     return { h, l, w }
   }, [])
+
+  const formatAttributeValue = useCallback((value: unknown): string => {
+    if (value == null) return '—'
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      return String(value)
+    }
+    if (Array.isArray(value)) {
+      return value.map((v) => formatAttributeValue(v)).join(', ')
+    }
+    if (typeof value === 'object') {
+      const o = value as Record<string, unknown>
+      const hasDim =
+        'width' in o || 'height' in o || 'length' in o || 'h' in o || 'l' in o || 'w' in o
+      if (hasDim) {
+        const { h, l, w } = normalizeDimensions(o)
+        if (h === 0 && l === 0 && w === 0) return '—'
+        return `${h} × ${l} × ${w} cm`
+      }
+      try {
+        return JSON.stringify(value)
+      } catch {
+        return String(value)
+      }
+    }
+    return String(value)
+  }, [normalizeDimensions])
 
   const handleEnterEditMode = useCallback(() => {
     if (!product) return
@@ -100,11 +205,16 @@ export function ProductReviewModal({
   const currentImage = product.images?.[currentImageIndex]
 
   const handleSaveChanges = async () => {
+    if (commissionAmountNum < 0) {
+      alert('Commission cannot be negative.')
+      return
+    }
     try {
       const payload: Partial<PendingProduct> = {
         title: editedProduct.title ?? product.title,
         description: editedProduct.description ?? product.description,
         brand: editedProduct.brand ?? product.brand,
+        ...buildPricingPayload(),
       }
       const baseVariants = editedProduct.variants ?? product.variants ?? []
       payload.variants = baseVariants.map((v) => ({
@@ -138,7 +248,16 @@ export function ProductReviewModal({
 
   const handleApprove = async () => {
     if (!onApprove) return
+    if (supplierUnitPrice <= 0) {
+      alert('Supplier unit price is missing. Set the variant price (or transfer price) before approving.')
+      return
+    }
+    if (commissionAmountNum < 0) {
+      alert('Commission cannot be negative.')
+      return
+    }
     try {
+      await onUpdate(product.product_id, buildPricingPayload())
       await onApprove(product.product_id)
       onClose()
     } catch (error) {
@@ -152,7 +271,9 @@ export function ProductReviewModal({
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Review Product: {product.title}</DialogTitle>
-            <DialogDescription>Supplier: {product.supplierName || 'Unknown'}</DialogDescription>
+            <DialogDescription>
+              Supplier: {supplierDisplayName || 'Unknown'}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6">
@@ -271,6 +392,78 @@ export function ProductReviewModal({
               </CardContent>
             </Card>
 
+            <Card>
+              <CardHeader>
+                <CardTitle>Bulk pricing & logistics</CardTitle>
+                {/* <CardDescription>
+                  Supplier unit price comes from the listing (variant price or saved transfer price). You set
+                  platform commission per unit; reseller bulk unit price is supplier + commission (
+                  <code>bulk_price</code>).
+                </CardDescription> */}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">
+                      Supplier price (per unit, ₹) — from supplier
+                    </Label>
+                    <div className="mt-1 rounded-md border bg-muted/30 px-3 py-2 text-sm tabular-nums">
+                      {supplierUnitPrice > 0 ? `₹${supplierUnitPrice.toFixed(2)}` : '— (set variant price)'}
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Platform commission (per unit, ₹)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      className="mt-1"
+                      placeholder="e.g. 50"
+                      value={platformPricing.commission}
+                      onChange={(e) =>
+                        setPlatformPricing((p) => ({ ...p, commission: e.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="rounded-lg border bg-muted/40 px-4 py-3 text-sm">
+                  <span className="text-muted-foreground">Reseller bulk unit price (final, ₹): </span>
+                  <span className="font-semibold tabular-nums">
+                    {finalBulkUnitPrice != null ? `₹${finalBulkUnitPrice.toFixed(2)}` : '—'}
+                  </span>
+                  {supplierUnitPrice > 0 && commissionAmountNum < 0 && (
+                    <p className="text-xs text-amber-700 mt-1">
+                      Commission should not be negative; bulk must be ≥ supplier payout.
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-input"
+                      checked={platformPricing.rvp_enabled}
+                      onChange={(e) =>
+                        setPlatformPricing((p) => ({ ...p, rvp_enabled: e.target.checked }))
+                      }
+                    />
+                    <span>RVP (returns / refunds policy enabled)</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-input"
+                      checked={platformPricing.rto_enabled}
+                      onChange={(e) =>
+                        setPlatformPricing((p) => ({ ...p, rto_enabled: e.target.checked }))
+                      }
+                    />
+                    <span>RTO (return-to-origin) allowed</span>
+                  </label>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Variants */}
             {(() => {
               const productVariants = product.variants ?? []
@@ -326,7 +519,9 @@ export function ProductReviewModal({
                                 className="mt-1 h-8 text-sm w-full min-w-0"
                               />
                             ) : (
-                              <p className="font-medium text-sm mt-1">₹{variant.variant_price}</p>
+                              <p className="font-medium text-sm mt-1">
+                                {variant.variant_price ? `₹${variant.variant_price}` : '—'}
+                              </p>
                             )}
                           </div>
                           <div className="min-w-0">
@@ -463,8 +658,10 @@ export function ProductReviewModal({
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {Object.entries(product.variants[0].attributes).map(([key, value]) => (
                       <div key={key}>
-                        <p className="text-xs text-muted-foreground capitalize">{key}</p>
-                        <p className="font-medium text-sm">{value}</p>
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {key.replace(/_/g, ' ')}
+                        </p>
+                        <p className="font-medium text-sm">{formatAttributeValue(value)}</p>
                       </div>
                     ))}
                   </div>

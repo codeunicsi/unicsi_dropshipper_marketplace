@@ -3,8 +3,14 @@
 import { useState, useRef, useEffect } from "react";
 import ProductCard from "./product-card";
 import CartDrawer from "./cart-drawer";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Package } from "lucide-react";
 import { useRouter } from "next/navigation";
+
+const API_BASE =
+  (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1/").replace(
+    /\/?$/,
+    "/",
+  );
 
 const PRODUCT_TABS = [
   "Push to Shopify",
@@ -14,7 +20,14 @@ const PRODUCT_TABS = [
   "Popular Demand",
 ];
 
-const SAMPLE_PRODUCTS = [
+type CardProduct = {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+};
+
+const SAMPLE_CARD_PRODUCTS: CardProduct[] = [
   {
     id: "8f7b8d8f-3c2f-4d7a-9c2a-4c8f9d24a101",
     name: "Nike Shoes - Men",
@@ -45,43 +58,55 @@ const SAMPLE_PRODUCTS = [
   },
 ];
 
-// ✅ Transform function (unchanged)
-const transformProducts = (products: Product[]) => {
-  return SAMPLE_PRODUCTS.map((product) => {
-    const firstVariant = product.variants?.find((v) => v.is_active);
-    const firstImage = product.images?.[0];
+export type CatalogProduct = {
+  product_id: string;
+  title: string;
+  images?: { image_url?: string }[];
+  variants?: Array<{
+    is_active?: boolean;
+    price?: string | number;
+    inventory_quantity?: number;
+    option1?: string;
+    option2?: string;
+  }>;
+};
 
+function catalogToCardProducts(products: CatalogProduct[]): CardProduct[] {
+  return products.map((product) => {
+    const firstVariant =
+      product.variants?.find((v) => v.is_active !== false) ??
+      product.variants?.[0];
+    const firstImage = product.images?.[0];
     return {
       id: product.product_id,
       name: product.title,
       price: Number(firstVariant?.price ?? 0),
       image: firstImage?.image_url || "/placeholder.png",
-      stock: firstVariant?.inventory_quantity ?? 0,
-      color: firstVariant?.option1 ?? "",
-      size: firstVariant?.option2 ?? "",
     };
   });
-};
+}
 
 type ProductsBlockProps = {
   title: string;
   bgColor?: string;
   showTabs?: boolean;
-  products: Product[];
+  /** When empty, sample cards are shown. */
+  products?: CatalogProduct[];
 };
 
 function ProductsBlock({
   title,
   bgColor = "bg-white",
   showTabs,
-  products,
+  products = [],
 }: ProductsBlockProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(0);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
-  const formattedProducts = transformProducts(products);
+  const cardProducts: CardProduct[] =
+    products.length > 0 ? catalogToCardProducts(products) : SAMPLE_CARD_PRODUCTS;
 
   const handleScroll = (direction: "left" | "right") => {
     if (!scrollRef.current) return;
@@ -92,7 +117,7 @@ function ProductsBlock({
     });
   };
 
-  const handleBulkOrder = (product: (typeof SAMPLE_PRODUCTS)[number]) => {
+  const handleBulkOrder = (product: CardProduct) => {
     const params = new URLSearchParams({
       productId: product.id,
       productName: product.name,
@@ -104,18 +129,19 @@ function ProductsBlock({
 
   return (
     <div className={`${bgColor} rounded-2xl border border-slate-200 p-8 mb-8`}>
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-slate-900">{title}</h2>
 
         <div className="flex gap-2">
           <button
+            type="button"
             onClick={() => handleScroll("left")}
             className="p-2 hover:bg-slate-100 rounded-full"
           >
             <ChevronLeft className="w-5 h-5 text-slate-600" />
           </button>
           <button
+            type="button"
             onClick={() => handleScroll("right")}
             className="p-2 hover:bg-slate-100 rounded-full"
           >
@@ -124,12 +150,12 @@ function ProductsBlock({
         </div>
       </div>
 
-      {/* Tabs */}
       {showTabs && (
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
           {PRODUCT_TABS.map((tab, index) => (
             <button
-              key={index}
+              key={tab}
+              type="button"
               onClick={() => setActiveTab(index)}
               className={`px-4 py-2 rounded-full font-medium whitespace-nowrap text-sm transition-colors duration-200 ${
                 activeTab === index
@@ -143,15 +169,17 @@ function ProductsBlock({
         </div>
       )}
 
-      {/* Products */}
       <div
         ref={scrollRef}
         className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
       >
-        {SAMPLE_PRODUCTS.map((product) => (
+        {cardProducts.map((product) => (
           <ProductCard
             key={product.id}
-            {...product}
+            id={product.id}
+            name={product.name}
+            price={product.price}
+            image={product.image}
             onPushToShopify={() => setIsCartOpen(true)}
             onBulkOrder={() => handleBulkOrder(product)}
           />
@@ -167,7 +195,7 @@ type MarketplaceProduct = {
   product_id: string;
   title: string;
   images?: { image_url?: string }[];
-  variants?: { variant_price?: string | number }[];
+  variants?: { variant_price?: string | number; price?: string | number }[];
 };
 
 export default function ProductsSection({ categoryId }: { categoryId?: string }) {
@@ -180,7 +208,9 @@ export default function ProductsSection({ categoryId }: { categoryId?: string })
       return;
     }
     setCategoryLoading(true);
-    fetch(`${API_BASE}marketplace/products?categoryId=${encodeURIComponent(categoryId)}&limit=24`)
+    fetch(
+      `${API_BASE}marketplace/products?categoryId=${encodeURIComponent(categoryId)}&limit=24`,
+    )
       .then((res) => res.json())
       .then((data) => {
         const rows = data?.rows ?? data?.data ?? [];
@@ -210,9 +240,14 @@ export default function ProductsSection({ categoryId }: { categoryId?: string })
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {categoryProducts.map((p) => {
                 const img = p.images?.[0]?.image_url ?? "";
-                const price = p.variants?.[0]?.variant_price != null
-                  ? Number(p.variants[0].variant_price)
-                  : 0;
+                const v0 = p.variants?.[0] as
+                  | { variant_price?: string | number; price?: string | number }
+                  | undefined;
+                const priceRaw =
+                  v0?.variant_price != null && v0.variant_price !== ""
+                    ? v0.variant_price
+                    : v0?.price;
+                const price = priceRaw != null && priceRaw !== "" ? Number(priceRaw) : 0;
                 return (
                   <ProductCard
                     key={p.product_id}

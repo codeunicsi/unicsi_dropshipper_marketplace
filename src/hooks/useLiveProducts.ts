@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { mapProductsWithNormalizedVariants } from '@/lib/normalizeSupplierVariantsForAdmin'
 
 export interface LiveProduct {
   id: string
@@ -62,6 +63,7 @@ export function useLiveProducts(page = 1, limit = 20) {
         // Fetch live products
         const productsResponse = await fetch(
           `${base}admin/products/get-live-products`,
+          { credentials: 'include' },
         )
 
         if (!productsResponse.ok) {
@@ -70,11 +72,13 @@ export function useLiveProducts(page = 1, limit = 20) {
 
         const productsData = await productsResponse.json()
         console.log(productsData?.data)
-        setProducts(productsData?.data || [])
+        setProducts(mapProductsWithNormalizedVariants(productsData?.data || []))
         setTotal(productsData?.data?.length || 0)
 
         // Fetch stats
-        const statsResponse = await fetch(`${base}admin/products/live/stats`)
+        const statsResponse = await fetch(`${base}admin/products/live/stats`, {
+          credentials: 'include',
+        })
         if (statsResponse.ok) {
           const statsData = await statsResponse.json()
           setStats(statsData.data ?? statsData)
@@ -96,6 +100,7 @@ export function useLiveProducts(page = 1, limit = 20) {
       const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
       const response = await fetch(`${base}admin/products/${productId}`, {
         method: 'DELETE',
+        credentials: 'include',
       })
 
       if (!response.ok) {
@@ -115,6 +120,7 @@ export function useLiveProducts(page = 1, limit = 20) {
         const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
         const response = await fetch(`${base}admin/products/${productId}/status`, {
           method: 'PUT',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -146,6 +152,7 @@ export function useLiveProducts(page = 1, limit = 20) {
       const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
       const response = await fetch(`${base}admin/products/update-product`, {
         method: 'PUT',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ product_id: productId, ...updates }),
       })

@@ -49,6 +49,7 @@ export function useRejectedProducts(page = 1, limit = 20) {
         // Fetch rejected products
         const productsResponse = await fetch(
           `${base}admin/products/rejected?page=${page}&limit=${limit}`,
+          { credentials: 'include' },
         )
 
         if (!productsResponse.ok) {
@@ -60,7 +61,9 @@ export function useRejectedProducts(page = 1, limit = 20) {
         setTotal(productsData.total || 0)
 
         // Fetch stats
-        const statsResponse = await fetch(`${base}admin/products/rejected/stats`)
+        const statsResponse = await fetch(`${base}admin/products/rejected/stats`, {
+          credentials: 'include',
+        })
         if (statsResponse.ok) {
           const statsData = await statsResponse.json()
           setStats(statsData.data ?? statsData)
@@ -79,7 +82,9 @@ export function useRejectedProducts(page = 1, limit = 20) {
 
   const getProductById = useCallback(async (productId: string) => {
     const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
-    const response = await fetch(`${base}admin/products/${productId}`)
+    const response = await fetch(`${base}admin/products/${productId}`, {
+      credentials: 'include',
+    })
     if (!response.ok) throw new Error('Failed to fetch product')
     const json = await response.json()
     return json?.data ?? null
@@ -89,6 +94,7 @@ export function useRejectedProducts(page = 1, limit = 20) {
     const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
     const response = await fetch(`${base}admin/products/update-product`, {
       method: 'PUT',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ product_id: productId, ...updates }),
     })
@@ -113,6 +119,7 @@ export function useRejectedProducts(page = 1, limit = 20) {
         `${base}admin/products/${productId}/rejected`,
         {
           method: 'DELETE',
+          credentials: 'include',
         },
       )
 

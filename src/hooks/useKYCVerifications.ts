@@ -52,7 +52,9 @@ export function useKYCVerifications() {
             try {
                 setLoading(true)
                 setError(null)
-                const response = await fetch(`${API_BASE_URL}admin/get-all-kyc-verifications`)
+                const response = await fetch(`${API_BASE_URL}admin/get-all-kyc-verifications`, {
+                    credentials: 'include',
+                })
 
                 if (!response.ok) {
                     throw new Error(`Failed to fetch KYC data: ${response.statusText}`)
@@ -97,6 +99,7 @@ export function useKYCVerifications() {
             // Call backend verification API
             const response = await fetch(`${API_BASE_URL}admin/supplier-verify`, {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -135,6 +138,7 @@ export function useKYCVerifications() {
             // Call backend rejection API
             const response = await fetch(`${API_BASE_URL}admin/supplier/kyc/reject`, {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
                 },

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { mapProductsWithNormalizedVariants } from '@/lib/normalizeSupplierVariantsForAdmin'
 
 type PendingProduct = {
   supplier_id?: string
@@ -93,12 +94,13 @@ export function useAdminDashboard() {
       setError(null)
       try {
         const base = getBaseUrl()
+        const cred = { credentials: 'include' as const }
         const [pendingRes, pendingStatsRes, liveRes, liveStatsRes, suppliersRes] = await Promise.all([
-          fetch(`${base}admin/products/get-pending-products`),
-          fetch(`${base}admin/products/pending/stats`),
-          fetch(`${base}admin/products/get-live-products`),
-          fetch(`${base}admin/products/live/stats`),
-          fetch(`${base}admin/get-all-suppliers`),
+          fetch(`${base}admin/products/get-pending-products`, cred),
+          fetch(`${base}admin/products/pending/stats`, cred),
+          fetch(`${base}admin/products/get-live-products`, cred),
+          fetch(`${base}admin/products/live/stats`, cred),
+          fetch(`${base}admin/get-all-suppliers`, cred),
         ])
 
         if (!pendingRes.ok || !liveRes.ok || !suppliersRes.ok) {
@@ -116,8 +118,12 @@ export function useAdminDashboard() {
 
         if (cancelled) return
 
-        setPendingProducts((pendingJson?.data as PendingProduct[]) || [])
-        setLiveProducts((liveJson?.data as LiveProduct[]) || [])
+        setPendingProducts(
+          mapProductsWithNormalizedVariants(pendingJson?.data || []) as PendingProduct[],
+        )
+        setLiveProducts(
+          mapProductsWithNormalizedVariants(liveJson?.data || []) as LiveProduct[],
+        )
         setSuppliers((suppliersJson?.data as Supplier[]) || [])
 
         const normalizedPendingStats = (pendingStatsJson?.data ?? pendingStatsJson ?? {}) as PendingStats

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { mapProductsWithNormalizedVariants } from '@/lib/normalizeSupplierVariantsForAdmin'
 
 export interface ProductVariant {
   variant_id: string
@@ -43,7 +44,7 @@ export interface PendingProduct {
   category_id: string | null
   brand: string
   approval_status: 'submitted' | 'under_review' | 'approved' | 'rejected'
-  lifecycle_status: 'active' | 'inactive'
+  lifecycle_status: 'active' | 'inactive' | 'paused' | 'archived'
   approved_by?: string
   approved_at?: string
   createdAt: string
@@ -52,6 +53,14 @@ export interface PendingProduct {
   variants: ProductVariant[]
   images: ProductImage[]
   supplierName?: string
+  supplier?: { supplier_id?: string; name?: string; email?: string }
+  /** Supplier payout per unit (matches platform bulk-order logic). */
+  transfer_price?: number | string | null
+  /** Reseller / bulk unit price (final price before tax). */
+  bulk_price?: number | string | null
+  mrp?: number | string | null
+  rvp_enabled?: boolean
+  rto_enabled?: boolean
 }
 
 export interface PendingProductsStats {
@@ -77,8 +86,10 @@ export function usePendingProducts() {
         setError(null)
         const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
         const [productsResponse, statsResponse] = await Promise.all([
-          fetch(`${base}admin/products/get-pending-products`),
-          fetch(`${base}admin/products/pending/stats`),
+          fetch(`${base}admin/products/get-pending-products`, {
+            credentials: 'include',
+          }),
+          fetch(`${base}admin/products/pending/stats`, { credentials: 'include' }),
         ])
 
         if (!productsResponse.ok) {
@@ -87,7 +98,7 @@ export function usePendingProducts() {
 
         const data = await productsResponse.json()
         console.log(data?.data)
-        setProducts(data?.data || [])
+        setProducts(mapProductsWithNormalizedVariants(data?.data || []))
 
         if (statsResponse.ok) {
           const statsData = await statsResponse.json()
@@ -164,7 +175,9 @@ export function usePendingProducts() {
   const refetchStats = useCallback(async () => {
     const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
     try {
-      const r = await fetch(`${base}admin/products/pending/stats`)
+      const r = await fetch(`${base}admin/products/pending/stats`, {
+        credentials: 'include',
+      })
       if (r.ok) {
         const d = await r.json()
         const s = d?.data ?? d
@@ -186,6 +199,7 @@ export function usePendingProducts() {
       const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
       const response = await fetch(`${base}admin/products/${productId}/approve`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -216,6 +230,7 @@ export function usePendingProducts() {
       const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
       const response = await fetch(`${base}admin/products/${productId}/reject`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -248,6 +263,7 @@ export function usePendingProducts() {
       const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
       const response = await fetch(`${base}admin/products/update-product`, {
         method: 'PUT',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },

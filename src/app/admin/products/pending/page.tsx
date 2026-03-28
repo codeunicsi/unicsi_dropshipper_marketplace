@@ -240,7 +240,11 @@ export default function PendingApprovalsPage() {
                     <TableRow key={product.product_id}>
                       <TableCell className="font-medium">{product.title}</TableCell>
                       <TableCell>{product.brand}</TableCell>
-                      <TableCell className="text-sm">{product.supplierName || 'N/A'}</TableCell>
+                      <TableCell className="text-sm">
+                        {product.supplierName?.trim() ||
+                          product.supplier?.name?.trim() ||
+                          'N/A'}
+                      </TableCell>
                       <TableCell className="text-sm">
                         {product.variants?.[0] ? `₹${product.variants[0].variant_price}` : 'N/A'}
                       </TableCell>
