@@ -71,7 +71,9 @@ export default function ProductCard({
               }}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">No image</div>
+            <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">
+              No image
+            </div>
           )}
         </div>
 
