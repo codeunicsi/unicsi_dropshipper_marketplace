@@ -1,6 +1,8 @@
 import {
   ArrowUpRight,
   Banknote,
+  Calculator,
+  ChevronRight,
   Copy,
   HelpCircle,
   Info,
@@ -87,6 +89,8 @@ const CartDrawer = ({
     firstVariant?.price ?? selectedProduct?.price ?? 0,
   );
   const shippingDiscount = 57;
+  const shippingCharges = Math.round(selectedVariantPrice * 0.45);
+  const productPrice = Math.max(selectedVariantPrice - shippingCharges, 0);
   const effectiveCloutPrice = Math.max(
     selectedVariantPrice - shippingDiscount,
     0,
@@ -129,8 +133,17 @@ const CartDrawer = ({
           />
 
           {/* Store Section */}
-          <SectionTitle icon={Store} title="Store" />
-          <div className="px-6 space-y-2 text-sm">
+          <div className="flex justify-between items-center">
+            <SectionTitle icon={Store} title="Store" />
+            <div className="flex justify-between gap-2">
+              {/* <span className="text-slate-600">Shop</span> */}
+              <span className="text-sm text-slate-900">
+                {response?.shop || "test2-12412412125457568973.myshopify.com"}
+              </span>
+            </div>
+          </div>
+
+          {/* <div className="px-6 space-y-2 text-sm">
             <div className="flex justify-between gap-2">
               <span className="text-slate-600">Shop</span>
               <span className="font-semibold text-slate-900">
@@ -143,10 +156,27 @@ const CartDrawer = ({
                 {maskedToken(response?.access_token)}
               </span>
             </div>
-          </div>
+          </div> */}
 
           {/* Pricing Section */}
-          <SectionTitle icon={Banknote} title="Pricing" />
+          <div className="flex justify-between items-center gap-4">
+            <SectionTitle icon={Banknote} title="Pricing" />
+            {/* START: Expected Price Calculator UI (purple card shown on right side) */}
+            <button
+              type="button"
+              className="min-w-62 bg-[#e9e3f8] hover:bg-[#e3daf8] transition-colors rounded-md px-3 py-1 flex items-center justify-between"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg text-[#7c3aed] flex items-center justify-center">
+                  <Calculator className="w-6 h-6" />
+                </div>
+                <span className="text-[#5b2fd1] font-semibold underline text-xs">
+                  Calculate Expected Profit
+                </span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-700" />
+            </button>
+          </div>
 
           <div className="px-6 space-y-4 text-sm">
             {/* Selling Price Label */}
@@ -157,18 +187,55 @@ const CartDrawer = ({
 
             {/* Clout Pricing */}
             <div className="flex justify-between">
-              <span>Clout Pricing</span>
+              <span>Pricing</span>
               <span className="font-semibold">₹ {selectedVariantPrice}</span>
             </div>
 
-            <p className="text-xs text-gray-600 underline flex items-center gap-1">
-              Including GST, Shipping Charges & Discount
-              <Info className="w-3 h-3" />
-            </p>
+            {/* START: Hover trigger text for GST/Shipping/Discount tooltip */}
+            <div className="relative inline-flex group">
+              <p className="text-xs text-gray-600 underline flex items-center gap-1 cursor-default">
+                Including GST, Shipping Charges & Discount
+                <Info className="w-3 h-3" />
+              </p>
+
+              {/* START: Hover tooltip popup content (dark card) */}
+              <div className="absolute left-0 top-full mt-3 z-20 hidden group-hover:block group-focus-within:block">
+                <div className="relative bg-[#474747] text-white rounded-md shadow-xl min-w-85 p-4">
+                  <div className="absolute -top-2 left-10 w-4 h-4 bg-[#474747] rotate-45" />
+
+                  <div className="flex items-center justify-between text-sm font-semibold">
+                    <span>Price</span>
+                    <span>₹{selectedVariantPrice}</span>
+                  </div>
+
+                  <div className="mt-3 space-y-3 text-xs">
+                    <div className="flex items-start justify-between gap-6">
+                      <div>
+                        <p className="font-semibold">• Product Price</p>
+                        <p className="text-gray-300 text-xs">
+                          (Includes 18% Product GST)
+                        </p>
+                      </div>
+                      <span className="font-semibold">₹{productPrice}</span>
+                    </div>
+
+                    <div className="flex items-start justify-between gap-6">
+                      <div>
+                        <p className="font-semibold">• Shipping Charges</p>
+                        <p className="text-gray-300 text-xs">
+                          (Includes 18% Shipping GST)
+                        </p>
+                      </div>
+                      <span className="font-semibold">₹{shippingCharges}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <div className="text-xs space-y-1">
               <p className="font-semibold">
-                Effective Clout Price: ₹{effectiveCloutPrice}
+                Effective Price: ₹{effectiveCloutPrice}
               </p>
               <p className="text-gray-600">
                 Difference amount will be given as
