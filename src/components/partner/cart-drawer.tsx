@@ -1,4 +1,4 @@
-import {
+﻿import {
   ArrowUpRight,
   Banknote,
   Calculator,
@@ -9,7 +9,7 @@ import {
   Store,
   X,
 } from "lucide-react";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { PushToShopifyResponse } from "@/hooks/usePushToShopify";
 
@@ -28,12 +28,6 @@ interface CartDrawerProps {
   error: string | null;
   onRetry: () => void;
 }
-
-const maskedToken = (token?: string) => {
-  if (!token) return "-";
-  if (token.length <= 12) return token;
-  return `${token.slice(0, 8)}...${token.slice(-4)}`;
-};
 
 /* -------------------- Cart Item -------------------- */
 const CartItem = ({
@@ -85,17 +79,20 @@ const CartDrawer = ({
 }: CartDrawerProps) => {
   const product = response?.productData?.product;
   const firstVariant = product?.variants?.[0];
-  const selectedVariantPrice = Number(
-    firstVariant?.price ?? selectedProduct?.price ?? 0,
-  );
+  const cloutPrice = Number(firstVariant?.price ?? selectedProduct?.price ?? 0);
+
+  const [sellingPrice, setSellingPrice] = useState<number>(cloutPrice);
+
+  useEffect(() => {
+    setSellingPrice(cloutPrice);
+  }, [cloutPrice]);
+
+  const safeSellingPrice = Number.isFinite(sellingPrice) ? sellingPrice : 0;
   const shippingDiscount = 57;
-  const shippingCharges = Math.round(selectedVariantPrice * 0.45);
-  const productPrice = Math.max(selectedVariantPrice - shippingCharges, 0);
-  const effectiveCloutPrice = Math.max(
-    selectedVariantPrice - shippingDiscount,
-    0,
-  );
-  const margin = 0;
+  const shippingCharges = Math.round(cloutPrice * 0.45);
+  const productPrice = Math.max(cloutPrice - shippingCharges, 0);
+  const effectiveCloutPrice = Math.max(cloutPrice - shippingDiscount, 0);
+  const margin = Math.max(safeSellingPrice - cloutPrice, 0);
   const effectiveEarnings = margin + shippingDiscount;
 
   const productTitle =
@@ -136,27 +133,11 @@ const CartDrawer = ({
           <div className="flex justify-between items-center">
             <SectionTitle icon={Store} title="Store" />
             <div className="flex justify-between gap-2">
-              {/* <span className="text-slate-600">Shop</span> */}
               <span className="text-sm text-slate-900">
                 {response?.shop || "test2-12412412125457568973.myshopify.com"}
               </span>
             </div>
           </div>
-
-          {/* <div className="px-6 space-y-2 text-sm">
-            <div className="flex justify-between gap-2">
-              <span className="text-slate-600">Shop</span>
-              <span className="font-semibold text-slate-900">
-                {response?.shop || "test2-12412412125457568973.myshopify.com"}
-              </span>
-            </div>
-            <div className="flex justify-between gap-2">
-              <span className="text-slate-600">Access Token</span>
-              <span className="font-semibold text-slate-900">
-                {maskedToken(response?.access_token)}
-              </span>
-            </div>
-          </div> */}
 
           {/* Pricing Section */}
           <div className="flex justify-between items-center gap-4">
@@ -176,19 +157,36 @@ const CartDrawer = ({
               </div>
               <ChevronRight className="w-4 h-4 text-slate-700" />
             </button>
+            {/* END: Expected Price Calculator UI */}
           </div>
 
           <div className="px-6 space-y-4 text-sm">
-            {/* Selling Price Label */}
-            <div className="flex items-center gap-2 font-semibold border-b border-dashed pb-3">
-              Set Your Selling Price (₹)
-              <HelpCircle className="w-4 h-4" />
+            {/* Selling Price Label + input */}
+            <div className="flex items-center justify-between gap-3 font-semibold border-b border-dashed pb-3">
+              <div className="flex items-center gap-2">
+                Set Your Selling Price (₹)
+                <HelpCircle className="w-4 h-4" />
+              </div>
+              <div className="h-11 min-w-26 border border-black/60 rounded-sm px-3 flex items-center gap-2 bg-white">
+                <span className="font-semibold">₹</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={Number.isNaN(sellingPrice) ? "" : sellingPrice}
+                  onChange={(e) => {
+                    const nextValue = Number(e.target.value);
+                    setSellingPrice(Number.isNaN(nextValue) ? 0 : nextValue);
+                  }}
+                  className="w-14 bg-transparent outline-none text-right font-medium"
+                />
+              </div>
             </div>
 
             {/* Clout Pricing */}
             <div className="flex justify-between">
-              <span>Pricing</span>
-              <span className="font-semibold">₹ {selectedVariantPrice}</span>
+              <span> Price</span>
+              <span className="font-semibold">₹{cloutPrice}</span>
             </div>
 
             {/* START: Hover trigger text for GST/Shipping/Discount tooltip */}
@@ -205,7 +203,7 @@ const CartDrawer = ({
 
                   <div className="flex items-center justify-between text-sm font-semibold">
                     <span>Price</span>
-                    <span>₹{selectedVariantPrice}</span>
+                    <span>₹{cloutPrice}</span>
                   </div>
 
                   <div className="mt-3 space-y-3 text-xs">
@@ -231,7 +229,9 @@ const CartDrawer = ({
                   </div>
                 </div>
               </div>
+              {/* END: Hover tooltip popup content */}
             </div>
+            {/* END: Hover trigger text for GST/Shipping/Discount tooltip */}
 
             <div className="text-xs space-y-1">
               <p className="font-semibold">
