@@ -153,7 +153,6 @@ export default function ProductsSection({
   categoryId?: string;
 }) {
   const { data, isLoading, isPending } = useGetAllProducts();
-  
 
   const [categoryProducts, setCategoryProducts] = useState<
     MarketplaceProduct[]
