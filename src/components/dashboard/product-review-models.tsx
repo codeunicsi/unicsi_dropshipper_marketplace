@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { PendingProduct, ProductVariant } from '@/hooks/usePendingProducts'
 import { cn } from '@/lib/utils'
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react'
 
 interface ProductReviewModalProps {
@@ -41,11 +41,23 @@ export function ProductReviewModal({
   const [editedProduct, setEditedProduct] = useState<Partial<PendingProduct>>({})
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [variantDimensions, setVariantDimensions] = useState<Record<string, { h: number; l: number; w: number }>>({})
+  const [shippingCharge, setShippingCharge] = useState('')
   const [platformPricing, setPlatformPricing] = useState({
     commission: '',
     rvp_enabled: true,
     rto_enabled: true,
   })
+
+  const reviewDimsEditable = !liveOnly
+
+  const normalizeDimensions = useCallback((dim: unknown): { h: number; l: number; w: number } => {
+    const d = dim as Record<string, unknown> | null | undefined
+    if (!d || typeof d !== 'object') return { h: 0, l: 0, w: 0 }
+    const h = Number(d.h ?? d.height ?? 0) || 0
+    const l = Number(d.l ?? d.length ?? 0) || 0
+    const w = Number(d.w ?? d.width ?? 0) || 0
+    return { h, l, w }
+  }, [])
 
   const firstVariantPriceKey = product?.variants?.[0]?.variant_price
 
@@ -74,13 +86,16 @@ export function ProductReviewModal({
     firstVariantPriceKey,
   ])
 
-  const supplierDisplayName =
-    product?.supplierName?.trim() ||
-    product?.supplier?.name?.trim() ||
-    ''
+  const supplierDisplayName = useMemo(
+    () =>
+      product?.supplierName?.trim() ||
+      product?.supplier?.name?.trim() ||
+      '',
+    [product?.supplierName, product?.supplier?.name],
+  )
 
   /** Supplier-set unit amount: product transfer_price if set, else first variant list price. */
-  const supplierUnitPrice = (() => {
+  const supplierUnitPrice = useMemo(() => {
     if (!product) return 0
     const t = Number(product.transfer_price)
     if (Number.isFinite(t) && t > 0) return t
@@ -90,19 +105,49 @@ export function ProductReviewModal({
         : product.variants
     const v0 = vars?.[0]
     return Number(v0?.variant_price) || 0
-  })()
+  }, [product, editMode, editedProduct.variants])
 
-  const commissionAmountNum = (() => {
+  const commissionAmountNum = useMemo(() => {
     const c = parseFloat(platformPricing.commission.trim())
     return Number.isFinite(c) ? c : 0
-  })()
+  }, [platformPricing.commission])
 
-  const finalBulkUnitPrice =
+  /** Supplier payout + platform commission per unit (stored as `bulk_price`). Excludes shipping. */
+  const resellerBulkUnitBeforeShipping =
     supplierUnitPrice > 0 ? supplierUnitPrice + commissionAmountNum : null
+
+  const moq = useMemo(() => {
+    const raw = product?.minimum_order_quantity
+    const n = typeof raw === 'string' ? parseInt(raw, 10) : Number(raw)
+    return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 10
+  }, [product?.minimum_order_quantity])
+
+  const defaultShippingForPayload = useMemo((): number | null => {
+    const t = shippingCharge.trim()
+    if (t === '') return null
+    const n = parseFloat(t)
+    return Number.isFinite(n) && n >= 0 ? n : null
+  }, [shippingCharge])
+
+  /** Per-order shipping spread across one MOQ for “landed unit” preview (matches how bulk orders add one shipping line). */
+  const shippingPerUnitAtMoq = useMemo(() => {
+    if (defaultShippingForPayload == null || defaultShippingForPayload <= 0) return 0
+    return defaultShippingForPayload / moq
+  }, [defaultShippingForPayload, moq])
+
+  /** What resellers effectively pay per unit at MOQ: bulk unit + (shipping ÷ MOQ). Updates when commission or shipping changes. */
+  const resellerLandedUnitAtMoq = useMemo(() => {
+    if (resellerBulkUnitBeforeShipping == null) return null
+    return Number((resellerBulkUnitBeforeShipping + shippingPerUnitAtMoq).toFixed(2))
+  }, [resellerBulkUnitBeforeShipping, shippingPerUnitAtMoq])
 
   const buildPricingPayload = (): Pick<
     PendingProduct,
-    'bulk_price' | 'transfer_price' | 'rvp_enabled' | 'rto_enabled'
+    | 'bulk_price'
+    | 'transfer_price'
+    | 'rvp_enabled'
+    | 'rto_enabled'
+    | 'default_shipping_charge'
   > => {
     const sup = supplierUnitPrice
     if (sup <= 0) {
@@ -111,6 +156,7 @@ export function ProductReviewModal({
         bulk_price: null,
         rvp_enabled: platformPricing.rvp_enabled,
         rto_enabled: platformPricing.rto_enabled,
+        default_shipping_charge: defaultShippingForPayload,
       }
     }
     return {
@@ -118,17 +164,31 @@ export function ProductReviewModal({
       bulk_price: sup + commissionAmountNum,
       rvp_enabled: platformPricing.rvp_enabled,
       rto_enabled: platformPricing.rto_enabled,
+      default_shipping_charge: defaultShippingForPayload,
     }
   }
 
-  const normalizeDimensions = useCallback((dim: unknown): { h: number; l: number; w: number } => {
-    const d = dim as Record<string, unknown> | null | undefined
-    if (!d || typeof d !== 'object') return { h: 0, l: 0, w: 0 }
-    const h = Number(d.h ?? d.height ?? 0) || 0
-    const l = Number(d.l ?? d.length ?? 0) || 0
-    const w = Number(d.w ?? d.width ?? 0) || 0
-    return { h, l, w }
-  }, [])
+  const reseedVariantDimensionsFromProduct = useCallback(() => {
+    if (!product?.variants?.length) {
+      setVariantDimensions({})
+      return
+    }
+    const next: Record<string, { h: number; l: number; w: number }> = {}
+    for (const v of product.variants) {
+      const raw =
+        v.dimensions_cm ??
+        (v as { dimension_cm?: unknown }).dimension_cm
+      next[v.variant_id] = normalizeDimensions(raw)
+    }
+    setVariantDimensions(next)
+  }, [product, normalizeDimensions])
+
+  useEffect(() => {
+    if (!isOpen || !product) return
+    reseedVariantDimensionsFromProduct()
+    const s = product.default_shipping_charge
+    setShippingCharge(s != null && s !== '' ? String(Number(s)) : '')
+  }, [isOpen, product?.product_id, product?.default_shipping_charge, reseedVariantDimensionsFromProduct])
 
   const formatAttributeValue = useCallback((value: unknown): string => {
     if (value == null) return '—'
@@ -204,6 +264,33 @@ export function ProductReviewModal({
 
   const currentImage = product.images?.[currentImageIndex]
 
+  const buildVariantsUpdatePayload = () => {
+    const pv = product.variants ?? []
+    const base =
+      editMode && editedProduct.variants && editedProduct.variants.length === pv.length
+        ? editedProduct.variants
+        : pv
+    return base.map((v) => {
+      const dim =
+        variantDimensions[v.variant_id] ??
+        normalizeDimensions(
+          v.dimensions_cm ?? (v as { dimension_cm?: unknown }).dimension_cm,
+        )
+      return {
+        ...v,
+        variant_id: v.variant_id,
+        sku: v.sku,
+        variant_name: v.variant_name,
+        variant_price: v.variant_price,
+        variant_stock: v.variant_stock,
+        weight_grams: v.weight_grams,
+        hsn_code: v.hsn_code,
+        is_active: v.is_active,
+        dimensions_cm: dim,
+      }
+    })
+  }
+
   const handleSaveChanges = async () => {
     if (commissionAmountNum < 0) {
       alert('Commission cannot be negative.')
@@ -215,22 +302,19 @@ export function ProductReviewModal({
         description: editedProduct.description ?? product.description,
         brand: editedProduct.brand ?? product.brand,
         ...buildPricingPayload(),
+        variants: buildVariantsUpdatePayload(),
       }
-      const baseVariants = editedProduct.variants ?? product.variants ?? []
-      payload.variants = baseVariants.map((v) => ({
-        ...v,
-        dimensions_cm: variantDimensions[v.variant_id] ?? normalizeDimensions(v.dimensions_cm),
-      }))
       await onUpdate(product.product_id, payload)
       setEditMode(false)
       setEditedProduct({})
-      setVariantDimensions({})
+      reseedVariantDimensionsFromProduct()
     } catch (error) {
       console.error('[v0] Error saving changes:', error)
     }
   }
 
   const handleReject = async () => {
+    if (!product) return
     if (!rejectionReason.trim()) {
       alert('Please provide a rejection reason')
       return
@@ -257,7 +341,10 @@ export function ProductReviewModal({
       return
     }
     try {
-      await onUpdate(product.product_id, buildPricingPayload())
+      await onUpdate(product.product_id, {
+        ...buildPricingPayload(),
+        variants: buildVariantsUpdatePayload(),
+      })
       await onApprove(product.product_id)
       onClose()
     } catch (error) {
@@ -426,13 +513,58 @@ export function ProductReviewModal({
                     />
                   </div>
                 </div>
-                <div className="rounded-lg border bg-muted/40 px-4 py-3 text-sm">
-                  <span className="text-muted-foreground">Reseller bulk unit price (final, ₹): </span>
-                  <span className="font-semibold tabular-nums">
-                    {finalBulkUnitPrice != null ? `₹${finalBulkUnitPrice.toFixed(2)}` : '—'}
-                  </span>
+                <div>
+                  <Label className="text-xs text-muted-foreground">
+                    Default shipping charge (₹) — added once per bulk order (not per unit)
+                  </Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    className="mt-1 max-w-xs"
+                    placeholder="e.g. 49"
+                    value={shippingCharge}
+                    onChange={(e) => setShippingCharge(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Saved on the product. The preview below spreads this over MOQ ({moq}) so you see the per-unit effect.
+                  </p>
+                </div>
+                <div className="rounded-lg border bg-muted/40 px-4 py-3 text-sm space-y-2">
+                  <div className="flex flex-wrap gap-x-2 gap-y-1">
+                    <span className="text-muted-foreground">Reseller bulk unit (supplier + commission,</span>
+                    <code className="text-xs bg-muted px-1 rounded">bulk_price</code>
+                    <span className="text-muted-foreground">):</span>
+                    <span className="font-semibold tabular-nums">
+                      {resellerBulkUnitBeforeShipping != null
+                        ? `₹${resellerBulkUnitBeforeShipping.toFixed(2)}`
+                        : '—'}
+                    </span>
+                  </div>
+                  {defaultShippingForPayload != null && defaultShippingForPayload > 0 && (
+                    <p className="text-muted-foreground">
+                      Shipping per order:{' '}
+                      <span className="font-medium tabular-nums text-foreground">
+                        ₹{defaultShippingForPayload.toFixed(2)}
+                      </span>
+                      {' → '}
+                      <span className="tabular-nums">
+                        +₹{shippingPerUnitAtMoq.toFixed(2)} per unit at MOQ {moq}
+                      </span>
+                    </p>
+                  )}
+                  <div className="pt-1 border-t border-border/60">
+                    <span className="text-muted-foreground">Reseller landed unit at MOQ (preview, ₹): </span>
+                    <span className="font-semibold tabular-nums text-foreground">
+                      {resellerLandedUnitAtMoq != null ? `₹${resellerLandedUnitAtMoq.toFixed(2)}` : '—'}
+                    </span>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Order line total before GST ≈ (bulk unit × qty) + one shipping charge; this row is the unit
+                      equivalent at MOQ only.
+                    </p>
+                  </div>
                   {supplierUnitPrice > 0 && commissionAmountNum < 0 && (
-                    <p className="text-xs text-amber-700 mt-1">
+                    <p className="text-xs text-amber-700">
                       Commission should not be negative; bulk must be ≥ supplier payout.
                     </p>
                   )}
@@ -565,8 +697,13 @@ export function ProductReviewModal({
                             )}
                           </div>
                           <div className="min-w-0 md:col-span-2">
-                            <Label className="text-xs text-muted-foreground">Dimensions (h × l × w cm)</Label>
-                            {editMode ? (() => {
+                            <Label className="text-xs text-muted-foreground">
+                              Dimensions (h × l × w cm)
+                              {reviewDimsEditable && !editMode && (
+                                <span className="text-muted-foreground font-normal"> — editable during review</span>
+                              )}
+                            </Label>
+                            {editMode || reviewDimsEditable ? (() => {
                               const dim = variantDimensions[variant.variant_id] ?? { h: 0, l: 0, w: 0 }
                               return (
                                 <div className="flex gap-2 mt-1 items-center flex-wrap">
@@ -601,7 +738,9 @@ export function ProductReviewModal({
                               )
                             })() : (
                               (() => {
-                                const d = normalizeDimensions(variant.dimensions_cm)
+                                const d = normalizeDimensions(
+                                  variant.dimensions_cm ?? (variant as { dimension_cm?: unknown }).dimension_cm,
+                                )
                                 return (
                                   <p className="font-medium text-sm mt-1">
                                     {d.h} × {d.l} × {d.w} <span className="text-muted-foreground">cm</span>
@@ -649,14 +788,16 @@ export function ProductReviewModal({
             })()}
 
             {/* Attributes */}
-            {product.variants?.[0]?.attributes && (
+            {product.variants?.[0]?.attributes &&
+              typeof product.variants[0].attributes === 'object' &&
+              !Array.isArray(product.variants[0].attributes) && (
               <Card>
                 <CardHeader>
                   <CardTitle>Attributes</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {Object.entries(product.variants[0].attributes).map(([key, value]) => (
+                    {Object.entries(product.variants[0].attributes as Record<string, unknown>).map(([key, value]) => (
                       <div key={key}>
                         <p className="text-xs text-muted-foreground capitalize">
                           {key.replace(/_/g, ' ')}
@@ -722,7 +863,7 @@ export function ProductReviewModal({
                     onClick={() => {
                       setEditMode(false)
                       setEditedProduct({})
-                      setVariantDimensions({})
+                      reseedVariantDimensionsFromProduct()
                     }}
                   >
                     Cancel

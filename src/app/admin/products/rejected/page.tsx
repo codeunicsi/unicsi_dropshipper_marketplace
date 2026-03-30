@@ -33,7 +33,18 @@ function rawToPendingShape(
     variant_stock: Number(v.variant_stock ?? v.inventory_quantity ?? 0),
     attributes: (v.attributes as Record<string, string>) ?? {},
     weight_grams: Number(v.weight_grams ?? 500),
-    dimensions_cm: (v.dimensions_cm as { h: number; l: number; w: number }) ?? { h: 0, l: 0, w: 0 },
+    dimension_cm: v.dimension_cm,
+    dimensions_cm: (() => {
+      const dim = (v.dimension_cm ?? v.dimensions_cm) as Record<string, unknown> | undefined
+      if (dim && typeof dim === 'object') {
+        return {
+          h: Number(dim.h ?? dim.height ?? 0) || 0,
+          l: Number(dim.l ?? dim.length ?? 0) || 0,
+          w: Number(dim.w ?? dim.width ?? 0) || 0,
+        }
+      }
+      return (v.dimensions_cm as { h: number; l: number; w: number }) ?? { h: 0, l: 0, w: 0 }
+    })(),
     hsn_code: (v.hsn_code ?? '') as string,
     is_active: (v.is_active ?? true) as boolean,
     createdAt: (v.createdAt ?? '') as string,
@@ -62,6 +73,13 @@ function rawToPendingShape(
     variants,
     images,
     supplierName,
+    transfer_price: raw.transfer_price as number | string | null | undefined,
+    bulk_price: raw.bulk_price as number | string | null | undefined,
+    mrp: raw.mrp as number | string | null | undefined,
+    rvp_enabled: raw.rvp_enabled as boolean | undefined,
+    rto_enabled: raw.rto_enabled as boolean | undefined,
+    default_shipping_charge: raw.default_shipping_charge as number | string | null | undefined,
+    minimum_order_quantity: raw.minimum_order_quantity as number | string | null | undefined,
   }
 }
 

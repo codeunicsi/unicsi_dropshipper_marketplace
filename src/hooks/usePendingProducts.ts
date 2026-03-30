@@ -21,6 +21,8 @@ export interface ProductVariant {
     l: number
     w: number
   }
+  /** Raw API shape (height/length/width cm). */
+  dimension_cm?: unknown
   hsn_code: string
   is_active: boolean
   createdAt: string
@@ -61,6 +63,10 @@ export interface PendingProduct {
   mrp?: number | string | null
   rvp_enabled?: boolean
   rto_enabled?: boolean
+  /** Admin-set default shipping (₹) for this listing. */
+  default_shipping_charge?: number | string | null
+  /** Supplier / platform MOQ for bulk orders (used to show shipping per unit at MOQ). */
+  minimum_order_quantity?: number | string | null
 }
 
 export interface PendingProductsStats {

@@ -49,6 +49,7 @@ export default function ProductCard({
 
   const handleBulkOrder = (e: MouseEvent<HTMLButtonElement>) => {
     stopPropagation(e);
+    onBulkOrder?.();
   };
 
   return (

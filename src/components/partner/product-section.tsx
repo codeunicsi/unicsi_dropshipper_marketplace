@@ -23,8 +23,12 @@ const PRODUCT_TABS = [
 type CardProduct = {
   id: string;
   name: string;
+  /** Reseller-facing unit price: prefer admin `bulk_price`, else variant price. */
   price: number;
   image: string;
+  bulk_price?: number | null;
+  default_shipping_charge?: number | null;
+  minimum_order_quantity?: number | null;
 };
 
 const SAMPLE_CARD_PRODUCTS: CardProduct[] = [
@@ -62,6 +66,9 @@ export type CatalogProduct = {
   product_id: string;
   title: string;
   images?: { image_url?: string }[];
+  bulk_price?: number | string | null;
+  default_shipping_charge?: number | string | null;
+  minimum_order_quantity?: number | string | null;
   variants?: Array<{
     is_active?: boolean;
     price?: string | number;
@@ -77,11 +84,31 @@ function catalogToCardProducts(products: CatalogProduct[]): CardProduct[] {
       product.variants?.find((v) => v.is_active !== false) ??
       product.variants?.[0];
     const firstImage = product.images?.[0];
+    const ext = product as CatalogProduct & {
+      bulk_price?: number | string | null;
+      default_shipping_charge?: number | string | null;
+      minimum_order_quantity?: number | string | null;
+    };
+    const bulkRaw = ext.bulk_price;
+    const bulkNum =
+      bulkRaw != null && bulkRaw !== "" ? Number(bulkRaw) : NaN;
+    const variantNum = Number(firstVariant?.price ?? 0);
+    const displayUnit =
+      Number.isFinite(bulkNum) && bulkNum > 0 ? bulkNum : variantNum;
     return {
       id: product.product_id,
       name: product.title,
-      price: Number(firstVariant?.price ?? 0),
+      price: displayUnit,
       image: firstImage?.image_url || "/placeholder.png",
+      bulk_price: Number.isFinite(bulkNum) ? bulkNum : null,
+      default_shipping_charge:
+        ext.default_shipping_charge != null && ext.default_shipping_charge !== ""
+          ? Number(ext.default_shipping_charge)
+          : null,
+      minimum_order_quantity:
+        ext.minimum_order_quantity != null && ext.minimum_order_quantity !== ""
+          ? Number(ext.minimum_order_quantity)
+          : null,
     };
   });
 }
@@ -123,6 +150,12 @@ function ProductsBlock({
       productName: product.name,
       sellingPrice: String(product.price),
     });
+    if (product.default_shipping_charge != null && Number.isFinite(product.default_shipping_charge)) {
+      params.set("shipping", String(product.default_shipping_charge));
+    }
+    if (product.minimum_order_quantity != null && Number.isFinite(product.minimum_order_quantity)) {
+      params.set("moq", String(Math.max(1, Math.floor(product.minimum_order_quantity))));
+    }
 
     router.push(`/marketplace/bulk-order?${params.toString()}`);
   };
@@ -195,12 +228,31 @@ type MarketplaceProduct = {
   product_id: string;
   title: string;
   images?: { image_url?: string }[];
+  bulk_price?: number | string | null;
+  default_shipping_charge?: number | string | null;
+  minimum_order_quantity?: number | string | null;
   variants?: { variant_price?: string | number; price?: string | number }[];
 };
 
 export default function ProductsSection({ categoryId }: { categoryId?: string }) {
+  const router = useRouter();
   const [categoryProducts, setCategoryProducts] = useState<MarketplaceProduct[]>([]);
   const [categoryLoading, setCategoryLoading] = useState(false);
+
+  const openBulkOrder = (product: CardProduct) => {
+    const params = new URLSearchParams({
+      productId: product.id,
+      productName: product.name,
+      sellingPrice: String(product.price),
+    });
+    if (product.default_shipping_charge != null && Number.isFinite(product.default_shipping_charge)) {
+      params.set("shipping", String(product.default_shipping_charge));
+    }
+    if (product.minimum_order_quantity != null && Number.isFinite(product.minimum_order_quantity)) {
+      params.set("moq", String(Math.max(1, Math.floor(product.minimum_order_quantity))));
+    }
+    router.push(`/marketplace/bulk-order?${params.toString()}`);
+  };
 
   useEffect(() => {
     if (!categoryId) {
@@ -247,7 +299,12 @@ export default function ProductsSection({ categoryId }: { categoryId?: string })
                   v0?.variant_price != null && v0.variant_price !== ""
                     ? v0.variant_price
                     : v0?.price;
-                const price = priceRaw != null && priceRaw !== "" ? Number(priceRaw) : 0;
+                const variantUnit = priceRaw != null && priceRaw !== "" ? Number(priceRaw) : 0;
+                const bulkRaw = p.bulk_price;
+                const bulkNum =
+                  bulkRaw != null && bulkRaw !== "" ? Number(bulkRaw) : NaN;
+                const price =
+                  Number.isFinite(bulkNum) && bulkNum > 0 ? bulkNum : variantUnit;
                 return (
                   <ProductCard
                     key={p.product_id}
@@ -256,6 +313,23 @@ export default function ProductsSection({ categoryId }: { categoryId?: string })
                     price={price}
                     image={img}
                     onPushToShopify={() => {}}
+                    onBulkOrder={() =>
+                      openBulkOrder({
+                        id: p.product_id,
+                        name: p.title,
+                        price,
+                        image: img,
+                        bulk_price: Number.isFinite(bulkNum) ? bulkNum : null,
+                        default_shipping_charge:
+                          p.default_shipping_charge != null && p.default_shipping_charge !== ""
+                            ? Number(p.default_shipping_charge)
+                            : null,
+                        minimum_order_quantity:
+                          p.minimum_order_quantity != null && p.minimum_order_quantity !== ""
+                            ? Number(p.minimum_order_quantity)
+                            : null,
+                      })
+                    }
                   />
                 );
               })}

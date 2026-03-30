@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Building2,
@@ -32,6 +32,10 @@ import { useAdminBankDetails } from "@/hooks/useAdminBankDetail";
 
 const MOQ = 10;
 const DEFAULT_MARGIN = 8;
+
+const API_BASE = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1/"
+).replace(/\/?$/, "/");
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LEGACY_PRODUCT_ID_MAP: Record<string, string> = {
@@ -103,6 +107,13 @@ export default function BulkOrderPage() {
   } = useAdminBankDetails();
   const sellingPriceInput = Number(searchParams.get("sellingPrice") || 100);
   const [quantity, setQuantity] = useState(MOQ);
+  const [catalogProduct, setCatalogProduct] = useState<{
+    bulk_price?: number | string | null;
+    transfer_price?: number | string | null;
+    default_shipping_charge?: number | string | null;
+    minimum_order_quantity?: number | string | null;
+    gst_rate?: number | string | null;
+  } | null>(null);
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -128,6 +139,27 @@ export default function BulkOrderPage() {
     notes?: string;
   } | null>(null);
 
+  useEffect(() => {
+    if (!isValidProductId || !productId) {
+      setCatalogProduct(null);
+      return;
+    }
+    let cancelled = false;
+    fetch(`${API_BASE}marketplace/products/${encodeURIComponent(productId)}`)
+      .then((r) => r.json())
+      .then((body) => {
+        if (cancelled) return;
+        if (body?.success && body?.data) setCatalogProduct(body.data);
+        else setCatalogProduct(null);
+      })
+      .catch(() => {
+        if (!cancelled) setCatalogProduct(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isValidProductId, productId]);
+
   const adminPaymentDetails = useMemo(() => {
     const data = adminBankDetailsResponse?.data;
     const companyBank = data?.companyBankDetails || data;
@@ -148,28 +180,80 @@ export default function BulkOrderPage() {
     };
   }, [adminBankDetailsResponse]);
 
+  const effectiveMoq = useMemo(() => {
+    const fromApi = catalogProduct?.minimum_order_quantity;
+    if (fromApi != null && fromApi !== "" && Number(fromApi) >= 1) {
+      return Math.floor(Number(fromApi));
+    }
+    const p = Number(searchParams.get("moq"));
+    if (Number.isFinite(p) && p >= 1) return Math.floor(p);
+    return MOQ;
+  }, [catalogProduct, searchParams]);
+
+  useEffect(() => {
+    setQuantity((q) => Math.max(effectiveMoq, q));
+  }, [effectiveMoq]);
+
   const pricing = useMemo(() => {
+    const bulkFromApi =
+      catalogProduct?.bulk_price != null && catalogProduct.bulk_price !== ""
+        ? Number(catalogProduct.bulk_price)
+        : NaN;
     const sellingPrice =
-      Number.isFinite(sellingPriceInput) && sellingPriceInput > 0
-        ? sellingPriceInput
-        : 100;
-    const supplierPrice = Math.max(1, sellingPrice - DEFAULT_MARGIN);
-    const platformMargin = sellingPrice - supplierPrice;
-    const shippingCharge = 120 + quantity * 2;
-    const totalAmount = sellingPrice * quantity + shippingCharge;
-    const supplierPayout = supplierPrice * quantity;
+      Number.isFinite(bulkFromApi) && bulkFromApi > 0
+        ? bulkFromApi
+        : Number.isFinite(sellingPriceInput) && sellingPriceInput > 0
+          ? sellingPriceInput
+          : 100;
+
+    const shipParam = Number(searchParams.get("shipping"));
+    const shipFromApi =
+      catalogProduct?.default_shipping_charge != null &&
+      catalogProduct.default_shipping_charge !== ""
+        ? Number(catalogProduct.default_shipping_charge)
+        : NaN;
+    const shippingCharge =
+      Number.isFinite(shipFromApi) && shipFromApi >= 0
+        ? shipFromApi
+        : Number.isFinite(shipParam) && shipParam >= 0
+          ? shipParam
+          : 50;
+
+    const gstRate =
+      catalogProduct?.gst_rate != null && catalogProduct.gst_rate !== ""
+        ? Number(catalogProduct.gst_rate)
+        : 0.18;
+
+    const transferFromApi =
+      catalogProduct?.transfer_price != null && catalogProduct.transfer_price !== ""
+        ? Number(catalogProduct.transfer_price)
+        : NaN;
+    const supplierUnit =
+      Number.isFinite(transferFromApi) && transferFromApi > 0
+        ? transferFromApi
+        : Math.max(1, sellingPrice - DEFAULT_MARGIN);
+
+    const subtotal = sellingPrice * quantity;
+    const gstAmount = subtotal * gstRate;
+    const totalAmount = subtotal + gstAmount + shippingCharge;
+
+    const supplierPayout = supplierUnit * quantity;
+    const platformMargin = sellingPrice - supplierUnit;
     const platformProfit = platformMargin * quantity;
 
     return {
       sellingPrice,
-      supplierPrice,
+      supplierPrice: supplierUnit,
       platformMargin,
       shippingCharge,
+      gstRate,
+      gstAmount,
+      subtotal,
       totalAmount,
       supplierPayout,
       platformProfit,
     };
-  }, [quantity, sellingPriceInput]);
+  }, [quantity, sellingPriceInput, searchParams, catalogProduct]);
 
   const currentStep = adminVerified
     ? 13
@@ -178,7 +262,7 @@ export default function BulkOrderPage() {
       : orderCreated
         ? 6
         : 4;
-  const isQuantityValid = quantity >= MOQ;
+  const isQuantityValid = quantity >= effectiveMoq;
   const canCreateOrder =
     isValidProductId &&
     isQuantityValid &&
@@ -207,7 +291,7 @@ export default function BulkOrderPage() {
             Create Bulk Order
           </h1>
           <p className="mt-2 max-w-3xl text-cyan-50">
-            MOQ 10 pieces, payment in platform account, shipping handled by
+            MOQ from the product (or 10 pieces default), payment in platform account, shipping handled by
             platform, and invoice generated after verification.
           </p>
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -237,17 +321,19 @@ export default function BulkOrderPage() {
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="quantity">Quantity (MOQ {MOQ})</Label>
+                  <Label htmlFor="quantity">Quantity (MOQ {effectiveMoq})</Label>
                   <Input
                     id="quantity"
                     type="number"
-                    min={MOQ}
+                    min={effectiveMoq}
                     value={quantity}
-                    onChange={(e) => setQuantity(Number(e.target.value) || MOQ)}
+                    onChange={(e) =>
+                      setQuantity(Number(e.target.value) || effectiveMoq)
+                    }
                   />
                   {!isQuantityValid && (
                     <p className="text-xs font-medium text-red-600">
-                      Minimum quantity is {MOQ}.
+                      Minimum quantity is {effectiveMoq}.
                     </p>
                   )}
                 </div>
@@ -430,11 +516,27 @@ export default function BulkOrderPage() {
                 <IndianRupee className="w-5 h-5" strokeWidth={3} />
                 {pricing.totalAmount.toLocaleString()}
               </p>
-              <p className="flex items-center text-sm text-slate-500">
-                Product: <IndianRupee className="w-3 h-3 ml-1" />
-                {(pricing.sellingPrice * quantity).toLocaleString()} + Shipping:
-                <IndianRupee className="w-3 h-3 ml-1" />
-                {pricing.shippingCharge.toLocaleString()}
+              <p className="flex flex-wrap items-center gap-x-1 text-sm text-slate-500">
+                <span>
+                  Subtotal: <IndianRupee className="inline w-3 h-3" />
+                  {pricing.subtotal.toLocaleString()}
+                </span>
+                <span>
+                  + GST ({(pricing.gstRate * 100).toFixed(0)}%):{" "}
+                  <IndianRupee className="inline w-3 h-3" />
+                  {pricing.gstAmount.toLocaleString(undefined, {
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+                <span>
+                  + Shipping: <IndianRupee className="inline w-3 h-3" />
+                  {pricing.shippingCharge.toLocaleString()}
+                </span>
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                Unit bulk price and shipping come from the approved product (admin
+                commission + shipping). Matches backend bulk order totals before
+                payment proof.
               </p>
             </CardContent>
           </Card>

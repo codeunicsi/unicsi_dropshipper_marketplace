@@ -13,12 +13,24 @@ export function normalizeSupplierVariantsForAdmin(
     const price = v.variant_price ?? v.price
     const stock = v.variant_stock ?? v.inventory_quantity
     const name = v.variant_name ?? v.title
+    const dimRaw = v.dimension_cm ?? v.dimensions_cm
+    let dimensions_cm = { h: 0, l: 0, w: 0 }
+    if (dimRaw && typeof dimRaw === 'object' && !Array.isArray(dimRaw)) {
+      const o = dimRaw as Record<string, unknown>
+      dimensions_cm = {
+        h: Number(o.h ?? o.height ?? 0) || 0,
+        l: Number(o.l ?? o.length ?? 0) || 0,
+        w: Number(o.w ?? o.width ?? 0) || 0,
+      }
+    }
     return {
       ...(v as unknown as ProductVariant),
       variant_name: name != null ? String(name) : '',
       variant_price:
         price != null && price !== '' ? String(price) : '',
       variant_stock: Number(stock) || 0,
+      dimensions_cm,
+      dimension_cm: dimRaw,
     }
   })
 }
