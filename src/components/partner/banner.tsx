@@ -20,7 +20,7 @@ export default function HomeBanner() {
 
   return (
     <div className="px-12">
-      <div className="relative max-w-6xl h-32 overflow-hidden rounded-2xl mx-auto mb-12">
+      <div className="relative max-w-6xl h-32 overflow-hidden rounded-md mx-auto mb-12">
         {images.map((img, index) => (
           <img
             key={index}
