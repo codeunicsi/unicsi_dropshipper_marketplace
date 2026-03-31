@@ -153,7 +153,6 @@ export default function ProductsSection({
   categoryId?: string;
 }) {
   const { data, isLoading, isPending } = useGetAllProducts();
-  
 
   const [categoryProducts, setCategoryProducts] = useState<
     MarketplaceProduct[]
@@ -161,7 +160,8 @@ export default function ProductsSection({
   const [categoryLoading, setCategoryLoading] = useState(false);
 
   // ✅ Extract + transform API data
-  const rawProducts: Product[] = data?.data || data?.rows || [];
+  const rawProducts: Product[] =
+    (data as any)?.data || (data as any)?.rows || [];
   const products = transformProducts(rawProducts);
 
   useEffect(() => {

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Column, DataTable } from "@/components/ui/data-table";
 import { DateDropdown } from "@/components/ui/date-dropdown";
 import { IconDropdown } from "@/components/ui/icon-dropdown";
-import SearchFilterBar from "@/components/ui/search-bar-icon";
+
 import {
   BadgeIndianRupee,
   Download,
