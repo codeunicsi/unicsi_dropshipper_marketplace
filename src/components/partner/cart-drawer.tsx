@@ -147,8 +147,8 @@ const CartDrawer = ({
               className="min-w-62 bg-[#e9e3f8] hover:bg-[#e3daf8] transition-colors rounded-md px-3 py-1 flex items-center justify-between"
             >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg text-[#7c3aed] flex items-center justify-center">
-                  <Calculator className="w-6 h-6" />
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center">
+                  <Calculator className="w-6 h-6 text-[#5b2fd1] " />
                 </div>
                 <span className="text-[#5b2fd1] font-semibold underline text-xs">
                   Calculate Expected Profit
@@ -281,11 +281,11 @@ const CartDrawer = ({
 
       {isCalculatorOpen && (
         <div
-          className="fixed inset-0 z-[70] bg-black/45 flex items-center justify-center p-4"
+          className="fixed inset-0 z-70 bg-black/45 flex items-center justify-center p-4"
           onClick={() => setIsCalculatorOpen(false)}
         >
           <div
-            className="w-full max-w-[980px] max-h-[92vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-slate-200"
+            className="w-full max-w-210 max-h-[85vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-slate-200"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-6 py-5 border-b border-slate-200 flex items-start justify-between gap-4">
@@ -297,7 +297,7 @@ const CartDrawer = ({
                   <h3 className="text-xl font-bold leading-tight">
                     Pricing Calculator
                   </h3>
-                  <p className="text-sm text-slate-700">
+                  <p className="text-sm text-slate-800">
                     Please enter all the required fields (
                     <span className="text-red-500">*</span>) to calculate your
                     expected profit
