@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { ActiveTabs, TabItem } from "@/components/ui/active-tabs";
 import { StoreDropdown } from "@/components/ui/store-dropdown";
 
-type Data = {
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type NormalOrder = {
   cloutOrderId: string;
   shopifyOrderId: string;
   orderDateNTime: string;
@@ -17,7 +19,19 @@ type Data = {
   status: string;
 };
 
-const orders: Data[] = [
+type BulkOrder = {
+  orderId: string;
+  productName: string;
+  builtyNumber: string;
+  builtyDate: string;
+  totalUnits: number;
+  transporterName: string;
+  orderStatus: string;
+};
+
+// ─── Sample Data ──────────────────────────────────────────────────────────────
+
+const normalOrders: NormalOrder[] = [
   {
     cloutOrderId: "CLT12345",
     shopifyOrderId: "SHP56789",
@@ -40,7 +54,39 @@ const orders: Data[] = [
   },
 ];
 
-const ORDER_TABS: TabItem[] = [
+const bulkOrders: BulkOrder[] = [
+  {
+    orderId: "BLK001",
+    productName: "Nike Shoes Assorted",
+    builtyNumber: "BLT-2026-0041",
+    builtyDate: "2026-02-25",
+    totalUnits: 120,
+    transporterName: "Delhivery Express",
+    orderStatus: "IN_TRANSIT",
+  },
+  {
+    orderId: "BLK002",
+    productName: "Adidas Sneakers Bulk",
+    builtyNumber: "BLT-2026-0058",
+    builtyDate: "2026-02-27",
+    totalUnits: 85,
+    transporterName: "Blue Dart Cargo",
+    orderStatus: "DELIVERED",
+  },
+  {
+    orderId: "BLK003",
+    productName: "Puma Sportswear Mix",
+    builtyNumber: "BLT-2026-0063",
+    builtyDate: "2026-03-01",
+    totalUnits: 200,
+    transporterName: "DTDC Freight",
+    orderStatus: "PENDING",
+  },
+];
+
+// ─── Tab Configs ──────────────────────────────────────────────────────────────
+
+const NORMAL_ORDER_TABS: TabItem[] = [
   { label: "Pending", value: "PENDING" },
   { label: "Confirmed", value: "CONFIRMED" },
   { label: "Shipped", value: "SHIPPED" },
@@ -49,69 +95,111 @@ const ORDER_TABS: TabItem[] = [
   { label: "Failed to sync", value: "FAILED_TO_SYNC" },
 ];
 
+const BULK_ORDER_TABS: TabItem[] = [
+  { label: "Pending", value: "PENDING" },
+  { label: "In Transit", value: "IN_TRANSIT" },
+  { label: "Delivered", value: "DELIVERED" },
+  { label: "All Orders", value: "ALL" },
+];
+
+// ─── Status badge helper ──────────────────────────────────────────────────────
+
+const statusColors: Record<string, string> = {
+  IN_TRANSIT: "bg-blue-100 text-blue-600",
+  DELIVERED: "bg-green-100 text-green-600",
+  PENDING: "bg-yellow-100 text-yellow-600",
+  CONFIRMED: "bg-purple-100 text-purple-600",
+  SHIPPED: "bg-indigo-100 text-indigo-600",
+  CLOSED: "bg-gray-100 text-gray-500",
+  FAILED_TO_SYNC: "bg-red-100 text-red-500",
+};
+
+function StatusBadge({ value }: { value: string }) {
+  const color = statusColors[value] ?? "bg-gray-100 text-gray-500";
+  return (
+    <span className={`px-2 py-1 rounded-full text-xs font-medium ${color}`}>
+      {value.replace(/_/g, " ")}
+    </span>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
 export default function OrdersPage() {
+  const [orderType, setOrderType] = useState<"NORMAL" | "BULK">("NORMAL");
   const [activeTab, setActiveTab] = useState("PENDING");
   const [paymentFilter, setPaymentFilter] = useState<"ALL" | "COD" | "Prepaid">(
     "ALL",
   );
   const [store, setStore] = useState("xxncby-gx");
 
-  const tabCounts = useMemo(() => {
-    const counts = {
+  // Reset inner tab when switching order type
+  function switchOrderType(type: "NORMAL" | "BULK") {
+    setOrderType(type);
+    setActiveTab("PENDING");
+  }
+
+  // ── Normal order tab counts ──
+  const normalTabCounts = useMemo(() => {
+    const counts: Record<string, number> = {
       PENDING: 0,
       CONFIRMED: 0,
       SHIPPED: 0,
       CLOSED: 0,
       FAILED_TO_SYNC: 0,
     };
-
-    orders.forEach((order) => {
-      if (counts[order.status as keyof typeof counts] !== undefined) {
-        counts[order.status as keyof typeof counts]++;
-      }
+    normalOrders.forEach((o) => {
+      if (counts[o.status] !== undefined) counts[o.status]++;
     });
+    return { ...counts, ALL: normalOrders.length };
+  }, []);
 
-    return {
-      ...counts,
-      ALL: orders.length,
+  const normalTabs: TabItem[] = NORMAL_ORDER_TABS.map((t) => ({
+    ...t,
+    count: normalTabCounts[t.value] ?? 0,
+  }));
+
+  // ── Bulk order tab counts ──
+  const bulkTabCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      PENDING: 0,
+      IN_TRANSIT: 0,
+      DELIVERED: 0,
     };
-  }, [orders]);
+    bulkOrders.forEach((o) => {
+      if (counts[o.orderStatus] !== undefined) counts[o.orderStatus]++;
+    });
+    return { ...counts, ALL: bulkOrders.length };
+  }, []);
 
-  const ORDER_TABS: TabItem[] = [
-    { label: "Pending", value: "PENDING", count: tabCounts.PENDING },
-    { label: "Confirmed", value: "CONFIRMED", count: tabCounts.CONFIRMED },
-    { label: "Shipped", value: "SHIPPED", count: tabCounts.SHIPPED },
-    { label: "Closed", value: "CLOSED", count: tabCounts.CLOSED },
-    { label: "All Orders", value: "ALL", count: tabCounts.ALL },
-    {
-      label: "Failed to sync",
-      value: "FAILED_TO_SYNC",
-      count: tabCounts.FAILED_TO_SYNC,
-    },
-  ];
+  const bulkTabs: TabItem[] = BULK_ORDER_TABS.map((t) => ({
+    ...t,
+    count: bulkTabCounts[t.value] ?? 0,
+  }));
 
-  const filteredOrders = useMemo(() => {
-    if (activeTab === "ALL") return orders;
-    return orders.filter((order) => order.status === activeTab);
+  // ── Filtered data ──
+  const filteredNormal = useMemo(() => {
+    let data =
+      activeTab === "ALL"
+        ? normalOrders
+        : normalOrders.filter((o) => o.status === activeTab);
+    if (paymentFilter !== "ALL")
+      data = data.filter((o) => o.payment === paymentFilter);
+    return data;
+  }, [activeTab, paymentFilter]);
+
+  const filteredBulk = useMemo(() => {
+    return activeTab === "ALL"
+      ? bulkOrders
+      : bulkOrders.filter((o) => o.orderStatus === activeTab);
   }, [activeTab]);
 
-  const columns: Column<Data>[] = [
-    {
-      header: "Clout Order ID",
-      accessor: "cloutOrderId",
-    },
-    {
-      header: "Shopify Order ID",
-      accessor: "shopifyOrderId",
-    },
-    {
-      header: "Order Date & Time",
-      accessor: "orderDateNTime",
-    },
-    {
-      header: "Product Detail",
-      accessor: "productDetail",
-    },
+  // ── Columns ──
+  const normalColumns: Column<NormalOrder>[] = [
+    { header: "Clout Order ID", accessor: "cloutOrderId" },
+    { header: "Shopify Order ID", accessor: "shopifyOrderId" },
+    { header: "Order Date & Time", accessor: "orderDateNTime" },
+    { header: "Product Detail", accessor: "productDetail" },
     {
       header: "Payment",
       accessor: "payment",
@@ -127,10 +215,7 @@ export default function OrdersPage() {
         </span>
       ),
     },
-    {
-      header: "Consumer Details",
-      accessor: "consumerDetails",
-    },
+    { header: "Consumer Details", accessor: "consumerDetails" },
     {
       header: "RTO Risk",
       accessor: "rtoRisk",
@@ -157,46 +242,102 @@ export default function OrdersPage() {
     },
   ];
 
+  const bulkColumns: Column<BulkOrder>[] = [
+    { header: "Order ID", accessor: "orderId" },
+    { header: "Product Name", accessor: "productName" },
+    { header: "Builty Number", accessor: "builtyNumber" },
+    { header: "Builty Date", accessor: "builtyDate" },
+    {
+      header: "Total Units",
+      accessor: "totalUnits",
+      cell: (row) => <span className="font-medium">{row.totalUnits}</span>,
+    },
+    { header: "Transporter Name", accessor: "transporterName" },
+    {
+      header: "Order Status",
+      accessor: "orderStatus",
+      cell: (row) => <StatusBadge value={row.orderStatus} />,
+    },
+    {
+      header: "Action",
+      accessor: "orderId",
+      cell: () => (
+        <Button size="sm" className="text-xs">
+          View
+        </Button>
+      ),
+    },
+  ];
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Manage Orders</h1>
-        <div className="text-sm">
-          <StoreDropdown
-            stores={["xxncby-gx", "demo-store", "Others"]}
-            value={store}
-            onChange={setStore}
-          />
-        </div>
+        <StoreDropdown
+          stores={["xxncby-gx", "demo-store", "Others"]}
+          value={store}
+          onChange={setStore}
+        />
       </div>
 
-      {/* Tabs */}
-      <ActiveTabs
-        tabs={ORDER_TABS}
-        active={activeTab}
-        onChange={setActiveTab}
-      />
-
-      {/* Payment Filter */}
-      <div className="flex gap-1 mt-4">
-        {["ALL", "COD", "Prepaid"].map((type) => (
+      {/* Order Type Toggle — Normal / Bulk */}
+      <div className="flex gap-2 border-b border-slate-200 pb-0">
+        {(["NORMAL", "BULK"] as const).map((type) => (
           <button
             key={type}
-            onClick={() => setPaymentFilter(type as any)}
-            className={`px-4 py-1.5 rounded-full text-xs font-medium border transition ${
-              paymentFilter === type
-                ? "bg-black text-white"
-                : "bg-white text-slate-600 hover:bg-slate-100"
+            onClick={() => switchOrderType(type)}
+            className={`px-5 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
+              orderType === type
+                ? "border-black text-black"
+                : "border-transparent text-slate-500 hover:text-slate-700"
             }`}
           >
-            {type}
+            {type === "NORMAL" ? "Normal Order" : "Bulk Order"}
           </button>
         ))}
       </div>
 
-      {/* Table */}
-      <DataTable columns={columns} data={filteredOrders} />
+      {orderType === "NORMAL" ? (
+        <>
+          {/* Normal Order inner tabs */}
+          <ActiveTabs
+            tabs={normalTabs}
+            active={activeTab}
+            onChange={setActiveTab}
+          />
+
+          {/* Payment Filter */}
+          <div className="flex gap-1">
+            {["ALL", "COD", "Prepaid"].map((type) => (
+              <button
+                key={type}
+                onClick={() => setPaymentFilter(type as any)}
+                className={`px-4 py-1.5 rounded-full text-xs font-medium border transition ${
+                  paymentFilter === type
+                    ? "bg-black text-white border-black"
+                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+
+          <DataTable columns={normalColumns} data={filteredNormal} />
+        </>
+      ) : (
+        <>
+          {/* Bulk Order inner tabs */}
+          <ActiveTabs
+            tabs={bulkTabs}
+            active={activeTab}
+            onChange={setActiveTab}
+          />
+
+          <DataTable columns={bulkColumns} data={filteredBulk} />
+        </>
+      )}
     </div>
   );
 }
