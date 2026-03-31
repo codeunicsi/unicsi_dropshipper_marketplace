@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-const images = ["/images/clout-banner-1.webp", "/images/clout-banner-2.webp"];
+const images = ["/images/Banner-1.svg", "/images/Banner-2.svg"];
 
 export default function HomeBanner() {
   const [current, setCurrent] = useState(0);
@@ -20,7 +20,7 @@ export default function HomeBanner() {
 
   return (
     <div className="px-12">
-      <div className="relative max-w-6xl h-32 overflow-hidden rounded-lg mx-auto mb-12">
+      <div className="relative max-w-6xl h-32 overflow-hidden rounded-2xl mx-auto mb-12">
         {images.map((img, index) => (
           <img
             key={index}

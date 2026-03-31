@@ -7,6 +7,10 @@ import { ChevronLeft, ChevronRight, Loader2, Package } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Product, useGetAllProducts } from "@/hooks/marketplace/useProduct";
 import { API_BASE_URL } from "@/lib/api-client";
+import {
+  PushToShopifyResponse,
+  usePushToShopify,
+} from "@/hooks/usePushToShopify";
 
 const PRODUCT_TABS = [
   "Push to Shopify",
@@ -60,7 +64,11 @@ function ProductsBlock({
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(0);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<UIProduct | null>(
+    null,
+  );
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const { pushProductToShopify } = usePushToShopify();
 
   const handleScroll = (direction: "left" | "right") => {
     scrollRef.current?.scrollBy({
@@ -78,6 +86,23 @@ function ProductsBlock({
 
     router.push(`/marketplace/bulk-order?${params.toString()}`);
   };
+
+  const handlePushToShopify = (product: UIProduct) => {
+    setSelectedProduct(product);
+    setIsCartOpen(true);
+    pushProductToShopify.mutate({ productId: product.id });
+  };
+
+  const resolvedResponse: PushToShopifyResponse | null = (() => {
+    const raw = pushProductToShopify.data as
+      | PushToShopifyResponse
+      | { data?: PushToShopifyResponse }
+      | undefined;
+
+    if (!raw) return null;
+    if ("data" in raw && raw.data) return raw.data;
+    return raw as PushToShopifyResponse;
+  })();
 
   return (
     <div className={`${bgColor} rounded-2xl border border-slate-200 p-8 mb-8`}>
@@ -129,13 +154,25 @@ function ProductsBlock({
           <ProductCard
             key={product.id}
             {...product}
-            onPushToShopify={() => setIsCartOpen(true)}
+            onPushToShopify={() => handlePushToShopify(product)}
             onBulkOrder={() => handleBulkOrder(product)}
           />
         ))}
       </div>
 
-      {isCartOpen && <CartDrawer onClose={() => setIsCartOpen(false)} />}
+      {isCartOpen && (
+        <CartDrawer
+          onClose={() => setIsCartOpen(false)}
+          selectedProduct={selectedProduct}
+          response={resolvedResponse}
+          isLoading={pushProductToShopify.isPending}
+          error={pushProductToShopify.error?.message ?? null}
+          onRetry={() => {
+            if (!selectedProduct) return;
+            pushProductToShopify.mutate({ productId: selectedProduct.id });
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -153,7 +190,6 @@ export default function ProductsSection({
   categoryId?: string;
 }) {
   const { data, isLoading, isPending } = useGetAllProducts();
-  
 
   const [categoryProducts, setCategoryProducts] = useState<
     MarketplaceProduct[]
@@ -161,7 +197,9 @@ export default function ProductsSection({
   const [categoryLoading, setCategoryLoading] = useState(false);
 
   // ✅ Extract + transform API data
-  const rawProducts: Product[] = data?.data || data?.rows || [];
+  const rawProducts: Product[] = Array.isArray((data as any)?.data)
+    ? (data as any).data
+    : [];
   const products = transformProducts(rawProducts);
 
   useEffect(() => {
