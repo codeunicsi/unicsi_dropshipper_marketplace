@@ -30,8 +30,14 @@ export interface Product {
   createdAt: string;
   updatedAt: string;
   bulk_price: string;
+  bulk_price_refresh_days: number;
   variants: ProductVariant[];
   images: ProductImage[];
+  category: Category;
+}
+
+export interface Category {
+  name: string;
 }
 
 export interface ProductVariant {
