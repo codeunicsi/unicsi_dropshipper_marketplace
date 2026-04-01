@@ -4,7 +4,6 @@ import { useState, useMemo } from "react";
 import { DataTable, Column } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { ActiveTabs, TabItem } from "@/components/ui/active-tabs";
-import { StoreDropdown } from "@/components/ui/store-dropdown";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -29,60 +28,8 @@ type BulkOrder = {
   orderStatus: string;
 };
 
-// ─── Sample Data ──────────────────────────────────────────────────────────────
-
-const normalOrders: NormalOrder[] = [
-  {
-    cloutOrderId: "CLT12345",
-    shopifyOrderId: "SHP56789",
-    orderDateNTime: "2026-02-27 12:30 PM",
-    productDetail: "Nike Shoes - Size 9",
-    payment: "Prepaid",
-    consumerDetails: "Rahul Sharma - Delhi",
-    rtoRisk: "Low",
-    status: "PENDING",
-  },
-  {
-    cloutOrderId: "CLT99999",
-    shopifyOrderId: "SHP88888",
-    orderDateNTime: "2026-02-26 05:10 PM",
-    productDetail: "Adidas Sneakers",
-    payment: "COD",
-    consumerDetails: "Aamir Hashmi - Faridabad",
-    rtoRisk: "High",
-    status: "CONFIRMED",
-  },
-];
-
-const bulkOrders: BulkOrder[] = [
-  {
-    orderId: "BLK001",
-    productName: "Nike Shoes Assorted",
-    builtyNumber: "BLT-2026-0041",
-    builtyDate: "2026-02-25",
-    totalUnits: 120,
-    transporterName: "Delhivery Express",
-    orderStatus: "IN_TRANSIT",
-  },
-  {
-    orderId: "BLK002",
-    productName: "Adidas Sneakers Bulk",
-    builtyNumber: "BLT-2026-0058",
-    builtyDate: "2026-02-27",
-    totalUnits: 85,
-    transporterName: "Blue Dart Cargo",
-    orderStatus: "DELIVERED",
-  },
-  {
-    orderId: "BLK003",
-    productName: "Puma Sportswear Mix",
-    builtyNumber: "BLT-2026-0063",
-    builtyDate: "2026-03-01",
-    totalUnits: 200,
-    transporterName: "DTDC Freight",
-    orderStatus: "PENDING",
-  },
-];
+const normalOrders: NormalOrder[] = [];
+const bulkOrders: BulkOrder[] = [];
 
 // ─── Tab Configs ──────────────────────────────────────────────────────────────
 
@@ -131,7 +78,6 @@ export default function OrdersPage() {
   const [paymentFilter, setPaymentFilter] = useState<"ALL" | "COD" | "Prepaid">(
     "ALL",
   );
-  const [store, setStore] = useState("xxncby-gx");
 
   // Reset inner tab when switching order type
   function switchOrderType(type: "NORMAL" | "BULK") {
@@ -280,11 +226,6 @@ export default function OrdersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Manage Orders</h1>
-        <StoreDropdown
-          stores={["xxncby-gx", "demo-store", "Others"]}
-          value={store}
-          onChange={setStore}
-        />
       </div>
 
       {/* Order Type Toggle — Normal / Bulk */}

@@ -67,7 +67,7 @@ export default function AuditLogsPage() {
       <Suspense fallback={<Loading />}>
         <Card className="p-6">
           <div className="text-center py-12 text-muted-foreground">
-            <p>Audit logs table will be displayed here</p>
+            <p>No audit logs yet</p>
           </div>
         </Card>
       </Suspense>

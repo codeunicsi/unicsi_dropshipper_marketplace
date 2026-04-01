@@ -84,7 +84,7 @@ function ProcessingOrdersPage() {
         </CardHeader>
         <CardContent>
           <div className="text-center py-12 text-muted-foreground">
-            <p>Processing orders table will be displayed here</p>
+            <p>No orders in processing yet</p>
           </div>
         </CardContent>
       </Card>

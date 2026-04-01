@@ -67,7 +67,7 @@ export default function CancelledOrdersPage() {
           </div>
           <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
             <span className="text-sm font-medium">Supplier Unavailable</span>
-            <Badge variant="outline">342</Badge>
+            <Badge variant="outline">0</Badge>
           </div>
           <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
             <span className="text-sm font-medium">Payment Failed</span>
@@ -87,7 +87,7 @@ export default function CancelledOrdersPage() {
         </CardHeader>
         <CardContent>
           <div className="text-center py-12 text-muted-foreground">
-            <p>Cancelled orders table will be displayed here</p>
+            <p>No cancelled orders yet</p>
           </div>
         </CardContent>
       </Card>

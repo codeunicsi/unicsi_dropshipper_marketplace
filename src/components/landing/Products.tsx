@@ -21,89 +21,17 @@ import sample9 from "../../../public/images/sample9.jpeg";
 import bg from "../../../public/images/bgNew1.png";
 import Image from "next/image";
 
-const products = [
-  {
-    id: 1,
-    name: "Modern Classic Four Seasons Pet Kennel with Summer Cool Mat Bite Resistant Thickened Dog Sofa for Large",
-    discountedPrice: "₹ 985",
-    originalPrice: "₹ 1200",
-    rating: 4.5,
-    reviews: 120,
-    image: sample1,
-  },
-  {
-    id: 2,
-    name: "Modern Classic Four Seasons Pet Kennel with Summer Cool Mat Bite Resistant Thickened Dog Sofa for Large",
-    discountedPrice: "₹ 985",
-    originalPrice: "₹ 1200",
-    rating: 4.2,
-    reviews: 85,
-    image: sample2,
-  },
-  {
-    id: 3,
-    name: "Modern Classic Four Seasons Pet Kennel with Summer Cool Mat Bite Resistant Thickened Dog Sofa for Large",
-    discountedPrice: "₹ 985",
-    originalPrice: "₹ 1200",
-    rating: 4.8,
-    reviews: 200,
-    image: sample3,
-  },
-  {
-    id: 4,
-    name: "New Hot Selling Ride on Children's Kid's Girl Boy Baby Children Kids Toy Twisted Twisting Wiggle Twist Swing Car",
-    discountedPrice: "Rs. 889/-",
-    originalPrice: "₹ 1600",
-    rating: 4.6,
-    reviews: 150,
-    image: sample4,
-  },
-  {
-    id: 5,
-    name: "New Hot Selling Ride on Children's Kid's Girl Boy Baby Children Kids Toy Twisted Twisting Wiggle Twist Swing Car",
-    discountedPrice: "Rs. 889/-",
-    originalPrice: "₹ 1600",
-    rating: 4.3,
-    reviews: 95,
-    image: sample5,
-  },
-  {
-    id: 6,
-    name: "New Hot Selling Ride on Children's Kid's Girl Boy Baby Children Kids Toy Twisted Twisting Wiggle Twist Swing Car",
-    discountedPrice: "Rs. 889/-",
-    originalPrice: "₹ 1600",
-    rating: 4.7,
-    reviews: 180,
-    image: sample6,
-  },
-  {
-    id: 7,
-    name: "New 3-in-1 IPL Laser Epilator Painless Ice Cool Hair Removal Device with Ice Cooling System for Home Use",
-    discountedPrice: "Rs. 789/-",
-    originalPrice: "₹ 2000",
-    rating: 4.4,
-    reviews: 110,
-    image: sample7,
-  },
-  {
-    id: 8,
-    name: "New 3-in-1 IPL Laser Epilator Painless Ice Cool Hair Removal Device with Ice Cooling System for Home Use",
-    discountedPrice: "Rs. 789/-",
-    originalPrice: "₹ 2000",
-    rating: 4.9,
-    reviews: 220,
-    image: sample8,
-  },
-  {
-    id: 9,
-    name: "New 3-in-1 IPL Laser Epilator Painless Ice Cool Hair Removal Device with Ice Cooling System for Home Use",
-    discountedPrice: "Rs. 789/-",
-    originalPrice: "₹ 2000",
-    rating: 4.1,
-    reviews: 75,
-    image: sample9,
-  },
-];
+type ShowcaseProduct = {
+  id: number;
+  name: string;
+  discountedPrice: string;
+  originalPrice: string;
+  rating: number;
+  reviews: number;
+  image: { src?: string } | StaticImageData;
+};
+
+const products: ShowcaseProduct[] = [];
 
 const CARD_WIDTH = 320; // w-80
 const GAP = 24; // gap-6

@@ -95,7 +95,7 @@ export default function DeliveredOrdersPage() {
         </CardHeader>
         <CardContent>
           <div className="text-center py-12 text-muted-foreground">
-            <p>Delivered orders table will be displayed here</p>
+            <p>No delivered orders yet</p>
           </div>
         </CardContent>
       </Card>

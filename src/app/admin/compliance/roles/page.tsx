@@ -47,7 +47,7 @@ export default function UserRolesPage() {
 
       <Card className="p-6">
         <div className="text-center py-12 text-muted-foreground">
-          <p>User roles and permissions will be displayed here</p>
+          <p>No roles configured yet</p>
         </div>
       </Card>
     </div>
