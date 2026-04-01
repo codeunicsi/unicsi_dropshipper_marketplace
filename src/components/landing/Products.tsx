@@ -19,7 +19,7 @@ import sample7 from "../../../public/images/sample7.jpeg";
 import sample8 from "../../../public/images/sample8.jpeg";
 import sample9 from "../../../public/images/sample9.jpeg";
 import bg from "../../../public/images/bgNew1.png";
-import Image from "next/image";
+import Image, { StaticImageData } from "next/image";
 
 type ShowcaseProduct = {
   id: number;
