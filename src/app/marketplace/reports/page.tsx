@@ -1,6 +1,5 @@
 "use client";
-import { StoreDropdown } from "@/components/ui/store-dropdown";
-import React, { useState } from "react";
+
 import { Column, DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 
@@ -12,33 +11,9 @@ type ReportData = {
   status: "Pending" | "Completed" | "Failed";
 };
 
-const reports: ReportData[] = [
-  {
-    reportName: "Sales Summary Feb 2026",
-    type: "Sales",
-    requestedOn: "03 Mar 2026",
-    dateRange: "01 Feb 2026 - 28 Feb 2026",
-    status: "Completed",
-  },
-  {
-    reportName: "RTO Analysis Jan 2026",
-    type: "RTO",
-    requestedOn: "02 Mar 2026",
-    dateRange: "01 Jan 2026 - 31 Jan 2026",
-    status: "Pending",
-  },
-  {
-    reportName: "Payment Report",
-    type: "Finance",
-    requestedOn: "01 Mar 2026",
-    dateRange: "01 Feb 2026 - 28 Feb 2026",
-    status: "Failed",
-  },
-];
+const reports: ReportData[] = [];
 
 const ReportsPage = () => {
-  const [store, setStore] = useState("xxncby-gx");
-
   const columns: Column<ReportData>[] = [
     {
       header: "Report Name",
@@ -94,24 +69,18 @@ const ReportsPage = () => {
   ];
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Reports</h1>
-          <p className="mt-2 text-base text-black">
-            Find all your requested reports here in one place.
-          </p>
-        </div>
-
-        <div className="">
-          <StoreDropdown
-            stores={["xxncby-gx", "demo-store", "Others"]}
-            value={store}
-            onChange={setStore}
-          />
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold">Reports</h1>
+        <p className="mt-2 text-base text-black">
+          Find all your requested reports here in one place.
+        </p>
       </div>
       <div className="mt-6">
-        <DataTable columns={columns} data={reports} />
+        <DataTable
+          columns={columns}
+          data={reports}
+          emptyMessage="You don't have any reports to show."
+        />
       </div>
     </div>
   );

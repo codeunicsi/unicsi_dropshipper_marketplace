@@ -38,7 +38,7 @@ export default function CustomReportsPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-blue-600">342</p>
+              <p className="text-3xl font-bold text-blue-600">0</p>
               <p className="text-sm text-muted-foreground">Report Views</p>
             </div>
           </CardContent>
@@ -47,7 +47,7 @@ export default function CustomReportsPage() {
 
       <Card className="p-6">
         <div className="text-center py-12 text-muted-foreground">
-          <p>Custom reports list will be displayed here</p>
+          <p>No custom reports yet</p>
         </div>
       </Card>
     </div>

@@ -98,9 +98,7 @@ export const useProducts = () => {
   >({
     queryKey: ["products"],
     queryFn: async () =>
-      await apiClient.get<GetProductsResponse>(
-        "dropshipper/shopify/get-products",
-      ),
+      await apiClient.get("dropshipper/shopify/get-products"),
   });
 };
 

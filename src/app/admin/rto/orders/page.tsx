@@ -18,7 +18,7 @@ export default function RTOOrdersPage() {
             <p className="text-muted-foreground">Track and manage return-to-origin shipments</p>
           </div>
           <Badge variant="destructive" className="text-lg px-4 py-2">
-            342 RTOs
+            0 RTOs
           </Badge>
         </div>
 
@@ -46,7 +46,7 @@ export default function RTOOrdersPage() {
           <Card>
             <CardContent className="pt-6">
               <div className="text-center">
-                <p className="text-3xl font-bold text-red-600">342</p>
+                <p className="text-3xl font-bold text-red-600">0</p>
                 <p className="text-sm text-muted-foreground">Total RTOs</p>
               </div>
             </CardContent>
@@ -113,7 +113,7 @@ export default function RTOOrdersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-center py-12 text-muted-foreground">
-              <p>RTO orders table will be displayed here</p>
+              <p>No RTO orders yet</p>
             </div>
           </CardContent>
         </Card>

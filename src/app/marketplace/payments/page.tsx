@@ -3,14 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Column, DataTable } from "@/components/ui/data-table";
 import { DateDropdown } from "@/components/ui/date-dropdown";
 import { IconDropdown } from "@/components/ui/icon-dropdown";
-import SearchFilterBar from "@/components/ui/search-bar-icon";
+
 import {
   BadgeIndianRupee,
   Download,
   IndianRupeeIcon,
   Search,
 } from "lucide-react";
-import React, { useState } from "react";
+import { useState } from "react";
 
 type SearchOption = {
   label: string;
@@ -18,7 +18,7 @@ type SearchOption = {
 };
 
 interface SearchFilterBarProps {
-  options: SearchOption[];
+  options?: SearchOption[];
   placeholder?: string;
   onSearch?: (type: string, query: string) => void;
 }
@@ -31,22 +31,7 @@ type PaymentCycleData = {
   amount: number;
 };
 
-const payments: PaymentCycleData[] = [
-  {
-    paymentDate: "05 Mar 2026",
-    day: "Thursday",
-    paymentCycle: "Weekly",
-    transactionId: "TXN987654321",
-    amount: 5400,
-  },
-  {
-    paymentDate: "10 Mar 2026",
-    day: "Tuesday",
-    paymentCycle: "Daily",
-    transactionId: "TXN123456789",
-    amount: 3200,
-  },
-];
+const payments: PaymentCycleData[] = [];
 
 const columns: Column<PaymentCycleData>[] = [
   {
@@ -94,7 +79,7 @@ const columns: Column<PaymentCycleData>[] = [
 ];
 
 const PaymentsPage = ({
-  options,
+  options = [],
   placeholder = "Enter Transaction ID here",
   onSearch,
 }: SearchFilterBarProps) => {
@@ -121,12 +106,9 @@ const PaymentsPage = ({
               <IndianRupeeIcon className="w-5 h-5" />
             </div>
             <span className="text-lg font-bold text-purple-600 my-3">
-              ₹4,66,889
+              ₹0
               <p className="text-xs text-black/90 my-1">
                 Total payment till date
-              </p>
-              <p className="text-xs text-black/90 font-medium my-1">
-                (Since 08 Feb 2023)
               </p>
             </span>
           </div>
@@ -191,7 +173,11 @@ const PaymentsPage = ({
         </div>
       </div>
       <div className="my-6">
-        <DataTable columns={columns} data={payments} />
+        <DataTable
+          columns={columns}
+          data={payments}
+          emptyMessage="You don't have any payment records to show."
+        />
       </div>
     </>
   );

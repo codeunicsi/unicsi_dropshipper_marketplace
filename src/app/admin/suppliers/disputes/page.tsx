@@ -54,7 +54,7 @@ export default function SupplierDisputesPage() {
         </CardHeader>
         <CardContent>
           <div className="text-center py-12 text-muted-foreground">
-            <p>Disputes list table will be displayed here</p>
+            <p>No disputes yet</p>
           </div>
         </CardContent>
       </Card>

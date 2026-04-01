@@ -84,7 +84,7 @@ export default function ShippedOrdersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-center py-12 text-muted-foreground">
-              <p>Shipped orders table will be displayed here</p>
+              <p>No shipped orders yet</p>
             </div>
           </CardContent>
         </Card>

@@ -52,7 +52,7 @@ export default function RTOIntelligencePage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-blue-600">342</p>
+              <p className="text-3xl font-bold text-blue-600">0</p>
               <p className="text-sm text-muted-foreground">RTOs This Month</p>
               <div className="flex items-center justify-center gap-1 mt-2 text-red-600">
                 <TrendingUp className="w-4 h-4" />
