@@ -51,6 +51,31 @@ export function ProductReviewModal({
     return { h, l, w }
   }, [])
 
+  /** API may nest objects in attributes (e.g. dimensions); React cannot render raw objects. */
+  const formatAttributeValue = useCallback(
+    (value: unknown): string => {
+      if (value == null) return '—'
+      if (Array.isArray(value)) return value.map(String).join(', ')
+      if (typeof value === 'object') {
+        const o = value as Record<string, unknown>
+        if (
+          'width' in o ||
+          'height' in o ||
+          'length' in o ||
+          'w' in o ||
+          'h' in o ||
+          'l' in o
+        ) {
+          const dim = normalizeDimensions(value)
+          return `${dim.h} × ${dim.l} × ${dim.w} cm`
+        }
+        return JSON.stringify(value)
+      }
+      return String(value)
+    },
+    [normalizeDimensions],
+  )
+
   const handleEnterEditMode = useCallback(() => {
     if (!product) return
     const variants = product.variants ?? []
@@ -464,7 +489,7 @@ export function ProductReviewModal({
                     {Object.entries(product.variants[0].attributes).map(([key, value]) => (
                       <div key={key}>
                         <p className="text-xs text-muted-foreground capitalize">{key}</p>
-                        <p className="font-medium text-sm">{value}</p>
+                        <p className="font-medium text-sm">{formatAttributeValue(value)}</p>
                       </div>
                     ))}
                   </div>
