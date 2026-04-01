@@ -1,21 +1,7 @@
 "use client";
 
-import { use } from "react";
-import {
-  ArrowUpRight,
-  Box,
-  Calculator,
-  Copy,
-  CopyIcon,
-  File,
-  Info,
-  PackageCheck,
-  ShieldCheck,
-  Truck,
-  Weight,
-  Loader2,
-} from "lucide-react";
-import Image from "next/image";
+import { use, useState } from "react";
+import { ArrowUpRight, CopyIcon, Loader2 } from "lucide-react";
 import AdditionalInfoDropdown from "@/components/partner/additional-info-dropdown";
 import ProductDetailBanner from "@/components/partner/product-detail-banner";
 import DownloadMediaDropdown from "@/components/partner/download-media-dropdown";
@@ -54,8 +40,8 @@ export function ProductInfo({ id, name, price }: any) {
 
 export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   const { productId } = use(params);
-
   const { data, isLoading, isError } = useGetProductById(productId);
+  const [selectedImage, setSelectedImage] = useState<string>("");
 
   if (isLoading) {
     return (
@@ -75,7 +61,6 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
 
   const product = data.data;
 
-  // ✅ Transform API → UI
   const variant = product.variants?.find((v: any) => v.is_active);
   const image = product.images?.[0]?.image_url || "/placeholder.png";
 
@@ -89,25 +74,46 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
 
   const mediaUrls = uiProduct.images;
 
+  // Default to first image if selectedImage not yet set
+  const activeImage = selectedImage || mediaUrls[0];
+
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className="grid md:grid-cols-2 gap-10">
         {/* LEFT */}
         <div className="flex gap-4">
+          {/* Thumbnails */}
           <div className="flex flex-col gap-3">
             {mediaUrls.slice(0, 5).map((img: string, i: number) => (
-              <div key={i} className="relative h-20 w-20 border rounded">
-                <Image src={img} alt="" fill className="object-cover" />
+              <div
+                key={i}
+                onClick={() => setSelectedImage(img)}
+                className={`relative h-20 w-20 border rounded cursor-pointer overflow-hidden transition-all ${
+                  activeImage === img
+                    ? "border-black border-2"
+                    : "border-gray-200 hover:border-gray-400"
+                }`}
+              >
+                <img
+                  src={img}
+                  alt={`Thumbnail ${i + 1}`}
+                  className="w-full h-full object-cover"
+                />
               </div>
             ))}
           </div>
 
-          <div className="relative flex-1 h-[420px] bg-slate-100 rounded">
+          {/* Main Image */}
+          <div className="relative flex-1 h-[420px] bg-slate-100 rounded overflow-hidden">
             <DownloadMediaDropdown
-              currentMediaUrl={mediaUrls[0]}
+              currentMediaUrl={activeImage}
               allMediaUrls={mediaUrls}
             />
-            <Image src={mediaUrls[0]} alt="" fill className="object-cover" />
+            <img
+              src={activeImage}
+              alt="Selected product"
+              className="w-full h-full object-cover"
+            />
           </div>
         </div>
 
