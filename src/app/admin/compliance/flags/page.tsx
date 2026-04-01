@@ -39,7 +39,7 @@ export default function FeatureFlagsPage() {
 
       <Card className="p-6">
         <div className="text-center py-12 text-muted-foreground">
-          <p>Feature flags configuration will be displayed here</p>
+          <p>No feature flags yet</p>
         </div>
       </Card>
     </div>

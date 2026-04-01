@@ -12,6 +12,7 @@ import {
   useGetProductsByCategory,
   type Product,
 } from "@/hooks/marketplace/useGetCategoryById";
+import { UnicsiLoader } from "@/components/partner/unicsi-loader";
 
 type CategoryDetailPageProps = {
   params: Promise<{ categoryId: string }>;
@@ -208,11 +209,7 @@ function ProductsSection({ categoryId }: { categoryId: string }) {
   const { data, isLoading, isError } = useGetProductsByCategory(categoryId);
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
-      </div>
-    );
+    return <UnicsiLoader />;
   }
 
   if (isError) {
@@ -255,11 +252,7 @@ export default function CategoryDetailPage({
   const { data, isLoading, isError } = useGetProductsByCategory(categoryId);
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin" />
-      </div>
-    );
+    return <UnicsiLoader />;
   }
 
   if (isError) {

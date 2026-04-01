@@ -47,7 +47,7 @@ export default function SalesAnalyticsPage() {
 
       <Card className="p-6">
         <div className="text-center py-12 text-muted-foreground">
-          <p>Sales analytics dashboard will be displayed here</p>
+          <p>No sales analytics yet</p>
         </div>
       </Card>
     </div>

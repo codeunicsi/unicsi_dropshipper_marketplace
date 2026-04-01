@@ -1,25 +1,29 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import {
   ArrowUpRight,
-  Box,
-  Calculator,
-  Copy,
   CopyIcon,
-  File,
-  Info,
-  PackageCheck,
+  Loader2,
+  Tag,
+  Package,
+  Layers,
   ShieldCheck,
   Truck,
+  RotateCcw,
+  CheckCircle2,
+  AlertCircle,
+  Info,
+  Hash,
+  Boxes,
+  Ruler,
   Weight,
-  Loader2,
 } from "lucide-react";
-import Image from "next/image";
 import AdditionalInfoDropdown from "@/components/partner/additional-info-dropdown";
 import ProductDetailBanner from "@/components/partner/product-detail-banner";
 import DownloadMediaDropdown from "@/components/partner/download-media-dropdown";
 import { useGetProductById } from "@/hooks/marketplace/useProduct";
+import { UnicsiLoader } from "@/components/partner/unicsi-loader";
 
 type ProductDetailPageProps = {
   params: Promise<{
@@ -27,42 +31,237 @@ type ProductDetailPageProps = {
   }>;
 };
 
-export function ProductInfo({ id, name, price }: any) {
+/* ─── helpers ──────────────────────────────────────────────── */
+function Badge({
+  label,
+  variant = "default",
+}: {
+  label: string;
+  variant?: "default" | "success" | "warning" | "danger";
+}) {
+  const colors = {
+    default: "bg-slate-100 text-slate-600",
+    success: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+    warning: "bg-amber-50 text-amber-700 border border-amber-200",
+    danger: "bg-red-50 text-red-700 border border-red-200",
+  };
   return (
-    <div className="bg-white rounded-xl border p-6 space-y-2">
-      <div className="flex gap-2 text-xs text-slate-500">
-        C-Code:
-        <span className="flex gap-2 font-semibold text-slate-800">
-          {id}
-          <CopyIcon className="w-4 h-4" />
-        </span>
-      </div>
+    <span
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${colors[variant]}`}
+    >
+      {label}
+    </span>
+  );
+}
 
-      <h1 className="text-base font-medium">{name}</h1>
-
-      <div className="flex gap-3">
-        <span className="text-xl font-bold">₹{price}</span>
-      </div>
-
-      <button className="w-full bg-black text-white py-3 rounded-lg flex justify-center gap-2">
-        <ArrowUpRight className="w-5 h-5" />
-        Push To Shopify
-      </button>
+function InfoRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: any;
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-3 py-2.5 border-b last:border-0 border-slate-100">
+      <Icon className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+      <span className="text-xs text-slate-500 w-36 shrink-0">{label}</span>
+      <span className="text-xs font-medium text-slate-800 break-all">
+        {value}
+      </span>
     </div>
   );
 }
 
+/* ─── ProductInfo card ──────────────────────────────────────── */
+export function ProductInfo({ product }: { product: any }) {
+  const variant = product.variants?.find((v: any) => v.is_active);
+  const price = Number(variant?.price ?? product.mrp ?? 0);
+  const mrp = Number(product.mrp ?? 0);
+  const bulkPrice = Number(product.bulk_price ?? 0);
+  const gstRate = product.gst_rate
+    ? `${(Number(product.gst_rate) * 100).toFixed(0)}%`
+    : "—";
+  const moq = product.minimum_order_quantity ?? "—";
+
+  const discount = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : null;
+
+  return (
+    <div className="space-y-4">
+      {/* Main price card */}
+      <div className="bg-white rounded-xl border p-6 space-y-4">
+        {/* C-Code */}
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          <Hash className="w-3.5 h-3.5" />
+          C-Code:
+          <button
+            className="flex items-center gap-1.5 font-semibold text-slate-800 hover:text-black transition-colors group"
+            onClick={() => navigator.clipboard.writeText(product.product_id)}
+          >
+            <span className="font-mono">{product.product_id}</span>
+            <CopyIcon className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" />
+          </button>
+        </div>
+
+        {/* Title + brand + category */}
+        <div className="space-y-1.5">
+          <h1 className="text-lg font-semibold text-slate-900">
+            {product.title}
+          </h1>
+          <div className="flex flex-wrap gap-2">
+            {product.brand && (
+              <Badge label={`Brand: ${product.brand}`} variant="default" />
+            )}
+            {product.category?.name && (
+              <Badge label={product.category.name} variant="default" />
+            )}
+            <Badge
+              label={product.approval_status}
+              variant={
+                product.approval_status === "approved" ? "success" : "warning"
+              }
+            />
+          </div>
+        </div>
+
+        {/* Pricing */}
+        <div className="bg-slate-50 rounded-lg p-4 space-y-2">
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-slate-900">
+              ₹{price.toLocaleString()}
+            </span>
+            {mrp > price && (
+              <span className="text-sm text-slate-400 line-through">
+                ₹{mrp.toLocaleString()} MRP
+              </span>
+            )}
+            {discount && (
+              <span className="ml-auto text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                {discount}% off
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <div className="bg-white rounded-md p-2.5 border border-slate-200 text-center">
+              <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">
+                Bulk Price
+              </p>
+              <p className="text-sm font-bold text-slate-800">
+                ₹{bulkPrice.toLocaleString()}
+              </p>
+            </div>
+            <div className="bg-white rounded-md p-2.5 border border-slate-200 text-center">
+              <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">
+                GST Rate
+              </p>
+              <p className="text-sm font-bold text-slate-800">{gstRate}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-slate-500 pt-1">
+            <Boxes className="w-3.5 h-3.5" />
+            Minimum Order Quantity:{" "}
+            <span className="font-semibold text-slate-700">{moq} units</span>
+          </div>
+        </div>
+
+        {/* Shipping flags */}
+        <div className="flex gap-3">
+          <div
+            className={`flex-1 flex items-center gap-2 text-xs rounded-lg p-2.5 border ${
+              product.rvp_enabled
+                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                : "bg-slate-50 border-slate-200 text-slate-400"
+            }`}
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            RVP {product.rvp_enabled ? "Enabled" : "Disabled"}
+          </div>
+          <div
+            className={`flex-1 flex items-center gap-2 text-xs rounded-lg p-2.5 border ${
+              product.rto_enabled
+                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                : "bg-slate-50 border-slate-200 text-slate-400"
+            }`}
+          >
+            <Truck className="w-3.5 h-3.5" />
+            RTO {product.rto_enabled ? "Enabled" : "Disabled"}
+          </div>
+        </div>
+
+        <button className="w-full bg-black text-white py-3 rounded-lg flex justify-center gap-2 hover:bg-slate-800 transition-colors">
+          <ArrowUpRight className="w-5 h-5" />
+          Push To Shopify
+        </button>
+      </div>
+
+      {/* Variant details */}
+      {variant && (
+        <div className="bg-white rounded-xl border p-5 space-y-1">
+          <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+            <Layers className="w-4 h-4" />
+            Active Variant — {variant.title}
+          </h3>
+          <InfoRow icon={Tag} label="SKU" value={variant.sku} />
+          <InfoRow
+            icon={Boxes}
+            label="Inventory"
+            value={
+              <span
+                className={
+                  variant.inventory_quantity > 0
+                    ? "text-emerald-700"
+                    : "text-red-600"
+                }
+              >
+                {variant.inventory_quantity} units
+              </span>
+            }
+          />
+          <InfoRow
+            icon={Weight}
+            label="Weight"
+            value={`${variant.weight_grams}g`}
+          />
+          {variant.option1 && (
+            <InfoRow icon={Package} label="Color" value={variant.option1} />
+          )}
+          {variant.option2 && (
+            <InfoRow icon={Package} label="Size" value={variant.option2} />
+          )}
+          {variant.option3 && (
+            <InfoRow icon={Package} label="Material" value={variant.option3} />
+          )}
+          {variant.dimension_cm && (
+            <InfoRow
+              icon={Ruler}
+              label="Dimensions"
+              value={`${variant.dimension_cm.length} × ${variant.dimension_cm.width} × ${variant.dimension_cm.height} cm`}
+            />
+          )}
+          <InfoRow
+            icon={Info}
+            label="Compare Price"
+            value={
+              variant.compare_at_price ? `₹${variant.compare_at_price}` : "—"
+            }
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Page ──────────────────────────────────────────────────── */
 export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   const { productId } = use(params);
-
   const { data, isLoading, isError } = useGetProductById(productId);
+  const [selectedImage, setSelectedImage] = useState<string>("");
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin" />
-      </div>
-    );
+    return <UnicsiLoader />;
   }
 
   if (isError || !data?.data) {
@@ -74,55 +273,140 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   }
 
   const product = data.data;
-
-  // ✅ Transform API → UI
-  const variant = product.variants?.find((v: any) => v.is_active);
-  const image = product.images?.[0]?.image_url || "/placeholder.png";
-
-  const uiProduct = {
-    id: product.product_id,
-    name: product.title,
-    price: Number(variant?.price ?? 0),
-    description: product.description || "No description available",
-    images: product.images?.map((img: any) => img.image_url) || [image],
-  };
-
-  const mediaUrls = uiProduct.images;
+  const mediaUrls = product.images?.map((img: any) => img.image_url) || [
+    "/placeholder.png",
+  ];
+  const activeImage = selectedImage || mediaUrls[0];
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className="max-w-6xl mx-auto p-6 space-y-6">
       <div className="grid md:grid-cols-2 gap-10">
-        {/* LEFT */}
+        {/* LEFT — images */}
         <div className="flex gap-4">
+          {/* Thumbnails */}
           <div className="flex flex-col gap-3">
             {mediaUrls.slice(0, 5).map((img: string, i: number) => (
-              <div key={i} className="relative h-20 w-20 border rounded">
-                <Image src={img} alt="" fill className="object-cover" />
+              <div
+                key={i}
+                onClick={() => setSelectedImage(img)}
+                className={`relative h-20 w-20 border rounded cursor-pointer overflow-hidden transition-all ${
+                  activeImage === img
+                    ? "border-black border-2"
+                    : "border-gray-200 hover:border-gray-400"
+                }`}
+              >
+                <img
+                  src={img}
+                  alt={`Thumbnail ${i + 1}`}
+                  className="w-full h-full object-cover"
+                />
               </div>
             ))}
           </div>
 
-          <div className="relative flex-1 h-[420px] bg-slate-100 rounded">
+          {/* Main image */}
+          <div className="relative flex-1 h-[420px] bg-slate-100 rounded overflow-hidden">
             <DownloadMediaDropdown
-              currentMediaUrl={mediaUrls[0]}
+              currentMediaUrl={activeImage}
               allMediaUrls={mediaUrls}
             />
-            <Image src={mediaUrls[0]} alt="" fill className="object-cover" />
+            <img
+              src={activeImage}
+              alt="Selected product"
+              className="w-full h-full object-cover"
+            />
           </div>
         </div>
 
-        {/* RIGHT */}
-        <ProductInfo
-          id={uiProduct.id}
-          name={uiProduct.name}
-          price={uiProduct.price}
-        />
+        {/* RIGHT — all info */}
+        <ProductInfo product={product} />
       </div>
 
-      {/* DESCRIPTION */}
-      <div className="mt-8 border rounded p-6">
-        <h2 className="text-xl font-bold mb-4">Product Description</h2>
-        <p>{uiProduct.description}</p>
+      {/* Description */}
+      <div className="border rounded-xl p-6 bg-white">
+        <h2 className="text-base font-semibold mb-3 flex items-center gap-2">
+          <Info className="w-4 h-4 text-slate-400" />
+          Product Description
+        </h2>
+        <p className="text-sm text-slate-600 leading-relaxed">
+          {product.description || "No description available."}
+        </p>
+      </div>
+
+      {/* Product meta grid */}
+      <div className="border rounded-xl p-6 bg-white">
+        <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-slate-400" />
+          Product Details
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {[
+            { label: "Product ID", value: product.product_id, mono: true },
+            { label: "Brand", value: product.brand },
+            { label: "Category", value: product.category?.name },
+            {
+              label: "Lifecycle Status",
+              value: (
+                <Badge
+                  label={product.lifecycle_status}
+                  variant={
+                    product.lifecycle_status === "active"
+                      ? "success"
+                      : "warning"
+                  }
+                />
+              ),
+            },
+            {
+              label: "Approval Status",
+              value: (
+                <Badge
+                  label={product.approval_status}
+                  variant={
+                    product.approval_status === "approved"
+                      ? "success"
+                      : "warning"
+                  }
+                />
+              ),
+            },
+            {
+              label: "Approved At",
+              value: product.approved_at
+                ? new Date(product.approved_at).toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })
+                : "—",
+            },
+            {
+              label: "Bulk Price Refresh",
+              value: `Every ${product.bulk_price_refresh_days} days`,
+            },
+            {
+              label: "Created At",
+              value: new Date(product.createdAt).toLocaleDateString("en-IN", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              }),
+            },
+          ].map((item, i) => (
+            <div key={i} className="bg-slate-50 rounded-lg p-3">
+              <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-1">
+                {item.label}
+              </p>
+              <p
+                className={`text-xs font-medium text-slate-800 break-all ${
+                  (item as any).mono ? "font-mono" : ""
+                }`}
+              >
+                {item.value}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
 
       <AdditionalInfoDropdown />

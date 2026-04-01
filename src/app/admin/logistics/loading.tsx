@@ -74,7 +74,7 @@ export default function Loading() {
             <Card key={item} className="p-6 hover:shadow-lg transition-shadow">
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold text-card-foreground">Item {item}</h3>
-                <p className="text-muted-foreground">This is a sample card item demonstrating the page layout.</p>
+                <p className="text-muted-foreground">This is a loading skeleton.</p>
                 <Button variant="outline" className="w-full bg-transparent">
                   Learn More
                 </Button>
