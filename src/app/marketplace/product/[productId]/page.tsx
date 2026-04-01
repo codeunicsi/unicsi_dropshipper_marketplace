@@ -23,6 +23,7 @@ import AdditionalInfoDropdown from "@/components/partner/additional-info-dropdow
 import ProductDetailBanner from "@/components/partner/product-detail-banner";
 import DownloadMediaDropdown from "@/components/partner/download-media-dropdown";
 import { useGetProductById } from "@/hooks/marketplace/useProduct";
+import { UnicsiLoader } from "@/components/partner/unicsi-loader";
 
 type ProductDetailPageProps = {
   params: Promise<{
@@ -260,11 +261,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   const [selectedImage, setSelectedImage] = useState<string>("");
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin" />
-      </div>
-    );
+    return <UnicsiLoader />;
   }
 
   if (isError || !data?.data) {

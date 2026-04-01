@@ -29,6 +29,7 @@ export interface Product {
   approved_at: string;
   createdAt: string;
   updatedAt: string;
+  bulk_price: string;
   variants: ProductVariant[];
   images: ProductImage[];
 }
