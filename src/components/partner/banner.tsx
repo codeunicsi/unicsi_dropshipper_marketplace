@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-const images = ["/images/Banner-1.svg", "/images/Banner-2.svg"];
+const images = ["/images/Banner-1.png", "/images/Banner-2.png"];
 
 export default function HomeBanner() {
   const [current, setCurrent] = useState(0);

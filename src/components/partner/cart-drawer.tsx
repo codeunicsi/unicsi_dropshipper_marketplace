@@ -22,6 +22,7 @@ interface DrawerProduct {
   name: string;
   image: string;
   price: number;
+  weightGrams?: number;
 }
 
 interface CartDrawerProps {
@@ -70,6 +71,9 @@ const SectionTitle = ({ icon: Icon, title }: { icon: any; title: string }) => (
   </div>
 );
 
+const formatCurrency = (value: number) =>
+  `₹${Math.round(Number.isFinite(value) ? value : 0).toLocaleString("en-IN")}`;
+
 const CartDrawer = ({
   onClose,
   selectedProduct,
@@ -85,21 +89,91 @@ const CartDrawer = ({
 
   const product = response?.productData?.product;
   const firstVariant = product?.variants?.[0];
+  const variantMeta = firstVariant as
+    | {
+        weight_grams?: number | string;
+        weight?: number | string;
+        shipping_discount?: number | string;
+        rto_charges?: number | string;
+      }
+    | undefined;
   const cloutPrice = Number(firstVariant?.price ?? selectedProduct?.price ?? 0);
+  const productWeightGrams = Number(
+    variantMeta?.weight_grams ??
+      variantMeta?.weight ??
+      selectedProduct?.weightGrams ??
+      0,
+  );
+  const rtoChargePerOrder = Math.max(
+    Number(variantMeta?.rto_charges ?? Math.round(cloutPrice * 0.28)),
+    0,
+  );
 
   const [sellingPrice, setSellingPrice] = useState<number>(cloutPrice);
+  const [calcSellingPrice, setCalcSellingPrice] = useState<number>(cloutPrice);
+  const [expectedOrders, setExpectedOrders] = useState<number>(100);
+  const [confirmedRate, setConfirmedRate] = useState<number>(90);
+  const [deliveryRate, setDeliveryRate] = useState<number>(50);
+  const [adSpendPerOrder, setAdSpendPerOrder] = useState<number>(0);
+  const [miscCharges, setMiscCharges] = useState<number>(0);
 
   useEffect(() => {
     setSellingPrice(cloutPrice);
+    setCalcSellingPrice(cloutPrice);
   }, [cloutPrice]);
 
   const safeSellingPrice = Number.isFinite(sellingPrice) ? sellingPrice : 0;
-  const shippingDiscount = 57;
+  const shippingDiscount = Math.max(
+    Number(variantMeta?.shipping_discount ?? 57),
+    0,
+  );
   const shippingCharges = Math.round(cloutPrice * 0.45);
   const productPrice = Math.max(cloutPrice - shippingCharges, 0);
   const effectiveCloutPrice = Math.max(cloutPrice - shippingDiscount, 0);
   const margin = Math.max(safeSellingPrice - cloutPrice, 0);
   const effectiveEarnings = margin + shippingDiscount;
+  const safeCalcSellingPrice = Number.isFinite(calcSellingPrice)
+    ? calcSellingPrice
+    : cloutPrice;
+  const safeExpectedOrders = Math.max(
+    Number.isFinite(expectedOrders) ? expectedOrders : 0,
+    0,
+  );
+  const safeConfirmedRate = Math.min(
+    Math.max(Number.isFinite(confirmedRate) ? confirmedRate : 0, 0),
+    100,
+  );
+  const safeDeliveryRate = Math.min(
+    Math.max(Number.isFinite(deliveryRate) ? deliveryRate : 0, 0),
+    100,
+  );
+  const safeAdSpendPerOrder = Math.max(
+    Number.isFinite(adSpendPerOrder) ? adSpendPerOrder : 0,
+    0,
+  );
+  const safeMiscCharges = Math.max(
+    Number.isFinite(miscCharges) ? miscCharges : 0,
+    0,
+  );
+
+  const confirmedOrders = Math.round(
+    safeExpectedOrders * (safeConfirmedRate / 100),
+  );
+  const deliveredOrders = Math.round(
+    confirmedOrders * (safeDeliveryRate / 100),
+  );
+  const rtoOrders = Math.max(confirmedOrders - deliveredOrders, 0);
+  const cancelledOrders = Math.max(safeExpectedOrders - confirmedOrders, 0);
+  const earningsPerOrder =
+    Math.max(safeCalcSellingPrice - cloutPrice, 0) + shippingDiscount;
+  const totalEarnings = earningsPerOrder * deliveredOrders;
+  const totalAdSpends = safeAdSpendPerOrder * safeExpectedOrders;
+  const totalRtoCharges = rtoOrders * rtoChargePerOrder;
+  const totalSpends = totalAdSpends + totalRtoCharges + safeMiscCharges;
+  const netProfit = totalEarnings - totalSpends;
+  const netProfitPerOrder =
+    safeExpectedOrders > 0 ? netProfit / safeExpectedOrders : 0;
+  const isNegativeProfit = netProfit < 0 || netProfitPerOrder < 0;
 
   const productTitle =
     product?.title ||
@@ -308,6 +382,14 @@ const CartDrawer = ({
               <div className="flex items-center gap-6 pt-1">
                 <button
                   type="button"
+                  onClick={() => {
+                    setCalcSellingPrice(cloutPrice);
+                    setExpectedOrders(100);
+                    setConfirmedRate(90);
+                    setDeliveryRate(50);
+                    setAdSpendPerOrder(0);
+                    setMiscCharges(0);
+                  }}
                   className="flex items-center gap-2 font-semibold underline text-sm"
                 >
                   <RotateCcw className="w-4 h-4" />
@@ -335,18 +417,24 @@ const CartDrawer = ({
                     <div className="pr-6 border-r border-slate-300">
                       <p className="text-xs text-slate-700">Price</p>
                       <p className="text-xs font-bold">
-                        ₹265 <Info className="inline w-3 h-3 text-slate-500" />
+                        {formatCurrency(cloutPrice)}{" "}
+                        <Info className="inline w-3 h-3 text-slate-500" />
                       </p>
                     </div>
                     <div className="pr-6 border-r border-slate-300">
                       <p className="text-xs text-slate-700">RTO Charges</p>
                       <p className="text-xs font-bold">
-                        ₹74 <Info className="inline w-3 h-3 text-slate-500" />
+                        {formatCurrency(rtoChargePerOrder)}{" "}
+                        <Info className="inline w-3 h-3 text-slate-500" />
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-slate-700">Product Weight</p>
-                      <p className="text-xs font-bold">297gm</p>
+                      <p className="text-xs font-bold">
+                        {productWeightGrams > 0
+                          ? `${productWeightGrams}gm`
+                          : "N/A"}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -364,7 +452,10 @@ const CartDrawer = ({
                 <span className="font-semibold">Available Discounts :</span>
                 <span className="text-slate-400">☑</span>
                 <span>
-                  Shipping Discount <span className="font-bold">₹57</span>{" "}
+                  Shipping Discount{" "}
+                  <span className="font-bold">
+                    {formatCurrency(shippingDiscount)}
+                  </span>{" "}
                   <Info className="inline w-4 h-4 text-slate-500" />
                 </span>
               </div>
@@ -376,8 +467,18 @@ const CartDrawer = ({
                       Selling Price<span className="text-red-500">*</span>
                     </label>
                     <input
+                      type="number"
+                      min={0}
                       className="w-24 h-12 border border-slate-300 rounded-xs px-3 text-sm"
-                      defaultValue="₹ 300"
+                      value={
+                        Number.isNaN(calcSellingPrice) ? "" : calcSellingPrice
+                      }
+                      onChange={(e) => {
+                        const nextValue = Number(e.target.value);
+                        setCalcSellingPrice(
+                          Number.isNaN(nextValue) ? 0 : nextValue,
+                        );
+                      }}
                     />
                   </div>
                   <div className="flex items-center justify-between pb-3 border-b border-slate-300">
@@ -385,8 +486,16 @@ const CartDrawer = ({
                       Expected Orders<span className="text-red-500">*</span>
                     </label>
                     <input
+                      type="number"
+                      min={0}
                       className="w-24 h-12 border border-slate-300 rounded-xs px-3 text-sm"
-                      defaultValue="100"
+                      value={Number.isNaN(expectedOrders) ? "" : expectedOrders}
+                      onChange={(e) => {
+                        const nextValue = Number(e.target.value);
+                        setExpectedOrders(
+                          Number.isNaN(nextValue) ? 0 : nextValue,
+                        );
+                      }}
                     />
                   </div>
                   <div className="flex items-center justify-between pb-3 border-b border-slate-300">
@@ -395,8 +504,17 @@ const CartDrawer = ({
                       <span className="text-red-500">*</span>
                     </label>
                     <input
+                      type="number"
+                      min={0}
+                      max={100}
                       className="w-24 h-12 border border-slate-300 rounded-xs px-3 text-sm"
-                      defaultValue="90%"
+                      value={Number.isNaN(confirmedRate) ? "" : confirmedRate}
+                      onChange={(e) => {
+                        const nextValue = Number(e.target.value);
+                        setConfirmedRate(
+                          Number.isNaN(nextValue) ? 0 : nextValue,
+                        );
+                      }}
                     />
                   </div>
                   <div className="flex items-center justify-between pb-3 border-b border-slate-300">
@@ -405,8 +523,17 @@ const CartDrawer = ({
                       <span className="text-red-500">*</span>
                     </label>
                     <input
+                      type="number"
+                      min={0}
+                      max={100}
                       className="w-24 h-12 border border-slate-300 rounded-xs px-3 text-sm"
-                      defaultValue="50%"
+                      value={Number.isNaN(deliveryRate) ? "" : deliveryRate}
+                      onChange={(e) => {
+                        const nextValue = Number(e.target.value);
+                        setDeliveryRate(
+                          Number.isNaN(nextValue) ? 0 : nextValue,
+                        );
+                      }}
                     />
                   </div>
                   <div className="flex items-center justify-between">
@@ -414,8 +541,18 @@ const CartDrawer = ({
                       Ad Spends per order<span className="text-red-500">*</span>
                     </label>
                     <input
+                      type="number"
+                      min={0}
                       className="w-24 h-12 border border-slate-300 rounded-xs px-3 text-sm"
-                      defaultValue="₹"
+                      value={
+                        Number.isNaN(adSpendPerOrder) ? "" : adSpendPerOrder
+                      }
+                      onChange={(e) => {
+                        const nextValue = Number(e.target.value);
+                        setAdSpendPerOrder(
+                          Number.isNaN(nextValue) ? 0 : nextValue,
+                        );
+                      }}
                     />
                   </div>
                   <div className="flex items-center justify-between">
@@ -423,14 +560,24 @@ const CartDrawer = ({
                       Total Misc. Charges
                     </label>
                     <input
+                      type="number"
+                      min={0}
                       className="w-24 h-12 border border-slate-300 rounded-xs px-3 text-sm"
-                      defaultValue="₹"
+                      value={Number.isNaN(miscCharges) ? "" : miscCharges}
+                      onChange={(e) => {
+                        const nextValue = Number(e.target.value);
+                        setMiscCharges(Number.isNaN(nextValue) ? 0 : nextValue);
+                      }}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="bg-[#ebf8e5] rounded-xl p-5">
+                  <div
+                    className={`rounded-xl p-5 ${
+                      isNegativeProfit ? "bg-red-100" : "bg-[#ebf8e5]"
+                    }`}
+                  >
                     <div className="flex items-start justify-between pb-4 border-b border-slate-300">
                       <div>
                         <p className="text-sm font-semibold">Net Profit</p>
@@ -438,7 +585,13 @@ const CartDrawer = ({
                           Total Earnings - Total Spends
                         </p>
                       </div>
-                      <p className="text-lg font-bold text-[#35b700]">N/A</p>
+                      <p
+                        className={`text-lg font-bold ${
+                          netProfit < 0 ? "text-red-600" : "text-[#35b700]"
+                        }`}
+                      >
+                        {formatCurrency(netProfit)}
+                      </p>
                     </div>
                     <div className="flex items-start justify-between pt-4">
                       <div>
@@ -449,7 +602,15 @@ const CartDrawer = ({
                           Net Profit / Expected Orders
                         </p>
                       </div>
-                      <p className="text-lg font-bold text-[#35b700]">N/A</p>
+                      <p
+                        className={`text-lg font-bold ${
+                          netProfitPerOrder < 0
+                            ? "text-red-600"
+                            : "text-[#35b700]"
+                        }`}
+                      >
+                        {formatCurrency(netProfitPerOrder)}
+                      </p>
                     </div>
                   </div>
 
@@ -469,7 +630,9 @@ const CartDrawer = ({
                           </span>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-base font-semibold">N/A</span>
+                          <span className="text-base font-semibold">
+                            {safeExpectedOrders}
+                          </span>
                           <ChevronDown
                             className={`w-5 h-5 transition-transform ${isOrdersOpen ? "rotate-180" : ""}`}
                           />
@@ -482,23 +645,23 @@ const CartDrawer = ({
                               Confirmed Orders
                             </span>
                             <span className="font-semibold text-black text-sm">
-                              N/A
+                              {confirmedOrders}
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="underline">Delivered Orders</span>
-                            <span className="text-xs">n/a</span>
+                            <span className="text-xs">{deliveredOrders}</span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span>(+) RTO Orders</span>
-                            <span className="text-xs">n/a</span>
+                            <span className="text-xs">{rtoOrders}</span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="underline font-medium">
                               (+)&nbsp;Cancelled Orders
                             </span>
                             <span className="font-semibold text-black text-sm">
-                              N/A
+                              {cancelledOrders}
                             </span>
                           </div>
                         </div>
@@ -520,7 +683,9 @@ const CartDrawer = ({
                           </span>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-base font-semibold">N/A</span>
+                          <span className="text-base font-semibold">
+                            {formatCurrency(totalEarnings)}
+                          </span>
                           <ChevronDown
                             className={`w-5 h-5 transition-transform ${isEarningsOpen ? "rotate-180" : ""}`}
                           />
@@ -532,13 +697,15 @@ const CartDrawer = ({
                             <span className="underline">
                               Earnings per order
                             </span>
-                            <span className="text-xs">n/a</span>
+                            <span className="text-xs">
+                              {formatCurrency(earningsPerOrder)}
+                            </span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="underline">
                               (x) Delivered Orders
                             </span>
-                            <span className="text-xs">n/a</span>
+                            <span className="text-xs">{deliveredOrders}</span>
                           </div>
                         </div>
                       )}
@@ -559,7 +726,9 @@ const CartDrawer = ({
                           </span>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-base font-semibold">N/A</span>
+                          <span className="text-base font-semibold">
+                            {formatCurrency(totalSpends)}
+                          </span>
                           <ChevronDown
                             className={`w-5 h-5 transition-transform ${isSpendsOpen ? "rotate-180" : ""}`}
                           />
@@ -569,17 +738,23 @@ const CartDrawer = ({
                         <div className="mt-3 pl-13 space-y-1 text-sm text-slate-600">
                           <div className="flex items-center justify-between">
                             <span className="underline">Total Ad Spends</span>
-                            <span className="text-xs">n/a</span>
+                            <span className="text-xs">
+                              {formatCurrency(totalAdSpends)}
+                            </span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="underline">
                               (+)&nbsp;Total RTO Charges
                             </span>
-                            <span className="text-xs">n/a</span>
+                            <span className="text-xs">
+                              {formatCurrency(totalRtoCharges)}
+                            </span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span>(+)&nbsp;Total Misc. Charges</span>
-                            <span className="text-xs">n/a</span>
+                            <span className="text-xs">
+                              {formatCurrency(safeMiscCharges)}
+                            </span>
                           </div>
                         </div>
                       )}
