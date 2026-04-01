@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { apiClient } from '@/lib/api-client'
 
 export interface ProductVariant {
   variant_id: string
@@ -62,8 +63,6 @@ export interface PendingProductsStats {
   avg_review_time: number
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
-
 export function usePendingProducts() {
   const [products, setProducts] = useState<PendingProduct[]>([])
   const [statsFromApi, setStatsFromApi] = useState<PendingProductsStats | null>(null)
@@ -75,22 +74,12 @@ export function usePendingProducts() {
       try {
         setLoading(true)
         setError(null)
-        const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
-        const [productsResponse, statsResponse] = await Promise.all([
-          fetch(`${base}admin/products/get-pending-products`),
-          fetch(`${base}admin/products/pending/stats`),
-        ])
-
-        if (!productsResponse.ok) {
-          throw new Error(`Failed to fetch pending products: ${productsResponse.statusText}`)
-        }
-
-        const data = await productsResponse.json()
+        const data = await apiClient.get('admin/products/get-pending-products')
         console.log(data?.data)
         setProducts(data?.data || [])
 
-        if (statsResponse.ok) {
-          const statsData = await statsResponse.json()
+        try {
+          const statsData = await apiClient.get('admin/products/pending/stats')
           const s = statsData?.data ?? statsData
           if (s && typeof s.awaiting_review === 'number') {
             setStatsFromApi({
@@ -101,6 +90,8 @@ export function usePendingProducts() {
               avg_review_time: s.avg_review_time ?? 2.3,
             })
           }
+        } catch {
+          // stats optional
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to fetch pending products'
@@ -162,39 +153,24 @@ export function usePendingProducts() {
   }, [])
 
   const refetchStats = useCallback(async () => {
-    const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
     try {
-      const r = await fetch(`${base}admin/products/pending/stats`)
-      if (r.ok) {
-        const d = await r.json()
-        const s = d?.data ?? d
-        if (s && typeof s.awaiting_review === 'number') {
-          setStatsFromApi({
-            total: s.total ?? 0,
-            awaiting_review: s.awaiting_review,
-            needs_revision: s.needs_revision ?? 0,
-            approved: s.approved ?? 0,
-            avg_review_time: s.avg_review_time ?? 2.3,
-          })
-        }
+      const d = await apiClient.get('admin/products/pending/stats')
+      const s = d?.data ?? d
+      if (s && typeof s.awaiting_review === 'number') {
+        setStatsFromApi({
+          total: s.total ?? 0,
+          awaiting_review: s.awaiting_review,
+          needs_revision: s.needs_revision ?? 0,
+          approved: s.approved ?? 0,
+          avg_review_time: s.avg_review_time ?? 2.3,
+        })
       }
     } catch (_) {}
   }, [])
 
   const approveProduct = useCallback(async (productId: string) => {
     try {
-      const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
-      const response = await fetch(`${base}admin/products/${productId}/approve`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to approve product')
-      }
+      await apiClient.post(`admin/products/${productId}/approve`, {})
 
       setProducts((prev) =>
         prev.map((product) =>
@@ -213,20 +189,9 @@ export function usePendingProducts() {
 
   const rejectProduct = useCallback(async (productId: string, reason: string) => {
     try {
-      const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
-      const response = await fetch(`${base}admin/products/${productId}/reject`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          rejection_reason: reason,
-        }),
+      await apiClient.post(`admin/products/${productId}/reject`, {
+        rejection_reason: reason,
       })
-
-      if (!response.ok) {
-        throw new Error('Failed to reject product')
-      }
 
       setProducts((prev) =>
         prev.map((product) =>
@@ -245,21 +210,10 @@ export function usePendingProducts() {
 
   const updateProduct = useCallback(async (productId: string, updates: Partial<PendingProduct>) => {
     try {
-      const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
-      const response = await fetch(`${base}admin/products/update-product`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          product_id: productId,
-          ...updates,
-        }),
+      await apiClient.put('admin/products/update-product', {
+        product_id: productId,
+        ...updates,
       })
-
-      if (!response.ok) {
-        throw new Error('Failed to update product')
-      }
 
       setProducts((prev) =>
         prev.map((product) =>
