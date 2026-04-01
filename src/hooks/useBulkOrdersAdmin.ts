@@ -104,11 +104,11 @@ export function useBulkOrdersAdmin() {
       transactionReference && transactionReference.trim()
         ? { transactionReference: transactionReference.trim() }
         : {}
-    return apiClient.patch(`${BASE}/${orderId}/verify-payment`, body)
+    return apiClient.put(`${BASE}/${orderId}/verify-payment`, body)
   }, [])
 
   const rejectPayment = useCallback(async (orderId: string, reason: string) => {
-    return apiClient.patch(`${BASE}/${orderId}/reject-payment`, { reason: reason.trim() })
+    return apiClient.put(`${BASE}/${orderId}/reject-payment`, { reason: reason.trim() })
   }, [])
 
   return { data, loading, error, fetchOrders, verifyPayment, rejectPayment }

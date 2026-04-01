@@ -140,7 +140,7 @@ export default function OrdersPage() {
   }
 
   // ── Normal order tab counts ──
-  const normalTabCounts = useMemo(() => {
+  const normalTabCounts = useMemo<Record<string, number>>(() => {
     const counts: Record<string, number> = {
       PENDING: 0,
       CONFIRMED: 0,
@@ -148,11 +148,13 @@ export default function OrdersPage() {
       CLOSED: 0,
       FAILED_TO_SYNC: 0,
     };
+
     normalOrders.forEach((o) => {
       if (counts[o.status] !== undefined) counts[o.status]++;
     });
+
     return { ...counts, ALL: normalOrders.length };
-  }, []);
+  }, [normalOrders]);
 
   const normalTabs: TabItem[] = NORMAL_ORDER_TABS.map((t) => ({
     ...t,
@@ -160,17 +162,21 @@ export default function OrdersPage() {
   }));
 
   // ── Bulk order tab counts ──
-  const bulkTabCounts = useMemo(() => {
+  const bulkTabCounts = useMemo<Record<string, number>>(() => {
     const counts: Record<string, number> = {
       PENDING: 0,
       IN_TRANSIT: 0,
       DELIVERED: 0,
     };
+
     bulkOrders.forEach((o) => {
-      if (counts[o.orderStatus] !== undefined) counts[o.orderStatus]++;
+      if (counts[o.orderStatus] !== undefined) {
+        counts[o.orderStatus]++;
+      }
     });
+
     return { ...counts, ALL: bulkOrders.length };
-  }, []);
+  }, [bulkOrders]); // ✅ fix dependency
 
   const bulkTabs: TabItem[] = BULK_ORDER_TABS.map((t) => ({
     ...t,
