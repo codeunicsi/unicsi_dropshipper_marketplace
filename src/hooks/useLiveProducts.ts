@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { apiClient } from '@/lib/api-client'
 
 export interface LiveProduct {
   id: string
@@ -43,8 +44,6 @@ export interface LiveProductsStats {
   new_this_week: number
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1/'
-
 export function useLiveProducts(page = 1, limit = 20) {
   const [products, setProducts] = useState<LiveProduct[]>([])
   const [stats, setStats] = useState<LiveProductsStats | null>(null)
@@ -57,27 +56,16 @@ export function useLiveProducts(page = 1, limit = 20) {
       try {
         setLoading(true)
         setError(null)
-        const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
-
-        // Fetch live products
-        const productsResponse = await fetch(
-          `${base}admin/products/get-live-products`,
-        )
-
-        if (!productsResponse.ok) {
-          throw new Error(`Failed to fetch live products: ${productsResponse.statusText}`)
-        }
-
-        const productsData = await productsResponse.json()
+        const productsData = await apiClient.get('admin/products/get-live-products')
         console.log(productsData?.data)
         setProducts(productsData?.data || [])
         setTotal(productsData?.data?.length || 0)
 
-        // Fetch stats
-        const statsResponse = await fetch(`${base}admin/products/live/stats`)
-        if (statsResponse.ok) {
-          const statsData = await statsResponse.json()
+        try {
+          const statsData = await apiClient.get('admin/products/live/stats')
           setStats(statsData.data ?? statsData)
+        } catch {
+          // stats optional
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to fetch live products'
@@ -93,14 +81,7 @@ export function useLiveProducts(page = 1, limit = 20) {
 
   const deleteProduct = useCallback(async (productId: string) => {
     try {
-      const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
-      const response = await fetch(`${base}admin/products/${productId}`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to delete product')
-      }
+      await apiClient.delete(`admin/products/${productId}`)
 
       setProducts((prev) => prev.filter((p) => (p.id ?? p.product_id) !== productId))
     } catch (err) {
@@ -112,18 +93,7 @@ export function useLiveProducts(page = 1, limit = 20) {
   const updateProductStatus = useCallback(
     async (productId: string, status: 'live' | 'out_of_stock') => {
       try {
-        const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
-        const response = await fetch(`${base}admin/products/${productId}/status`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ status }),
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to update product status')
-        }
+        await apiClient.put(`admin/products/${productId}/status`, { status })
 
         const nextLifecycle = status === 'live' ? 'active' : 'paused'
         setProducts((prev) =>
@@ -143,13 +113,10 @@ export function useLiveProducts(page = 1, limit = 20) {
 
   const updateProduct = useCallback(
     async (productId: string, updates: Partial<LiveProduct>) => {
-      const base = (API_BASE_URL || '').replace(/\/$/, '') + '/'
-      const response = await fetch(`${base}admin/products/update-product`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product_id: productId, ...updates }),
+      await apiClient.put('admin/products/update-product', {
+        product_id: productId,
+        ...updates,
       })
-      if (!response.ok) throw new Error('Failed to update product')
       setProducts((prev) =>
         prev.map((p) =>
           (p.id ?? p.product_id) === productId ? { ...p, ...updates } : p

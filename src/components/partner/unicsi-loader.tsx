@@ -5,7 +5,7 @@ import React from "react";
 export const UnicsiLoader = ({ size = 200, fullScreen = false }) => {
   const id = `loader-${size}`;
 
-  const wrapStyle = {
+  const wrapStyle: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",

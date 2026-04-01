@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { apiClient } from '@/lib/api-client'
 
 export interface GSTDetails {
     supplier_gst_info_id: string
@@ -40,8 +41,6 @@ export interface KYCVerification {
     expired: number
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
-
 export function useKYCVerifications() {
     const [documents, setDocuments] = useState<KYCDocument[]>([])
     const [loading, setLoading] = useState(true)
@@ -52,33 +51,45 @@ export function useKYCVerifications() {
             try {
                 setLoading(true)
                 setError(null)
-                const response = await fetch(`${API_BASE_URL}admin/get-all-kyc-verifications`)
-
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch KYC data: ${response.statusText}`)
-                }
-
-                const data = await response.json()
+                const data = await apiClient.get('admin/get-all-kyc-verifications')
 
                 console.log("kyc-details", data)
 
-                // Transform backend data to KYCDocument format
-                const transformedDocuments: KYCDocument[] = data.data.map((supplier: any) => ({
-                    id: supplier.supplier_id,
-                    supplierId: supplier.supplier_id,
-                    supplierName: supplier.name,
-                    email: supplier.email,
-                    phone: supplier.number || 'N/A',
-                    accountStatus: supplier.account_status,
-                    documentType: 'KYC_VERIFICATION',
-                    gstDetails: supplier.gst_details,
-                    submittedAt: supplier.createdAt,
-                    status: supplier.kyc_details.status,
-                    verifiedAt: undefined,
-                    rejectionReason: undefined,
-                }))
+                const rows = Array.isArray(data?.data) ? data.data : []
 
-                setDocuments(transformedDocuments)
+                // Dedupe by supplier_id — API can return duplicate rows (e.g. join quirks), which breaks React keys.
+                const bySupplierId = new Map<string, KYCDocument>()
+                for (const supplier of rows) {
+                    const sid = supplier?.supplier_id
+                    if (!sid || bySupplierId.has(sid)) continue
+
+                    const kyc = supplier.kyc_details
+                    const rawStatus = kyc?.status
+                    const status: KYCDocument['status'] =
+                        rawStatus === 'verified' ||
+                        rawStatus === 'rejected' ||
+                        rawStatus === 'expired' ||
+                        rawStatus === 'pending'
+                            ? rawStatus
+                            : 'pending'
+
+                    bySupplierId.set(sid, {
+                        id: sid,
+                        supplierId: sid,
+                        supplierName: supplier.name ?? '—',
+                        email: supplier.email ?? '',
+                        phone: supplier.number || 'N/A',
+                        accountStatus: supplier.account_status ?? 'pending',
+                        documentType: 'KYC_VERIFICATION',
+                        gstDetails: supplier.gst_details ?? null,
+                        submittedAt: supplier.createdAt ?? supplier.created_at ?? new Date(0).toISOString(),
+                        status,
+                        verifiedAt: undefined,
+                        rejectionReason: undefined,
+                    })
+                }
+
+                setDocuments(Array.from(bySupplierId.values()))
             } catch (err) {
                 const errorMessage = err instanceof Error ? err.message : 'Failed to fetch KYC data'
                 setError(errorMessage)
@@ -95,20 +106,10 @@ export function useKYCVerifications() {
         setLoading(true)
         try {
             // Call backend verification API
-            const response = await fetch(`${API_BASE_URL}admin/supplier-verify`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    supplier_id: documentId,
-                    status: 'verified',
-                }),
+            await apiClient.post('admin/supplier-verify', {
+                supplier_id: documentId,
+                status: 'verified',
             })
-
-            if (!response.ok) {
-                throw new Error('Failed to verify document')
-            }
 
             setDocuments((prev) =>
                 prev.map((doc) =>
@@ -133,21 +134,11 @@ export function useKYCVerifications() {
         setLoading(true)
         try {
             // Call backend rejection API
-            const response = await fetch(`${API_BASE_URL}admin/supplier/kyc/reject`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    supplier_id: documentId,
-                    status: 'rejected',
-                    rejection_reason: reason,
-                }),
+            await apiClient.post('admin/supplier/kyc/reject', {
+                supplier_id: documentId,
+                status: 'rejected',
+                rejection_reason: reason,
             })
-
-            if (!response.ok) {
-                throw new Error('Failed to reject document')
-            }
 
             setDocuments((prev) =>
                 prev.map((doc) =>

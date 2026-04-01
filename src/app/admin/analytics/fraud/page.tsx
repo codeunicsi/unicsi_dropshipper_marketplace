@@ -47,7 +47,7 @@ export default function FraudDetectionPage() {
 
       <Card className="p-6">
         <div className="text-center py-12 text-muted-foreground">
-          <p>Fraud detection analytics will be displayed here</p>
+          <p>No fraud analytics yet</p>
         </div>
       </Card>
     </div>

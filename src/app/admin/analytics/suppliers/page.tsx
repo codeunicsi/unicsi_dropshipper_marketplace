@@ -14,7 +14,7 @@ export default function SupplierAnalyticsPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-primary">342</p>
+              <p className="text-3xl font-bold text-primary">0</p>
               <p className="text-sm text-muted-foreground">Active Suppliers</p>
             </div>
           </CardContent>
@@ -47,7 +47,7 @@ export default function SupplierAnalyticsPage() {
 
       <Card className="p-6">
         <div className="text-center py-12 text-muted-foreground">
-          <p>Supplier performance analytics will be displayed here</p>
+          <p>No supplier analytics yet</p>
         </div>
       </Card>
     </div>

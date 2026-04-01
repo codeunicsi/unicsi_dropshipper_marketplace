@@ -22,7 +22,7 @@ export default function RTOAnalyticsPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-yellow-600">342</p>
+              <p className="text-3xl font-bold text-yellow-600">0</p>
               <p className="text-sm text-muted-foreground">Monthly RTOs</p>
             </div>
           </CardContent>
@@ -47,7 +47,7 @@ export default function RTOAnalyticsPage() {
 
       <Card className="p-6">
         <div className="text-center py-12 text-muted-foreground">
-          <p>RTO analytics charts and data will be displayed here</p>
+          <p>No RTO analytics yet</p>
         </div>
       </Card>
     </div>

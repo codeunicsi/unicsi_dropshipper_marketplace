@@ -1,28 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { AlertCircle, TrendingUp, Clock, Zap } from 'lucide-react'
+import { TrendingUp, Clock, Zap } from 'lucide-react'
+import type { DashboardAlert } from '@/hooks/useAdminDashboard'
 
-const alerts = [
-  {
-    icon: TrendingUp,
-    title: 'High RTO Alert',
-    description: 'Supplier "Tech Solutions" RTO increased to 0%',
-    severity: 'warning',
-  },
-  {
-    icon: Clock,
-    title: 'Pending Approvals',
-    description: '0 products awaiting approval',
-    severity: 'info',
-  },
-  {
-    icon: Zap,
-    title: 'Fraud Signal',
-    description: '0 suspicious transactions detected',
-    severity: 'danger',
-  },
-]
+type AlertsSectionProps = {
+  alerts?: DashboardAlert[]
+}
 
-export function AlertsSection() {
+export function AlertsSection({ alerts = [] }: AlertsSectionProps) {
   return (
     <Card className="border-border">
       <CardHeader>
@@ -31,8 +15,11 @@ export function AlertsSection() {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
+          {alerts.length === 0 && (
+            <p className="text-sm text-muted-foreground">No active alerts right now.</p>
+          )}
           {alerts.map((alert, index) => {
-            const Icon = alert.icon
+            const Icon = alert.severity === 'danger' ? Zap : alert.severity === 'warning' ? TrendingUp : Clock
             const bgColor = {
               warning: 'bg-[rgba(126,217,87,0.1)] border-l-4 border-accent',
               info: 'bg-[rgba(0,151,178,0.1)] border-l-4 border-primary',
