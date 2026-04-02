@@ -112,10 +112,17 @@ const CartDrawer = ({
   const [sellingPrice, setSellingPrice] = useState<number>(cloutPrice);
   const [calcSellingPrice, setCalcSellingPrice] = useState<number>(cloutPrice);
   const [expectedOrders, setExpectedOrders] = useState<number>(100);
-  const [confirmedRate, setConfirmedRate] = useState<number>(90);
-  const [deliveryRate, setDeliveryRate] = useState<number>(50);
-  const [adSpendPerOrder, setAdSpendPerOrder] = useState<number>(0);
-  const [miscCharges, setMiscCharges] = useState<number>(0);
+  const [confirmedRateInput, setConfirmedRateInput] = useState<string>("90%");
+  const [deliveryRateInput, setDeliveryRateInput] = useState<string>("50%");
+  const [adSpendPerOrderInput, setAdSpendPerOrderInput] = useState<string>("");
+  const [miscChargesInput, setMiscChargesInput] = useState<string>("");
+
+  const parseNumericInput = (value: string): number | null => {
+    const normalized = value.replace(/[^0-9.]/g, "");
+    if (!normalized) return null;
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
 
   useEffect(() => {
     setSellingPrice(cloutPrice);
@@ -139,16 +146,20 @@ const CartDrawer = ({
     Number.isFinite(expectedOrders) ? expectedOrders : 0,
     0,
   );
+  const confirmedRate = parseNumericInput(confirmedRateInput);
+  const deliveryRate = parseNumericInput(deliveryRateInput);
+  const adSpendPerOrder = parseNumericInput(adSpendPerOrderInput);
+  const miscCharges = parseNumericInput(miscChargesInput) ?? 0;
   const safeConfirmedRate = Math.min(
-    Math.max(Number.isFinite(confirmedRate) ? confirmedRate : 0, 0),
+    Math.max(Number.isFinite(confirmedRate) ? (confirmedRate as number) : 0, 0),
     100,
   );
   const safeDeliveryRate = Math.min(
-    Math.max(Number.isFinite(deliveryRate) ? deliveryRate : 0, 0),
+    Math.max(Number.isFinite(deliveryRate) ? (deliveryRate as number) : 0, 0),
     100,
   );
   const safeAdSpendPerOrder = Math.max(
-    Number.isFinite(adSpendPerOrder) ? adSpendPerOrder : 0,
+    Number.isFinite(adSpendPerOrder) ? (adSpendPerOrder as number) : 0,
     0,
   );
   const safeMiscCharges = Math.max(
@@ -156,24 +167,56 @@ const CartDrawer = ({
     0,
   );
 
-  const confirmedOrders = Math.round(
-    safeExpectedOrders * (safeConfirmedRate / 100),
-  );
-  const deliveredOrders = Math.round(
-    confirmedOrders * (safeDeliveryRate / 100),
-  );
-  const rtoOrders = Math.max(confirmedOrders - deliveredOrders, 0);
-  const cancelledOrders = Math.max(safeExpectedOrders - confirmedOrders, 0);
-  const earningsPerOrder =
-    Math.max(safeCalcSellingPrice - cloutPrice, 0) + shippingDiscount;
-  const totalEarnings = earningsPerOrder * deliveredOrders;
-  const totalAdSpends = safeAdSpendPerOrder * safeExpectedOrders;
-  const totalRtoCharges = rtoOrders * rtoChargePerOrder;
-  const totalSpends = totalAdSpends + totalRtoCharges + safeMiscCharges;
-  const netProfit = totalEarnings - totalSpends;
+  const hasRequiredInputs =
+    safeCalcSellingPrice > 0 &&
+    safeExpectedOrders > 0 &&
+    confirmedRate !== null &&
+    deliveryRate !== null &&
+    adSpendPerOrder !== null;
+
+  const confirmedOrders = hasRequiredInputs
+    ? Math.round(safeExpectedOrders * (safeConfirmedRate / 100))
+    : null;
+  const deliveredOrders =
+    confirmedOrders !== null
+      ? Math.round(confirmedOrders * (safeDeliveryRate / 100))
+      : null;
+  const rtoOrders =
+    confirmedOrders !== null && deliveredOrders !== null
+      ? Math.max(confirmedOrders - deliveredOrders, 0)
+      : null;
+  const cancelledOrders =
+    confirmedOrders !== null
+      ? Math.max(safeExpectedOrders - confirmedOrders, 0)
+      : null;
+  const earningsPerOrder = hasRequiredInputs
+    ? Math.max(safeCalcSellingPrice - cloutPrice, 0) + shippingDiscount
+    : null;
+  const totalEarnings =
+    earningsPerOrder !== null && deliveredOrders !== null
+      ? earningsPerOrder * deliveredOrders
+      : null;
+  const totalAdSpends = hasRequiredInputs
+    ? safeAdSpendPerOrder * safeExpectedOrders
+    : null;
+  const totalRtoCharges =
+    rtoOrders !== null ? rtoOrders * rtoChargePerOrder : null;
+  const totalSpends =
+    totalAdSpends !== null && totalRtoCharges !== null
+      ? totalAdSpends + totalRtoCharges + safeMiscCharges
+      : null;
+  const netProfit =
+    totalEarnings !== null && totalSpends !== null
+      ? totalEarnings - totalSpends
+      : null;
   const netProfitPerOrder =
-    safeExpectedOrders > 0 ? netProfit / safeExpectedOrders : 0;
-  const isNegativeProfit = netProfit < 0 || netProfitPerOrder < 0;
+    netProfit !== null && safeExpectedOrders > 0
+      ? netProfit / safeExpectedOrders
+      : null;
+  const isNegativeProfit =
+    netProfit !== null && netProfitPerOrder !== null
+      ? netProfit < 0 || netProfitPerOrder < 0
+      : false;
 
   const productTitle =
     product?.title ||
@@ -385,10 +428,10 @@ const CartDrawer = ({
                   onClick={() => {
                     setCalcSellingPrice(cloutPrice);
                     setExpectedOrders(100);
-                    setConfirmedRate(90);
-                    setDeliveryRate(50);
-                    setAdSpendPerOrder(0);
-                    setMiscCharges(0);
+                    setConfirmedRateInput("90%");
+                    setDeliveryRateInput("50%");
+                    setAdSpendPerOrderInput("");
+                    setMiscChargesInput("");
                   }}
                   className="flex items-center gap-2 font-semibold underline text-sm"
                 >
@@ -504,16 +547,14 @@ const CartDrawer = ({
                       <span className="text-red-500">*</span>
                     </label>
                     <input
-                      type="number"
+                      type="text"
                       min={0}
                       max={100}
                       className="w-24 h-12 border border-slate-300 rounded-xs px-3 text-sm"
-                      value={Number.isNaN(confirmedRate) ? "" : confirmedRate}
+                      placeholder="90%"
+                      value={confirmedRateInput}
                       onChange={(e) => {
-                        const nextValue = Number(e.target.value);
-                        setConfirmedRate(
-                          Number.isNaN(nextValue) ? 0 : nextValue,
-                        );
+                        setConfirmedRateInput(e.target.value);
                       }}
                     />
                   </div>
@@ -523,16 +564,14 @@ const CartDrawer = ({
                       <span className="text-red-500">*</span>
                     </label>
                     <input
-                      type="number"
+                      type="text"
                       min={0}
                       max={100}
                       className="w-24 h-12 border border-slate-300 rounded-xs px-3 text-sm"
-                      value={Number.isNaN(deliveryRate) ? "" : deliveryRate}
+                      placeholder="50%"
+                      value={deliveryRateInput}
                       onChange={(e) => {
-                        const nextValue = Number(e.target.value);
-                        setDeliveryRate(
-                          Number.isNaN(nextValue) ? 0 : nextValue,
-                        );
+                        setDeliveryRateInput(e.target.value);
                       }}
                     />
                   </div>
@@ -544,14 +583,10 @@ const CartDrawer = ({
                       type="number"
                       min={0}
                       className="w-24 h-12 border border-slate-300 rounded-xs px-3 text-sm"
-                      value={
-                        Number.isNaN(adSpendPerOrder) ? "" : adSpendPerOrder
-                      }
+                      value={adSpendPerOrderInput}
+                      placeholder="Enter amount"
                       onChange={(e) => {
-                        const nextValue = Number(e.target.value);
-                        setAdSpendPerOrder(
-                          Number.isNaN(nextValue) ? 0 : nextValue,
-                        );
+                        setAdSpendPerOrderInput(e.target.value);
                       }}
                     />
                   </div>
@@ -563,10 +598,10 @@ const CartDrawer = ({
                       type="number"
                       min={0}
                       className="w-24 h-12 border border-slate-300 rounded-xs px-3 text-sm"
-                      value={Number.isNaN(miscCharges) ? "" : miscCharges}
+                      value={miscChargesInput}
+                      placeholder="Enter amount"
                       onChange={(e) => {
-                        const nextValue = Number(e.target.value);
-                        setMiscCharges(Number.isNaN(nextValue) ? 0 : nextValue);
+                        setMiscChargesInput(e.target.value);
                       }}
                     />
                   </div>
@@ -587,10 +622,12 @@ const CartDrawer = ({
                       </div>
                       <p
                         className={`text-lg font-bold ${
-                          netProfit < 0 ? "text-red-600" : "text-[#35b700]"
+                          netProfit !== null && netProfit < 0
+                            ? "text-red-600"
+                            : "text-[#35b700]"
                         }`}
                       >
-                        {formatCurrency(netProfit)}
+                        {netProfit === null ? "N/A" : formatCurrency(netProfit)}
                       </p>
                     </div>
                     <div className="flex items-start justify-between pt-4">
@@ -604,12 +641,14 @@ const CartDrawer = ({
                       </div>
                       <p
                         className={`text-lg font-bold ${
-                          netProfitPerOrder < 0
+                          netProfitPerOrder !== null && netProfitPerOrder < 0
                             ? "text-red-600"
                             : "text-[#35b700]"
                         }`}
                       >
-                        {formatCurrency(netProfitPerOrder)}
+                        {netProfitPerOrder === null
+                          ? "N/A"
+                          : formatCurrency(netProfitPerOrder)}
                       </p>
                     </div>
                   </div>
@@ -631,7 +670,9 @@ const CartDrawer = ({
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="text-base font-semibold">
-                            {safeExpectedOrders}
+                            {confirmedOrders === null
+                              ? "N/A"
+                              : safeExpectedOrders}
                           </span>
                           <ChevronDown
                             className={`w-5 h-5 transition-transform ${isOrdersOpen ? "rotate-180" : ""}`}
@@ -645,23 +686,27 @@ const CartDrawer = ({
                               Confirmed Orders
                             </span>
                             <span className="font-semibold text-black text-sm">
-                              {confirmedOrders}
+                              {confirmedOrders ?? "N/A"}
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="underline">Delivered Orders</span>
-                            <span className="text-xs">{deliveredOrders}</span>
+                            <span className="text-xs">
+                              {deliveredOrders ?? "N/A"}
+                            </span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span>(+) RTO Orders</span>
-                            <span className="text-xs">{rtoOrders}</span>
+                            <span className="text-xs">
+                              {rtoOrders ?? "N/A"}
+                            </span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="underline font-medium">
                               (+)&nbsp;Cancelled Orders
                             </span>
                             <span className="font-semibold text-black text-sm">
-                              {cancelledOrders}
+                              {cancelledOrders ?? "N/A"}
                             </span>
                           </div>
                         </div>
@@ -684,7 +729,9 @@ const CartDrawer = ({
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="text-base font-semibold">
-                            {formatCurrency(totalEarnings)}
+                            {totalEarnings === null
+                              ? "N/A"
+                              : formatCurrency(totalEarnings)}
                           </span>
                           <ChevronDown
                             className={`w-5 h-5 transition-transform ${isEarningsOpen ? "rotate-180" : ""}`}
@@ -698,14 +745,18 @@ const CartDrawer = ({
                               Earnings per order
                             </span>
                             <span className="text-xs">
-                              {formatCurrency(earningsPerOrder)}
+                              {earningsPerOrder === null
+                                ? "N/A"
+                                : formatCurrency(earningsPerOrder)}
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="underline">
                               (x) Delivered Orders
                             </span>
-                            <span className="text-xs">{deliveredOrders}</span>
+                            <span className="text-xs">
+                              {deliveredOrders ?? "N/A"}
+                            </span>
                           </div>
                         </div>
                       )}
@@ -727,7 +778,9 @@ const CartDrawer = ({
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="text-base font-semibold">
-                            {formatCurrency(totalSpends)}
+                            {totalSpends === null
+                              ? "N/A"
+                              : formatCurrency(totalSpends)}
                           </span>
                           <ChevronDown
                             className={`w-5 h-5 transition-transform ${isSpendsOpen ? "rotate-180" : ""}`}
@@ -739,7 +792,9 @@ const CartDrawer = ({
                           <div className="flex items-center justify-between">
                             <span className="underline">Total Ad Spends</span>
                             <span className="text-xs">
-                              {formatCurrency(totalAdSpends)}
+                              {totalAdSpends === null
+                                ? "N/A"
+                                : formatCurrency(totalAdSpends)}
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
@@ -747,13 +802,17 @@ const CartDrawer = ({
                               (+)&nbsp;Total RTO Charges
                             </span>
                             <span className="text-xs">
-                              {formatCurrency(totalRtoCharges)}
+                              {totalRtoCharges === null
+                                ? "N/A"
+                                : formatCurrency(totalRtoCharges)}
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span>(+)&nbsp;Total Misc. Charges</span>
                             <span className="text-xs">
-                              {formatCurrency(safeMiscCharges)}
+                              {hasRequiredInputs
+                                ? formatCurrency(safeMiscCharges)
+                                : "N/A"}
                             </span>
                           </div>
                         </div>
