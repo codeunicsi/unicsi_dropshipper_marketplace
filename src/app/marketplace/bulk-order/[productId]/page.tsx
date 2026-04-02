@@ -214,7 +214,11 @@ export default function BulkOrderPage() {
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl bg-white/15 p-3">
               <p className="text-xs text-cyan-100">Product ID</p>
-              <p className="font-semibold">{productIdDisplay}</p>
+              <p className="font-semibold">
+                {productIdDisplay !== "N/A"
+                  ? `${productIdDisplay.slice(0, 6)}`
+                  : "N/A"}
+              </p>
             </div>
             <div className="rounded-xl bg-white/15 p-3">
               <p className="text-xs text-cyan-100">Product Name</p>
@@ -355,36 +359,6 @@ export default function BulkOrderPage() {
                 {(pricing.sellingPrice * quantity).toLocaleString()} + Shipping:
                 <IndianRupee className="w-3 h-3 ml-1" />
                 {pricing.shippingCharge.toLocaleString()}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="gap-3">
-            <CardHeader className="pb-0">
-              <CardTitle className="text-base">Supplier Settlement</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="flex items-center gap-0.5 text-2xl font-bold text-slate-900">
-                <IndianRupee className="w-5 h-5" strokeWidth={3} />
-                {pricing.supplierPayout.toLocaleString()}
-              </p>
-              <p className="text-sm text-slate-500">
-                Weekly payout cycle after delivery confirmation.
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="gap-3">
-            <CardHeader className="pb-0">
-              <CardTitle className="text-base">Platform Profit</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="flex items-center gap-0.5 text-2xl font-bold text-emerald-700">
-                <IndianRupee className="w-5 h-5" strokeWidth={3} />
-                {pricing.platformProfit.toLocaleString()}
-              </p>
-              <p className="flex items-center text-sm text-slate-500">
-                Margin per piece: <IndianRupee className="w-3 h-3 ml-1" />
-                {pricing.platformMargin.toLocaleString()} (
-                {pricing.supplierPrice} + margin model)
               </p>
             </CardContent>
           </Card>
