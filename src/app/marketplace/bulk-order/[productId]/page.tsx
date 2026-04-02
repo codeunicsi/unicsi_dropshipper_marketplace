@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useRouter } from "next/navigation";
 import {
   Select,
   SelectContent,
@@ -50,6 +51,7 @@ export default function BulkOrderPage() {
   const { createBulkOrder } = useOrder();
   const searchParams = useSearchParams();
   const params = useParams();
+  const router = useRouter();
 
   // ── Product ID: path segment > query param ──────────────────────────────
   const pathProductId = (params?.productId || params?.id || "") as string;
@@ -546,7 +548,10 @@ export default function BulkOrderPage() {
           </DialogHeader>
           <DialogFooter>
             <Button
-              onClick={() => setIsOrderPlacedModalOpen(false)}
+              onClick={() => {
+                setIsOrderPlacedModalOpen(false);
+                router.push("/marketplace");
+              }}
               className="border border-cyan-100 bg-linear-to-r from-cyan-700 to-teal-600 text-white shadow-lg cursor-pointer"
             >
               OK
