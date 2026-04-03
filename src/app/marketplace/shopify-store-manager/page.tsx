@@ -214,7 +214,7 @@ export default function ShopifyStoreManagerPage() {
           </Popover>
 
           <Button
-            className="ml-2 rounded-xs bg-black px-8 text-sm text-white hover:bg-black/90"
+            className="ml-2 rounded-xs bg-linear-to-r from-[#0097b2] to-[#7ed957] px-8 text-sm text-white hover:bg-black/90"
             onClick={() => setIsLinkStoreDrawerOpen(true)}
           >
             <Link2 className="size-6" />
@@ -398,7 +398,7 @@ export default function ShopifyStoreManagerPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-1 text-sm font-bold italic text-[#111827]">
+              <div className="flex items-center gap-1 text-base font-bold italic text-[#111827]">
                 <ShoppingBag className="size-5 text-[#67a844]" />
                 shopify
               </div>
@@ -439,16 +439,14 @@ export default function ShopifyStoreManagerPage() {
                     onChange={onLogoFileChange}
                   />
                   <Button
-                    variant="outline"
-                    className="h-10 rounded-sm border-[#3f3f3f] px-5 text-sm font-semibold text-[#1f2937]"
+                    className="h-10 bg-linear-to-r from-[#0097b2] to-[#7ed957] rounded-sm border-[#3f3f3f] px-5 text-sm text-white hover:cursor-pointer"
                     onClick={() => fileInputRef.current?.click()}
                   >
                     <Upload className="size-5" />
                     Change Logo
                   </Button>
                   <Button
-                    variant="outline"
-                    className="h-10 rounded-sm border-[#3f3f3f] px-4 text-[#1f2937]"
+                    className="h-10 bg-linear-to-r from-[#0097b2] to-[#7ed957] rounded-sm border-[#3f3f3f] px-4 text-white hover:cursor-pointer"
                     onClick={() => setEditLogoUrl(undefined)}
                   >
                     <Trash2 className="size-5" />
@@ -510,7 +508,7 @@ export default function ShopifyStoreManagerPage() {
             </label>
 
             <Button
-              className="h-10 rounded-sm bg-black px-7 text-sm font-semibold text-white hover:bg-black/90"
+              className="h-10 rounded-sm bg-linear-to-r from-[#7ed957] to-[#0097b2] px-7 text-sm font-semibold text-white hover:bg-black/90"
               onClick={updateStoreDetails}
             >
               Update Store Details
@@ -539,14 +537,13 @@ export default function ShopifyStoreManagerPage() {
 
             <div className="mt-6 flex items-center justify-end gap-3">
               <Button
-                variant="outline"
-                className="h-10 rounded-sm px-4 text-sm"
+                className="h-10 rounded-sm px-4 text-sm text-black border bg-white hover:bg-white cursor-pointer"
                 onClick={closeRemoveConfirmModal}
               >
                 Cancel
               </Button>
               <Button
-                className="h-10 rounded-sm bg-black px-5 text-sm text-white hover:bg-black/90"
+                className="h-10 rounded-sm bg-linear-to-r from-[#0097b2] to-[#7ed957] px-5 text-sm text-white cursor-pointer"
                 onClick={confirmRemoveStore}
               >
                 Confirm Remove
