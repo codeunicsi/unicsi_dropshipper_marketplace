@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,7 +17,20 @@ export function FaqTopicsSidebar({
   topics,
   activeFaqSlug,
 }: FaqTopicsSidebarProps) {
+  const getTopicSlugForActiveFaq = () => {
+    if (!activeFaqSlug) return null;
+
+    const matchedTopic = topics.find((topic) =>
+      topic.subTopics.some((subTopic) => subTopic.slug === activeFaqSlug),
+    );
+
+    return matchedTopic?.slug ?? null;
+  };
+
   const [openTopicSlug, setOpenTopicSlug] = useState<string | null>(() => {
+    const topicSlugFromActiveFaq = getTopicSlugForActiveFaq();
+    if (topicSlugFromActiveFaq) return topicSlugFromActiveFaq;
+
     if (typeof window === "undefined") return null;
 
     const savedTopicSlug = window.sessionStorage.getItem(
@@ -28,6 +41,22 @@ export function FaqTopicsSidebar({
     const topicExists = topics.some((topic) => topic.slug === savedTopicSlug);
     return topicExists ? savedTopicSlug : null;
   });
+
+  useEffect(() => {
+    const topicSlugFromActiveFaq = getTopicSlugForActiveFaq();
+    if (!topicSlugFromActiveFaq) {
+      return;
+    }
+
+    setOpenTopicSlug(topicSlugFromActiveFaq);
+
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(
+        OPEN_FAQ_TOPIC_STORAGE_KEY,
+        topicSlugFromActiveFaq,
+      );
+    }
+  }, [activeFaqSlug, topics]);
 
   const toggleTopic = (topicSlug: string) => {
     setOpenTopicSlug((prev) => {

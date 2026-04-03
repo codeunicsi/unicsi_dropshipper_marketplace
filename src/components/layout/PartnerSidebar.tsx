@@ -168,6 +168,10 @@ export function PartnerSidebar() {
       return pathname === "/marketplace";
     }
 
+    if (href === "/marketplace/faqs") {
+      return pathname.startsWith("/marketplace/faqs");
+    }
+
     return pathname === href;
   };
 

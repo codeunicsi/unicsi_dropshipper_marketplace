@@ -19,24 +19,24 @@ export interface FaqTopic {
 
 export const faqTopics: FaqTopic[] = [
   {
-    slug: "roposo-clout-setup",
-    title: "Roposo Clout Setup",
+    slug: "unicsi-setup",
+    title: "Unicsi Setup",
     subTopics: [
       {
-        slug: "how-roposo-clout-works",
-        title: "How Roposo Clout Works",
+        slug: "how-unicsi-works",
+        title: "How Unicsi Works",
         faqs: [
           {
-            slug: "how-roposo-clout-works",
-            question: "How Roposo Clout Works",
+            slug: "how-unicsi-works",
+            question: "How Unicsi Works",
             answer:
-              "Roposo Clout simplifies the dropshipping process. First, you can shortlist products from a wide selection. Then, select the products you want to sell, add your desired profit margin, and seamlessly push those products to your Shopify store. You can also track orders effortlessly for a smooth operational experience",
+              "Unicsi simplifies the dropshipping process. First, you can shortlist products from a wide selection. Then, select the products you want to sell, add your desired profit margin, and seamlessly push those products to your Shopify store. You can also track orders effortlessly for a smooth operational experience",
           },
           {
             slug: "bank-details-and-profile-setup",
             question:
-              "How do I set up my bank details and complete my profile on Roposo Clout?",
-            answer: `To set up your bank details and complete your profile on Roposo Clout:
+              "How do I set up my bank details and complete my profile on Unicsi?",
+            answer: `To set up your bank details and complete your profile on Unicsi:
 Log in to your account.
 Go to the right side and select Clout Profile.
 Click on Bank Details and enter your bank account number, account holder's name, and IFSC code.
@@ -44,22 +44,21 @@ Complete any additional profile fields (like personal details) and fill in your 
 Click Save to update your information.`,
           },
           {
-            slug: "integrate-roposo-clout-with-shopify",
-            question: "How do I integrate Roposo Clout with Shopify?",
+            slug: "integrate-unicsi-with-shopify",
+            question: "How do I integrate Unicsi with Shopify?",
             answer:
-              "Integrating Roposo Clout with Shopify is quick and easy. Simply install the app from the Shopify App Store, follow the setup instructions, and you’ll be ready to start adding products and managing your store within minutes.",
+              "Integrating Unicsi with Shopify is quick and easy. Simply install the app from the Shopify App Store, follow the setup instructions, and you’ll be ready to start adding products and managing your store within minutes.",
           },
           {
             slug: "order-delivery-process",
-            question:
-              "How does the order delivery process work on Roposo Clout?",
-            answer: `The order delivery process on Roposo Clout works as follows:
-1.Order Placement: A customer places an order on your Shopify store. 2.Processing: Roposo Clout confirms the order with the supplier. 3.Shipping: The supplier prepares the product for shipment and hands it to the logistics partner. 4.Tracking: You can track the order status through the Roposo Clout dashboard. 5.Delivery: The order is delivered to the customer’s address.
+            question: "How does the order delivery process work on Unicsi?",
+            answer: `The order delivery process on Unicsi works as follows:
+1.Order Placement: A customer places an order on your Shopify store. 2.Processing: Unicsi confirms the order with the supplier. 3.Shipping: The supplier prepares the product for shipment and hands it to the logistics partner. 4.Tracking: You can track the order status through the Unicsi dashboard. 5.Delivery: The order is delivered to the customer’s address.
 This streamlined process ensures quick and accurate order fulfillment.`,
           },
           {
-            slug: "receive-payments-on-roposo-clout",
-            question: "How do I receive my payments on Roposo Clout?",
+            slug: "receive-payments-on-unicsi",
+            question: "How do I receive my payments on Unicsi?",
             answer:
               "Payments are made on a weekly basis, and you will receive your payment every Friday. Once the product is delivered and the 5-day return period is over, your payment will be processed and released. Ensure your bank details are correctly set up to avoid any delays.",
           },
@@ -80,7 +79,7 @@ This streamlined process ensures quick and accurate order fulfillment.`,
             slug: "shipping-faq-1",
             question:
               "How do I manage orders and shipping for my dropshipping store?",
-            answer: `After receiving an order, the supplier ships the product directly to the customer. You can keep track of orders through your Roposo Clout dashboard, where you can monitor order status and manage customer inquiries.
+            answer: `After receiving an order, the supplier ships the product directly to the customer. You can keep track of orders through your Unicsi dashboard, where you can monitor order status and manage customer inquiries.
 `,
           },
         ],
@@ -99,7 +98,7 @@ This streamlined process ensures quick and accurate order fulfillment.`,
             slug: "online-store-setup-faq-1",
             question: "How do I create a Shopify store?",
             answer: `Follow these quick steps to set up your Shopify store. For detailed guidance, check our video:
-1.Sign up and choose a store name. 2.Pick and customize a theme. 3.Add products with images and details—use the Roposo Clout app to easily source and upload products. 4.Set up payment and shipping options. 5.Launch your store by removing the password page. Watch the video for more help!`,
+1.Sign up and choose a store name. 2.Pick and customize a theme. 3.Add products with images and details—use the Unicsi app to easily source and upload products. 4.Set up payment and shipping options. 5.Launch your store by removing the password page. Watch the video for more help!`,
           },
           {
             slug: "online-store-setup-faq-1",
@@ -208,13 +207,13 @@ Privacy Policy: Your privacy is important to us. We collect personal information
             slug: "product-searching-faq-1",
             question: "How do I choose the right products for my store?",
             answer:
-              "On the Roposo Clout dashboard, you’ll discover several categories, including Top New Trendy Products, Potential Heroes, Newly Launched Items, Hot Selling Products, and Popular Demand. Each product tile provides essential metrics, such as NTG%, total sales, the number of active ads on Meta, and the delivery rate. With this data in hand, you can effectively choose the products that align with your strategy",
+              "On the Unicsi dashboard, you’ll discover several categories, including Top New Trendy Products, Potential Heroes, Newly Launched Items, Hot Selling Products, and Popular Demand. Each product tile provides essential metrics, such as NTG%, total sales, the number of active ads on Meta, and the delivery rate. With this data in hand, you can effectively choose the products that align with your strategy",
           },
           {
             slug: "product-searching-faq-1",
             question:
               "How can I find winning products for Indian dropshipping?",
-            answer: `Look for trending and in-demand products using platforms like Roposo Clout.Check out the "Hot Selling" and "Newly Launched" sections for ideas. You can also monitor product margins and sales history to make informed decisions.
+            answer: `Look for trending and in-demand products using platforms like Unicsi.Check out the "Hot Selling" and "Newly Launched" sections for ideas. You can also monitor product margins and sales history to make informed decisions.
 `,
           },
         ],
@@ -249,8 +248,24 @@ Privacy Policy: Your privacy is important to us. We collect personal information
         faqs: [
           {
             slug: "facebook-business-manager-profile-setup-faq-1",
-            question: "Add Facebook Business Manager FAQ question here",
-            answer: "",
+            question:
+              "How do I create a Business Manager (BM) account on Meta (Facebook)?",
+            answer: `To create a Business Manager (BM) on Meta:
+1.Go to Meta Business Suite: Visit business.facebook.com.
+2.Click on ‘Create Account’: You’ll find the option to create a new Business Manager account. Click on it.
+3.Fill in the Details: Enter your business name, your name, and your business email address.
+4.Verify Email: Meta will send a verification email. Click the link in the email to confirm your account.
+5,Add Your Facebook Page and Ad Account: Once set up, you can add your Facebook pages, ad accounts, and team members under the Business Manager.`,
+          },
+          {
+            slug: "facebook-business-manager-profile-setup-faq-1",
+            question: "How do I set up payments for ads on Meta (Facebook)?",
+            answer: `To set up payments for ads on Meta:
+1.Go to Meta Business Manager: Log in to your Meta Business Manager account.
+2.Navigate to Payment Settings: Click on the menu icon (three horizontal lines) in the top left, select “Business Settings,” then find “Payments” under the "Accounts" section.
+3.Add Payment Method: Click "Add Payment Method" and select your preferred option (credit card, PayPal, etc.).
+4.Enter Payment Details: Fill in the necessary payment details and click "Continue" to save.
+5.Set as Primary: If you're adding multiple payment methods, choose one as your primary option for running ads.`,
           },
         ],
       },
@@ -260,8 +275,14 @@ Privacy Policy: Your privacy is important to us. We collect personal information
         faqs: [
           {
             slug: "pixel-integration-faq-1",
-            question: "Add pixel integration FAQ question here",
-            answer: "",
+            question:
+              "How do I create a Facebook Pixel and add it to my Shopify store?",
+            answer: `To create a Facebook Pixel and add it to your Shopify store:
+1.Create the Facebook Pixel:
+-Go to Meta Events Manager. -Click Connect Data Sources and select Web. -Choose Facebook Pixel, name it, and click Create. -Get the Pixel ID:
+2.Once created, you’ll see your Pixel ID. Copy this ID. Add Pixel to Shopify:
+3.Log in to your Shopify admin dashboard. -Go to Online Store > Preferences. -Scroll to Facebook Pixel and paste the Pixel ID in the designated field. -Save the settings.
+4.Verify the Pixel: -Return to Meta Events Manager and use the Pixel Helper to verify the Pixel is working correctly on your Shopify store.`,
           },
         ],
       },
@@ -271,8 +292,10 @@ Privacy Policy: Your privacy is important to us. We collect personal information
         faqs: [
           {
             slug: "facebook-and-instagram-page-faq-1",
-            question: "Add Facebook and Instagram page FAQ question here",
-            answer: "",
+            question:
+              "How do I set up and manage my Facebook and Instagram pages for my dropshipping store?",
+            answer: `Start by creating professional business pages on both platforms. Make sure to include a clear bio, contact information, and a link to your store. Post consistently, using high-quality images, product highlights, and engaging content to attract followers. Engaging with comments and messages builds trust and improves visibility.
+`,
           },
         ],
       },
@@ -282,8 +305,21 @@ Privacy Policy: Your privacy is important to us. We collect personal information
         faqs: [
           {
             slug: "create-ad-campaign-facebook-faq-1",
-            question: "Add ad campaign FAQ question here",
-            answer: "",
+            question: "How do I set up a campaign and ad on Meta (Facebook)?",
+            answer: `1.Access Ads Manager: Log in to your Meta Ads Manager account.
+2.Create Campaign:
+3.Click on the Create button. -Select your campaign objective (e.g., Brand Awareness, Traffic, Conversions). -Name your campaign and set your budget.
+4.Set Up Ad Set:
+-Define your target audience based on demographics, interests, and behaviors. -Choose ad placements (Automatic or Manual) and set your daily or lifetime budget. -Set a schedule for when you want your ads to run.
+5.Create Ad:
+-Choose your ad format (e.g., single image, carousel, video). -Upload your visuals, write engaging ad copy, and include a call-to-action button. -Review and Publish: Double-check your settings and click Publish to launch your campaign.`,
+          },
+          {
+            slug: "create-ad-campaign-facebook-faq-1",
+            question:
+              "How do I create effective Facebook ads for my dropshipping store?",
+            answer: `Start by selecting high-quality visuals and videos for your ad creative. Focus on eye-catching content that highlights product benefits. Define your target audience clearly, and use tools like Facebook Ads Manager to set up your campaigns with proper budget allocation.
+`,
           },
         ],
       },
@@ -293,8 +329,33 @@ Privacy Policy: Your privacy is important to us. We collect personal information
         faqs: [
           {
             slug: "budget-and-optimization-faq-1",
-            question: "Add budget and optimization FAQ question here",
-            answer: "",
+            question: "How do I target the right audience for my ads?",
+            answer: `Targeting, use interests, demographics, and behaviors relevant to your product. As for budgeting, allocate more to high-performing ads after testing. Always use metrics like conversion rates and return on ad spend (ROAS) to refine your strategy.`,
+          },
+          {
+            slug: "budget-and-optimization-faq-1",
+            question: "What’s the best strategy for setting an ad budget?",
+            answer:
+              "The key to a successful ad budget and targeting is to start small and test various audiences.",
+          },
+          {
+            slug: "budget-and-optimization-faq-1",
+            question:
+              "How do I test and optimize Facebook ads for better results?",
+            answer: `Use A/B testing to experiment with different ad creatives, copy, and targeting. Track key performance metrics such as CTR (Click-Through Rate) and conversions. Adjust your ads based on the data to improve performance.`,
+          },
+          {
+            slug: "budget-and-optimization-faq-1",
+            question:
+              "My ads are live but I’m not getting any orders. What should I do?",
+            answer: `First, check your targeting—ensure your ads are reaching the right audience. Next, evaluate your ad creatives and landing page to make sure they’re appealing and user-friendly. Finally, review your budget and bidding strategy to ensure you're competitive. Optimization involves tweaking these elements and monitoring performance.
+Hotline number -`,
+          },
+          {
+            slug: "budget-and-optimization-faq-1",
+            question: "How can I scale my Facebook ads to maximize profits?",
+            answer: `Once you've identified winning ads, gradually increase your budget to scale. Monitor performance regularly, and explore lookalike audiences to expand your reach while maintaining ROI. Focus on retargeting to convert interested leads.
+`,
           },
         ],
       },
@@ -310,8 +371,9 @@ Privacy Policy: Your privacy is important to us. We collect personal information
         faqs: [
           {
             slug: "how-to-start-dropshipping-faq-1",
-            question: "Add learn dropshipping FAQ question here",
-            answer: "",
+            question: "How do I start my Indian dropshipping business?",
+            answer:
+              "Start by choosing a niche that interests you, then set up an online store using Shopify or another e-commerce platform. Use tools like Unicsi for product sourcing, managing inventory, and tracking orders. Next, integrate payment gateways and set up policies for shipping and returns.",
           },
         ],
       },
@@ -327,8 +389,51 @@ Privacy Policy: Your privacy is important to us. We collect personal information
         faqs: [
           {
             slug: "rto-intelligence-faq-1",
-            question: "Add RTO intelligence FAQ question here",
-            answer: "",
+            question: "What is RTO?",
+            answer: `RTO stands for Return to origin. It refers to orders which have been shipped by the supplier, but were not delivered to the customer due to various reasons such as incorrect address, customer’s refusal of order, customer unavailability etc.`,
+          },
+          {
+            slug: "rto-intelligence-faq-1",
+            question: "Why is RTO bad for my business as well as Unicsi?",
+            answer: `RTO orders represent missed revenue for you as well as Unicsi. We also incur significant reverse logistics costs to send the product back to the supplier. To recover these reverse logistics costs, we charge you a fee for every RTO order.
+`,
+          },
+          {
+            slug: "rto-intelligence-faq-1",
+            question: "How are RTO charges calculated?",
+            answer: `RTO charges are applicable on all RTO orders. The charges vary as per product weight. You can check the applicable RTO charges for any product from its product page before pushing it to Shopify. All charges mentioned there are inclusive of GST.`,
+          },
+          {
+            slug: "rto-intelligence-faq-1",
+            question: "What does RTO risk mean?",
+            answer:
+              "RTO Risk is our system’s prediction of how likely an order is likely to be RTOed. We classify orders as High, Moderate and No Risk.",
+          },
+          {
+            slug: "rto-intelligence-faq-1",
+            question: "How is RTO risk calculated?",
+            answer:
+              "Based on millions of historical and recent orders, our algorithm factors in various order parameters such as pincode, customer address, price, category, etc. and predicts the probability of RTO happening and assigns a risk score.",
+          },
+          {
+            slug: "rto-intelligence-faq-1",
+            question: "When is RTO risk calculated, and where is it displayed?",
+            answer:
+              "RTO risk is calculated as soon as the order is synced to clout from your website (expect a few minutes processing time) and is displayed on your clout dashboard. As of now, RTO risk is only calculated for cash on delivery orders.",
+          },
+          {
+            slug: "rto-intelligence-faq-1",
+            question:
+              "One of my orders has been flagged as High / Moderate Risk. What do I do?",
+            answer:
+              "Below the risk score of each order, the reason for the risk is also displayed. Depending on this reason, you may take appropriate action steps to reduce the risk.",
+          },
+          {
+            slug: "rto-intelligence-faq-1",
+            question:
+              "My order has been flagged as High / Moderate Risk because of Short Address Length or Invalid Address. What does this mean and what do I do?",
+            answer: `For delivery to be successful. the customer address needs to be complete. By invalid address, our system detects that the address does not have functional words, but gibberish (say xnururnjnjsew) . By short address length, we suspect that the address is not long enough to be complete. You are advised to contact your customer and get the address updated, by clicking on the view / Edit Details button in the customer details column for the order on your clout dashboard. As soon as you update the address, the system re calculates the RTO risk and assigns a new Risk category.
+`,
           },
         ],
       },

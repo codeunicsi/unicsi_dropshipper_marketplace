@@ -34,7 +34,7 @@ export default async function FaqTopicDetailPage({
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[360px_1fr]">
         <FaqTopicsSidebar topics={faqTopics} activeFaqSlug={faq} />
 
-        <section className="bg-white p-6 md:p-8">
+        <section className=" p-6 md:p-8">
           <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-[#4b5563]">
             <Link
               href="/marketplace/faqs"
