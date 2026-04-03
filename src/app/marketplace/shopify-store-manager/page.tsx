@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Check,
   Info,
@@ -9,6 +9,7 @@ import {
   ShoppingBag,
   Store,
   Trash2,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,9 +42,37 @@ const stores: StoreRow[] = [
   },
 ];
 
+const linkSteps = [
+  'Click on "Link Shopify Store" and you will be redirected to Shopify App Store page',
+  'Add Unicsi Dropshipping App by clicking "Add App"',
+  "Login with your Shopify account and install app",
+  "After installing Unicsi Dropshipping app on Shopify, you will be able to push products on Shopify from Unicsi",
+];
+
 export default function ShopifyStoreManagerPage() {
   const [autoConfirmOrders, setAutoConfirmOrders] = useState(true);
   const [isInfoTooltipOpen, setIsInfoTooltipOpen] = useState(false);
+  const [isLinkStoreDrawerOpen, setIsLinkStoreDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isLinkStoreDrawerOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsLinkStoreDrawerOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onEscape);
+    };
+  }, [isLinkStoreDrawerOpen]);
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6">
@@ -58,13 +87,13 @@ export default function ShopifyStoreManagerPage() {
             onClick={() => setAutoConfirmOrders((prev) => !prev)}
             className="flex items-center gap-4 rounded-sm border border-[#d5d5d5] bg-[#f7f7f7] px-6 py-1"
           >
-            <span className="text-sm font-semibold text-[#2f3640] py-1">
+            <span className="py-1 text-sm font-semibold text-[#2f3640]">
               Auto Confirm Orders
             </span>
             <span
               className={`relative h-6 w-12 rounded-full transition-colors ${
                 autoConfirmOrders
-                  ? " bg-linear-to-b from-[#0097b2] to-[#7ed957]"
+                  ? "bg-linear-to-b from-[#0097b2] to-[#7ed957]"
                   : "bg-[#9ca3af]"
               }`}
             >
@@ -103,7 +132,10 @@ export default function ShopifyStoreManagerPage() {
             </PopoverContent>
           </Popover>
 
-          <Button className="rounded-xs bg-black px-8 ml-2 text-sm text-white hover:bg-black/90">
+          <Button
+            className="ml-2 rounded-xs bg-black px-8 text-sm text-white hover:bg-black/90"
+            onClick={() => setIsLinkStoreDrawerOpen(true)}
+          >
             <Link2 className="size-6" />
             Link New Shopify Store
           </Button>
@@ -152,7 +184,7 @@ export default function ShopifyStoreManagerPage() {
                         {store.domain}
                       </p>
                       {store.isDefault && (
-                        <span className="w-26 mt-2 inline-flex items-center gap-1 rounded-full bg-[#efefef] px-2 py-1 text-[10px] text-[#464d57]">
+                        <span className="mt-2 inline-flex w-26 items-center gap-1 rounded-full bg-[#efefef] px-2 py-1 text-[10px] text-[#464d57]">
                           <Check className="size-3" />
                           Default Store
                         </span>
@@ -171,7 +203,7 @@ export default function ShopifyStoreManagerPage() {
                     </Button>
                     <Button
                       variant="outline"
-                      className="h-10 rounded-sm hover:bg-linear-to-r from-[#0097b2] to-[#7ed957]  px-7 text-xs font-semibold text-[#1f2937]"
+                      className="h-10 rounded-sm px-7 text-xs font-semibold text-[#1f2937] hover:bg-linear-to-r from-[#0097b2] to-[#7ed957]"
                     >
                       <Trash2 className="size-4" />
                       Remove
@@ -183,6 +215,58 @@ export default function ShopifyStoreManagerPage() {
           </tbody>
         </table>
       </div>
+
+      {isLinkStoreDrawerOpen && (
+        <div
+          className="fixed inset-0 z-120 flex justify-end bg-black/40"
+          onClick={() => setIsLinkStoreDrawerOpen(false)}
+        >
+          <aside
+            className="h-full w-full max-w-140 overflow-y-auto bg-white py-12 shadow-2xl animate-slideIn"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="px-8 py-6">
+              <div className="mb-8 flex items-center justify-center gap-4">
+                <div className="rounded-md border border-[#e5e7eb] p-4 text-center">
+                  <p className="text-sm font-bold leading-none text-[#232323]">
+                    UNICSI
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 text-[#7b7b7b]">
+                  <span className="h-px w-14 bg-[#d1d5db]" />
+                  <Link2 className="size-5" />
+                  <span className="h-px w-14 bg-[#d1d5db]" />
+                </div>
+                <div className="rounded-md border border-[#e5e7eb] p-3">
+                  <div className="flex items-center gap-1 text-sm font-bold italic text-[#111827]">
+                    <ShoppingBag className="size-4 text-[#67a844]" />
+                    shopify
+                  </div>
+                </div>
+              </div>
+
+              <h2 className="mb-6 text-sm font-semibold text-[#3d3d3d]">
+                Link your Shopify store in just 4 simple steps:
+              </h2>
+
+              <ul className="list-disc space-y-5 pl-6 marker:text-[#606060]">
+                {linkSteps.map((step) => (
+                  <li key={step} className="pl-1 text-sm leading-8 text-[#444]">
+                    {step}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="sticky bottom-0 border-t border-[#ececec] bg-white px-12 py-18">
+              <Button className="h-12 w-full justify-center rounded-xs bg-black text-sm font-semibold text-white hover:cursor-pointer">
+                <Link2 className="size-5" />
+                Link New Shopify Store
+              </Button>
+            </div>
+          </aside>
+        </div>
+      )}
     </div>
   );
 }
