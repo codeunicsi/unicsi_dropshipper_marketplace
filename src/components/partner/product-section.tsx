@@ -25,6 +25,7 @@ type UIProduct = {
   name: string;
   price: number;
   image: string;
+  weightGrams?: number;
   stock?: number;
   color?: string;
   size?: string;
@@ -41,6 +42,7 @@ const transformProducts = (products: Product[]): UIProduct[] => {
       name: product.title,
       price: Number(variant?.price ?? 0),
       image: image?.image_url || "/placeholder.png",
+      weightGrams: Number(variant?.weight_grams ?? 0),
       stock: variant?.inventory_quantity ?? 0,
       color: variant?.option1 ?? "",
       size: variant?.option2 ?? "",

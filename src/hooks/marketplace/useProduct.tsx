@@ -16,6 +16,19 @@ export interface GetProductsResponse {
   data: Product[];
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  parent_id: string | null;
+  image_url: string;
+  is_active: boolean;
+  is_featured: boolean;
+  sort_order: number;
+  createdAt: string; // or Date
+  updatedAt: string; // or Date
+}
+
 export interface Product {
   product_id: string;
   supplier_id: string;
@@ -33,11 +46,8 @@ export interface Product {
   bulk_price_refresh_days: number;
   variants: ProductVariant[];
   images: ProductImage[];
-  category: Category;
-}
-
-export interface Category {
-  name: string;
+  category?: Category;
+  bulk_price_refresh_days: number | string;
 }
 
 export interface ProductVariant {

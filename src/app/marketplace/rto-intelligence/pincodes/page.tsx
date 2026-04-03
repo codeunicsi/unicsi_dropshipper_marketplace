@@ -18,10 +18,15 @@ const RtoPincodePage = () => {
               lead to a waste of customer acquisition costs.
             </p>
             <div>
-              <Button className="rounded-none bg-black" size={"lg"}>
-                <Download />
-                High RTO Pincode List
-              </Button>
+              <a
+                href="/files/high-rto-pincode-list.xlsx"
+                download="high-rto-pincode-list.xlsx"
+              >
+                <Button className="rounded-none bg-black" size={"lg"}>
+                  <Download />
+                  High RTO Pincode List
+                </Button>
+              </a>
               <p className="text-xs italic pl-4 py-2">
                 (Last updated on 04 Feb 2026)
               </p>

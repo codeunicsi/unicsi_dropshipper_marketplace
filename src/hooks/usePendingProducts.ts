@@ -52,7 +52,79 @@ export interface PendingProduct {
   imageCount: string
   variants: ProductVariant[]
   images: ProductImage[]
+  /** Denormalized for admin tables; also set from API `supplier.name`. */
   supplierName?: string
+  /** Present on raw API responses (Sequelize include). */
+  supplier?: { supplier_id?: string; name?: string; email?: string }
+}
+
+/** Map Sequelize variant fields to the shape used by admin UI / ProductReviewModal. */
+function normalizeVariantFromApi(v: Record<string, unknown>): ProductVariant {
+  const price = v.price ?? v.variant_price
+  const stock = v.inventory_quantity ?? v.variant_stock
+  const dimRaw = v.dimension_cm ?? v.dimensions_cm
+  const dim =
+    dimRaw && typeof dimRaw === 'object' && !Array.isArray(dimRaw)
+      ? (dimRaw as Record<string, unknown>)
+      : null
+  return {
+    variant_id: String(v.variant_id ?? ''),
+    product_id: String(v.product_id ?? ''),
+    sku: String(v.sku ?? ''),
+    variant_name: String(v.variant_name ?? v.title ?? ''),
+    variant_price:
+      price !== undefined && price !== null && price !== '' ? String(price) : '',
+    variant_stock: Number(stock ?? 0),
+    attributes: (v.attributes as ProductVariant['attributes']) ?? {},
+    weight_grams: Number(v.weight_grams ?? 0),
+    dimensions_cm: {
+      h: Number(dim?.h ?? dim?.height ?? 0) || 0,
+      l: Number(dim?.l ?? dim?.length ?? 0) || 0,
+      w: Number(dim?.w ?? dim?.width ?? 0) || 0,
+    },
+    hsn_code: String(v.hsn_code ?? ''),
+    is_active: Boolean(v.is_active ?? true),
+    createdAt: String(v.createdAt ?? ''),
+    updatedAt: String(v.updatedAt ?? ''),
+  }
+}
+
+/** Map GET /admin/products/get-pending-products rows to PendingProduct. */
+export function normalizePendingProductFromApi(raw: Record<string, unknown>): PendingProduct {
+  const supplier = raw.supplier as PendingProduct['supplier'] | undefined
+  const variants = ((raw.variants as Record<string, unknown>[]) || []).map(normalizeVariantFromApi)
+  const images = ((raw.images as Record<string, unknown>[]) || []).map((img, i) => ({
+    id: String(img.id ?? ''),
+    product_id: String(raw.product_id ?? ''),
+    image_url: String(img.image_url ?? ''),
+    sort_order: Number(img.sort_order ?? i),
+    createdAt: String(img.createdAt ?? ''),
+    updatedAt: String(img.updatedAt ?? ''),
+  }))
+  const nameFromSupplier =
+    (typeof supplier?.name === 'string' && supplier.name.trim()) ||
+    (typeof raw.supplierName === 'string' && raw.supplierName.trim()) ||
+    ''
+
+  return {
+    product_id: String(raw.product_id ?? ''),
+    supplier_id: String(raw.supplier_id ?? ''),
+    title: String(raw.title ?? ''),
+    description: String(raw.description ?? ''),
+    category_id: (raw.category_id as string | null) ?? null,
+    brand: String(raw.brand ?? ''),
+    approval_status: raw.approval_status as PendingProduct['approval_status'],
+    lifecycle_status: raw.lifecycle_status as PendingProduct['lifecycle_status'],
+    approved_by: raw.approved_by as string | undefined,
+    approved_at: raw.approved_at as string | undefined,
+    createdAt: String(raw.createdAt ?? ''),
+    updatedAt: String(raw.updatedAt ?? ''),
+    imageCount: String(raw.imageCount ?? images.length),
+    variants,
+    images,
+    supplierName: nameFromSupplier || undefined,
+    supplier,
+  }
 }
 
 export interface PendingProductsStats {
@@ -75,8 +147,11 @@ export function usePendingProducts() {
         setLoading(true)
         setError(null)
         const data = await apiClient.get('admin/products/get-pending-products')
-        console.log(data?.data)
-        setProducts(data?.data || [])
+        const rows = data?.data
+        const list = Array.isArray(rows)
+          ? rows.map((p) => normalizePendingProductFromApi(p as Record<string, unknown>))
+          : []
+        setProducts(list)
 
         try {
           const statsData = await apiClient.get('admin/products/pending/stats')

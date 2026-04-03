@@ -13,6 +13,10 @@ export interface ShopifyVariant {
   option1?: string;
   price?: string;
   sku?: string;
+  weight_grams?: number | string;
+  weight?: number | string;
+  shipping_discount?: number | string;
+  rto_charges?: number | string;
 }
 
 export interface ShopifyImage {
