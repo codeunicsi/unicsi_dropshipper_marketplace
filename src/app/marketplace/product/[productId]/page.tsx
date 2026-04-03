@@ -409,7 +409,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         </div>
       </div>
 
-      <AdditionalInfoDropdown />
+      {/* <AdditionalInfoDropdown /> */}
       <ProductDetailBanner />
     </div>
   );
