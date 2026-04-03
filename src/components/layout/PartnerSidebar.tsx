@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
@@ -115,7 +116,12 @@ const menuItems = [
     href: "/marketplace/gst-invoices",
   },
   { icon: HelpCircle, label: "Support", href: "/marketplace/support" },
-  { icon: HelpCircle, label: "FAQs", href: "/marketplace/faqs" },
+  {
+    icon: HelpCircle,
+    label: "FAQs",
+    href: "/marketplace/faqs",
+    openInNewTab: true,
+  },
   // { icon: BarChart3, label: 'Value Added Services', href: '/marketplace/value-added-services' },
   // { icon: HelpCircle, label: 'Clout Training', href: '/marketplace/clout-training' },
   // { icon: HelpCircle, label: 'Clout Feedback', href: '/marketplace/clout-feedback' },
@@ -126,6 +132,7 @@ interface MenuItem {
   label: string;
   href: string;
   children?: Array<{ label: string; href: string }>;
+  openInNewTab?: boolean;
 }
 
 export function PartnerSidebar() {
@@ -212,6 +219,8 @@ export function PartnerSidebar() {
                   <Link
                     href={item.href !== "#" ? item.href : "#"}
                     className="flex items-center gap-3 flex-1 no-underline"
+                    target={item.openInNewTab ? "_blank" : undefined}
+                    rel={item.openInNewTab ? "noopener noreferrer" : undefined}
                     onClick={(e) => {
                       if (item.href === "#") {
                         e.preventDefault();
@@ -259,5 +268,3 @@ export function PartnerSidebar() {
     </aside>
   );
 }
-
-import React from "react";
