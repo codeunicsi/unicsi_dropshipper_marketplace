@@ -43,11 +43,10 @@ export interface Product {
   createdAt: string;
   updatedAt: string;
   bulk_price: string;
-  bulk_price_refresh_days: number;
+  bulk_price_refresh_days: number | string;
   variants: ProductVariant[];
   images: ProductImage[];
   category?: Category;
-  bulk_price_refresh_days: number | string;
 }
 
 export interface ProductVariant {
