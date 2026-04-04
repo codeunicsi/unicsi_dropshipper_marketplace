@@ -13,7 +13,7 @@ export function PartnerLayout({ children }: { children: React.ReactNode }) {
 
   if (isLoading) return <UnicsiLoader />;
 
-  shopify_access_token
+  //shopify_access_token
   if (!user?.data?.shopify_access_token && !user?.data?.shopify_store_url) {
     return (
       <div className="flex h-screen bg-background">
