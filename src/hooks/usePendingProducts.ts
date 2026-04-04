@@ -43,6 +43,10 @@ export interface PendingProduct {
   description: string
   category_id: string | null
   brand: string
+  /** Supplier trade / transfer price (per unit B2B). */
+  transfer_price?: number | null
+  /** Supplier bulk order price (per unit). */
+  bulk_price?: number | null
   approval_status: 'submitted' | 'under_review' | 'approved' | 'rejected'
   lifecycle_status: 'active' | 'inactive'
   approved_by?: string
@@ -56,6 +60,12 @@ export interface PendingProduct {
   supplierName?: string
   /** Present on raw API responses (Sequelize include). */
   supplier?: { supplier_id?: string; name?: string; email?: string }
+}
+
+function parseOptionalProductNumber(v: unknown): number | null {
+  if (v === undefined || v === null || v === '') return null
+  const n = Number(v)
+  return Number.isFinite(n) ? n : null
 }
 
 /** Map Sequelize variant fields to the shape used by admin UI / ProductReviewModal. */
@@ -113,6 +123,8 @@ export function normalizePendingProductFromApi(raw: Record<string, unknown>): Pe
     description: String(raw.description ?? ''),
     category_id: (raw.category_id as string | null) ?? null,
     brand: String(raw.brand ?? ''),
+    transfer_price: parseOptionalProductNumber(raw.transfer_price),
+    bulk_price: parseOptionalProductNumber(raw.bulk_price),
     approval_status: raw.approval_status as PendingProduct['approval_status'],
     lifecycle_status: raw.lifecycle_status as PendingProduct['lifecycle_status'],
     approved_by: raw.approved_by as string | undefined,

@@ -81,11 +81,16 @@ export const apiClient = {
       },
     });
 
+    const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error("Failed to delete");
+      const message =
+        (data && typeof data.message === "string" && data.message) ||
+        (data && typeof data.error === "string" && data.error) ||
+        response.statusText;
+      throw new Error(message);
     }
 
-    return response.json();
+    return data;
   },
 
   // JSON PATCH — for regular data updates
