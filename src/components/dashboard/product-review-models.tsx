@@ -13,6 +13,13 @@ import { cn } from '@/lib/utils'
 import { useState, useCallback } from 'react'
 import { ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react'
 
+function formatInrAmount(value: number | null | undefined): string {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return '—'
+  const n = Number(value)
+  if (!Number.isFinite(n)) return '—'
+  return `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
 interface ProductReviewModalProps {
   product: PendingProduct | null
   isOpen: boolean
@@ -88,7 +95,12 @@ export function ProductReviewModal({
       dimensionsByVariantId[v.variant_id] = v.dimensions_cm as { h: number; l: number; w: number }
     })
     setVariantDimensions(dimensionsByVariantId)
-    setEditedProduct((prev) => ({ ...prev, variants: normalizedVariants }))
+    setEditedProduct((prev) => ({
+      ...prev,
+      variants: normalizedVariants,
+      transfer_price: product.transfer_price ?? null,
+      bulk_price: product.bulk_price ?? null,
+    }))
     setEditMode(true)
   }, [product, normalizeDimensions])
 
@@ -130,6 +142,14 @@ export function ProductReviewModal({
         title: editedProduct.title ?? product.title,
         description: editedProduct.description ?? product.description,
         brand: editedProduct.brand ?? product.brand,
+        transfer_price:
+          editedProduct.transfer_price !== undefined
+            ? editedProduct.transfer_price
+            : (product.transfer_price ?? null),
+        bulk_price:
+          editedProduct.bulk_price !== undefined
+            ? editedProduct.bulk_price
+            : (product.bulk_price ?? null),
       }
       const baseVariants = editedProduct.variants ?? product.variants ?? []
       payload.variants = baseVariants.map((v) => ({
@@ -266,6 +286,73 @@ export function ProductReviewModal({
                       <p className="mt-1 text-sm">{product.description || 'No description'}</p>
                     )}
                   </div>
+
+                  <div className="col-span-2 rounded-lg border bg-muted/30 p-4">
+                    <p className="text-sm font-semibold text-foreground">Supplier B2B pricing</p>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Rates entered by the supplier on listing (transfer / trade price and bulk price).
+                    </p>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Transfer price (TP)</Label>
+                        {editMode ? (
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={
+                              editedProduct.transfer_price === null ||
+                              editedProduct.transfer_price === undefined
+                                ? ''
+                                : String(editedProduct.transfer_price)
+                            }
+                            onChange={(e) => {
+                              const raw = e.target.value
+                              setEditedProduct({
+                                ...editedProduct,
+                                transfer_price: raw === '' ? null : Number(raw),
+                              })
+                            }}
+                            className="mt-1"
+                          />
+                        ) : (
+                          <p className="mt-1 font-medium tabular-nums">
+                            {formatInrAmount(product.transfer_price ?? null)}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Bulk price</Label>
+                        {editMode ? (
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={
+                              editedProduct.bulk_price === null || editedProduct.bulk_price === undefined
+                                ? ''
+                                : String(editedProduct.bulk_price)
+                            }
+                            onChange={(e) => {
+                              const raw = e.target.value
+                              setEditedProduct({
+                                ...editedProduct,
+                                bulk_price: raw === '' ? null : Number(raw),
+                              })
+                            }}
+                            className="mt-1"
+                          />
+                        ) : (
+                          <p className="mt-1 font-medium tabular-nums">
+                            {formatInrAmount(product.bulk_price ?? null)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
                   <div>
                     <Label className="text-xs text-muted-foreground">Status</Label>
                     <Badge
