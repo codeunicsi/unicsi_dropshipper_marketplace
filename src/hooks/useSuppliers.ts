@@ -68,7 +68,18 @@ export const useDeleteSupplier = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (id: string) => apiClient.delete(`/admin/delete-supplier/${id}`),
+    mutationFn: (id: string) => apiClient.delete(`admin/suppliers/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["suppliers"] })
+    },
+  })
+}
+
+export const useBlockSupplier = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => apiClient.patch(`admin/suppliers/${id}/block`, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["suppliers"] })
     },
