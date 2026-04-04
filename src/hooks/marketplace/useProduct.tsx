@@ -47,7 +47,6 @@ export interface Product {
   variants: ProductVariant[];
   images: ProductImage[];
   category?: Category;
-  bulk_price_refresh_days: number | string;
 }
 
 export interface ProductVariant {
