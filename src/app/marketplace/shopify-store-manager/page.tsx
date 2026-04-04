@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { apiClient } from "@/hooks/marketplace/useShopifySecret";
 import {
   Check,
   ExternalLink,
@@ -54,6 +55,7 @@ const linkSteps = [
 ];
 
 export default function ShopifyStoreManagerPage() {
+  // ── existing state ──────────────────────────────────────────────────────────
   const [storeRows, setStoreRows] = useState<StoreRow[]>(initialStores);
   const [autoConfirmOrders, setAutoConfirmOrders] = useState(true);
   const [isInfoTooltipOpen, setIsInfoTooltipOpen] = useState(false);
@@ -68,11 +70,31 @@ export default function ShopifyStoreManagerPage() {
   const [showUpdateToast, setShowUpdateToast] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // ── link store state ────────────────────────────────────────────────────────
+  const [storeUrl, setStoreUrl] = useState("");
+  const [linkError, setLinkError] = useState("");
+  const [isLinking, setIsLinking] = useState(false);
+
+  // ── credentials modal state ─────────────────────────────────────────────────
+  const [isCredModalOpen, setIsCredModalOpen] = useState(false);
+  const [isLoadingSecrets, setIsLoadingSecrets] = useState(false);
+  const [isEditingCredentials, setIsEditingCredentials] = useState(false);
+  const [existingSecretId, setExistingSecretId] = useState<string | null>(null);
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const isEditModalOpen = editingStore !== null;
   const isRemoveConfirmOpen = pendingRemoveStore !== null;
 
+  // ── lock body scroll when any overlay is open ───────────────────────────────
   useEffect(() => {
-    if (!isLinkStoreDrawerOpen && !isEditModalOpen && !isRemoveConfirmOpen)
+    if (
+      !isLinkStoreDrawerOpen &&
+      !isEditModalOpen &&
+      !isRemoveConfirmOpen &&
+      !isCredModalOpen
+    )
       return;
 
     const previousOverflow = document.body.style.overflow;
@@ -83,17 +105,24 @@ export default function ShopifyStoreManagerPage() {
         setIsLinkStoreDrawerOpen(false);
         setEditingStore(null);
         setPendingRemoveStore(null);
+        setIsCredModalOpen(false);
+        setIsEditingCredentials(false);
       }
     };
 
     window.addEventListener("keydown", onEscape);
-
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onEscape);
     };
-  }, [isEditModalOpen, isLinkStoreDrawerOpen, isRemoveConfirmOpen]);
+  }, [
+    isEditModalOpen,
+    isLinkStoreDrawerOpen,
+    isRemoveConfirmOpen,
+    isCredModalOpen,
+  ]);
 
+  // ── store edit helpers ──────────────────────────────────────────────────────
   const openEditModal = (store: StoreRow) => {
     setEditingStore(store);
     setEditStoreName(store.storeName);
@@ -101,64 +130,156 @@ export default function ShopifyStoreManagerPage() {
     setEditLogoUrl(store.logoUrl);
   };
 
-  const closeEditModal = () => {
-    setEditingStore(null);
-  };
+  const closeEditModal = () => setEditingStore(null);
 
   const onLogoFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
-    const objectUrl = URL.createObjectURL(file);
-    setEditLogoUrl(objectUrl);
+    setEditLogoUrl(URL.createObjectURL(file));
   };
 
   const updateStoreDetails = () => {
     if (!editingStore) return;
-
     setStoreRows((prev) =>
       prev.map((store) => {
-        if (store.id === editingStore.id) {
+        if (store.id === editingStore.id)
           return {
             ...store,
             storeName: editStoreName.trim() || store.storeName,
             isDefault: editIsDefault,
             logoUrl: editLogoUrl,
           };
-        }
-
-        if (editIsDefault) {
-          return { ...store, isDefault: false };
-        }
-
+        if (editIsDefault) return { ...store, isDefault: false };
         return store;
       }),
     );
-
     closeEditModal();
     setShowUpdateToast(true);
     window.setTimeout(() => setShowUpdateToast(false), 3000);
   };
 
-  const requestRemoveStore = (store: StoreRow) => {
-    setPendingRemoveStore(store);
-  };
-
-  const closeRemoveConfirmModal = () => {
-    setPendingRemoveStore(null);
-  };
-
+  const requestRemoveStore = (store: StoreRow) => setPendingRemoveStore(store);
+  const closeRemoveConfirmModal = () => setPendingRemoveStore(null);
   const confirmRemoveStore = () => {
     if (!pendingRemoveStore) return;
-
-    setStoreRows((prev) =>
-      prev.filter((store) => store.id !== pendingRemoveStore.id),
-    );
+    setStoreRows((prev) => prev.filter((s) => s.id !== pendingRemoveStore.id));
     closeRemoveConfirmModal();
+  };
+
+  // ── link store handler ──────────────────────────────────────────────────────
+  const handleLinkStore = async (e: React.MouseEvent | React.KeyboardEvent) => {
+    e.preventDefault();
+    setLinkError("");
+
+    if (!storeUrl.trim()) {
+      setLinkError("Please enter your Shopify store URL");
+      return;
+    }
+
+    // Normalize the store URL
+    let normalizedUrl = storeUrl.trim().toLowerCase();
+
+    // Remove protocol if present
+    if (normalizedUrl.startsWith("http://")) {
+      normalizedUrl = normalizedUrl.replace("http://", "");
+    } else if (normalizedUrl.startsWith("https://")) {
+      normalizedUrl = normalizedUrl.replace("https://", "");
+    }
+
+    // Ensure it ends with .myshopify.com
+    if (!normalizedUrl.includes(".myshopify.com")) {
+      if (!normalizedUrl.includes(".")) {
+        normalizedUrl = `${normalizedUrl}.myshopify.com`;
+      } else {
+        setLinkError(
+          "Please enter a valid Shopify store URL (e.g., your-store.myshopify.com)",
+        );
+        return;
+      }
+    }
+
+    setIsLinking(true);
+    try {
+      const response = await apiClient.get(
+        `dropshipper/shopify/install?shop=${normalizedUrl}`,
+      );
+
+      console.log("response ==> shopify install", response);
+
+      const installUrl = response?.installUrl ?? response?.data?.installUrl;
+
+      if (!installUrl) {
+        throw new Error("Failed to initiate OAuth flow");
+      }
+
+      // Redirect to Shopify OAuth
+      window.location.href = installUrl;
+    } catch (err) {
+      setLinkError(
+        err instanceof Error
+          ? err.message
+          : "An error occurred. Please try again.",
+      );
+      setIsLinking(false);
+    }
+  };
+
+  // ── credentials modal helpers ───────────────────────────────────────────────
+  const openCredentialsModal = async () => {
+    setIsCredModalOpen(true);
+    setIsEditingCredentials(false);
+    setIsLoadingSecrets(true);
+    setClientId("");
+    setClientSecret("");
+    setExistingSecretId(null);
+
+    try {
+      const { data } = await apiClient.get("dropshipper/shopify/secrets");
+      const record = data;
+      console.log(record);
+      if (record?.shopify_client_id) {
+        setExistingSecretId(record.dropshipper_shopify_secretes_id ?? "exists");
+        setClientId(record.shopify_client_id ?? "");
+        setClientSecret(record.shopify_client_secret ?? "");
+        // fields stay readonly; user must click Edit
+      } else {
+        // no saved credentials – open in edit mode immediately
+        setIsEditingCredentials(true);
+      }
+    } catch {
+      // API error or no record – open in edit mode
+      setIsEditingCredentials(true);
+    } finally {
+      setIsLoadingSecrets(false);
+    }
+  };
+
+  const closeCredentialsModal = () => {
+    setIsCredModalOpen(false);
+    setIsEditingCredentials(false);
+  };
+
+  const handleSubmitSecrets = async () => {
+    if (!clientId || !clientSecret) return;
+    try {
+      setIsSubmitting(true);
+      await apiClient.post("dropshipper/shopify/secrets", {
+        shopifyClientId: clientId,
+        shopifyClientSecret: clientSecret,
+      });
+      closeCredentialsModal();
+      setShowUpdateToast(true);
+      window.setTimeout(() => setShowUpdateToast(false), 3000);
+    } catch (err: any) {
+      console.error(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6">
+      {/* ── Page header ── */}
       <div className="mb-6 flex items-center justify-between gap-4">
         <h1 className="text-xl font-bold text-[#111827]">
           Shopify Store Manager
@@ -223,6 +344,7 @@ export default function ShopifyStoreManagerPage() {
         </div>
       </div>
 
+      {/* ── Stores table ── */}
       <div className="overflow-hidden border border-[#e3e3e3]">
         <table className="w-full border-collapse">
           <thead className="bg-[#f2f2f2] text-left">
@@ -309,10 +431,15 @@ export default function ShopifyStoreManagerPage() {
         </table>
       </div>
 
+      {/* ── Link store drawer ── */}
       {isLinkStoreDrawerOpen && (
         <div
           className="fixed inset-0 z-120 flex justify-end bg-black/40"
-          onClick={() => setIsLinkStoreDrawerOpen(false)}
+          onClick={() => {
+            setIsLinkStoreDrawerOpen(false);
+            setStoreUrl("");
+            setLinkError("");
+          }}
         >
           <aside
             className="h-full w-full max-w-140 overflow-y-auto bg-white py-12 shadow-2xl animate-slideIn"
@@ -351,16 +478,65 @@ export default function ShopifyStoreManagerPage() {
               </ul>
             </div>
 
-            <div className="sticky bottom-0 border-t border-[#ececec] bg-white px-12 py-18">
-              <Button className="h-12 w-full justify-center rounded-xs bg-black text-sm font-semibold text-white hover:cursor-pointer">
-                <Link2 className="size-5" />
-                Link New Shopify Store
+            {/* ── Drawer footer with URL input + connect button ── */}
+            <div className="sticky bottom-0 border-t border-[#ececec] bg-white px-8 py-6 space-y-3">
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-[#374151]">
+                  Shopify Store URL
+                </label>
+                <input
+                  type="text"
+                  value={storeUrl}
+                  onChange={(e) => {
+                    setStoreUrl(e.target.value);
+                    setLinkError("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleLinkStore(e);
+                  }}
+                  placeholder="your-store.myshopify.com"
+                  className="h-10 w-full rounded-sm border border-[#e3e3e3] px-3 text-sm text-[#1f2937] outline-none transition-colors focus:border-[#0097b2]"
+                />
+                {linkError && (
+                  <p className="mt-1.5 text-xs text-red-500">{linkError}</p>
+                )}
+              </div>
+
+              <Button
+                className="h-12 w-full justify-center rounded-xs bg-black text-sm font-semibold text-white hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={handleLinkStore}
+                disabled={isLinking}
+              >
+                {isLinking ? (
+                  <>
+                    <svg
+                      className="mr-2 size-4 animate-spin"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                    >
+                      <path
+                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        strokeOpacity="0.25"
+                      />
+                      <path d="M21 12a9 9 0 00-9-9" />
+                    </svg>
+                    Connecting…
+                  </>
+                ) : (
+                  <>
+                    <Link2 className="size-5" />
+                    Link New Shopify Store
+                  </>
+                )}
               </Button>
             </div>
           </aside>
         </div>
       )}
 
+      {/* ── Edit store modal ── */}
       {isEditModalOpen && editingStore && (
         <div
           className="fixed inset-0 z-130 flex items-center justify-center bg-black/40 p-4"
@@ -397,7 +573,6 @@ export default function ShopifyStoreManagerPage() {
                   <p className="text-xs font-semibold">{editingStore.domain}</p>
                 </div>
               </div>
-
               <div className="flex items-center gap-1 text-base font-bold italic text-[#111827]">
                 <ShoppingBag className="size-5 text-[#67a844]" />
                 shopify
@@ -517,6 +692,7 @@ export default function ShopifyStoreManagerPage() {
         </div>
       )}
 
+      {/* ── Remove confirm modal ── */}
       {isRemoveConfirmOpen && pendingRemoveStore && (
         <div
           className="fixed inset-0 z-[135] flex items-center justify-center bg-black/40 p-4"
@@ -534,7 +710,6 @@ export default function ShopifyStoreManagerPage() {
               </span>
               ? This action cannot be undone.
             </p>
-
             <div className="mt-6 flex items-center justify-end gap-3">
               <Button
                 className="h-10 rounded-sm px-4 text-sm text-black border bg-white hover:bg-white cursor-pointer"
@@ -553,9 +728,199 @@ export default function ShopifyStoreManagerPage() {
         </div>
       )}
 
+      {/* ── Credentials Modal (FAB → GET prefill → Edit → POST) ── */}
+
+      {/* Floating Action Button */}
+      <button
+        onClick={openCredentialsModal}
+        className="fixed bottom-6 right-6 z-[150] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-[#0097b2] to-[#7ed957] text-white shadow-lg hover:scale-105 transition"
+        aria-label="Manage Shopify API credentials"
+      >
+        <span className="text-3xl leading-none">+</span>
+      </button>
+
+      {isCredModalOpen && (
+        <div
+          className="fixed inset-0 z-[160] flex items-center justify-center bg-black/40"
+          onClick={closeCredentialsModal}
+        >
+          <div
+            className="w-full max-w-md rounded-xl bg-white shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-[#f0f0f0]">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-[#0097b2] to-[#7ed957]">
+                  <ShoppingBag className="size-4 text-white" />
+                </span>
+                <h2 className="text-base font-bold text-[#111827]">
+                  {existingSecretId
+                    ? "Shopify Credentials"
+                    : "Add Shopify Credentials"}
+                </h2>
+              </div>
+              <button
+                onClick={closeCredentialsModal}
+                className="rounded-md p-1 text-[#9ca3af] hover:bg-[#f3f4f6] hover:text-[#374151] transition-colors"
+                aria-label="Close"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            {/* Modal body */}
+            <div className="px-6 py-5 space-y-4">
+              {isLoadingSecrets ? (
+                /* Loading skeleton */
+                <div className="space-y-4 animate-pulse">
+                  <div>
+                    <div className="h-3 w-28 bg-[#e5e7eb] rounded mb-2" />
+                    <div className="h-10 bg-[#f3f4f6] rounded" />
+                  </div>
+                  <div>
+                    <div className="h-3 w-32 bg-[#e5e7eb] rounded mb-2" />
+                    <div className="h-10 bg-[#f3f4f6] rounded" />
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Success badge when credentials exist and not editing */}
+                  {existingSecretId && !isEditingCredentials && (
+                    <div className="flex items-center gap-2 text-xs text-[#16a34a] bg-[#f0fdf4] border border-[#bbf7d0] rounded-lg px-3 py-2">
+                      <Check className="size-3.5 shrink-0" />
+                      Credentials saved. Click{" "}
+                      <span className="font-semibold ml-1">Edit</span>&nbsp;to
+                      update them.
+                    </div>
+                  )}
+
+                  {/* Client ID */}
+                  <div>
+                    <label className="block text-xs font-semibold text-[#374151] mb-1.5">
+                      Shopify Client ID
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={
+                        isEditingCredentials ? "Enter Client ID" : ""
+                      }
+                      value={clientId}
+                      readOnly={!isEditingCredentials}
+                      onChange={(e) => setClientId(e.target.value)}
+                      className={`w-full h-10 border rounded-md px-3 text-sm outline-none transition-colors
+                        ${
+                          !isEditingCredentials
+                            ? "bg-[#f9fafb] border-[#e5e7eb] text-[#6b7280] cursor-not-allowed select-none"
+                            : "bg-white border-[#d1d5db] text-[#111827] focus:border-[#0097b2] focus:ring-1 focus:ring-[#0097b2]/20"
+                        }`}
+                    />
+                  </div>
+
+                  {/* Client Secret */}
+                  <div>
+                    <label className="block text-xs font-semibold text-[#374151] mb-1.5">
+                      Shopify Client Secret
+                    </label>
+                    <input
+                      type={isEditingCredentials ? "text" : "password"}
+                      placeholder={
+                        isEditingCredentials ? "Enter Client Secret" : ""
+                      }
+                      value={clientSecret}
+                      readOnly={!isEditingCredentials}
+                      onChange={(e) => setClientSecret(e.target.value)}
+                      className={`w-full h-10 border rounded-md px-3 text-sm outline-none transition-colors
+                        ${
+                          !isEditingCredentials
+                            ? "bg-[#f9fafb] border-[#e5e7eb] text-[#6b7280] cursor-not-allowed"
+                            : "bg-white border-[#d1d5db] text-[#111827] focus:border-[#0097b2] focus:ring-1 focus:ring-[#0097b2]/20"
+                        }`}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Modal footer */}
+            {!isLoadingSecrets && (
+              <div className="px-6 pb-6 flex justify-end gap-3">
+                {existingSecretId && !isEditingCredentials ? (
+                  /* Existing credentials: Close + Edit */
+                  <>
+                    <Button
+                      variant="outline"
+                      className="h-10 px-5 rounded-md text-sm text-[#374151]"
+                      onClick={closeCredentialsModal}
+                    >
+                      Close
+                    </Button>
+                    <Button
+                      className="h-10 px-5 rounded-md text-sm font-semibold text-white bg-gradient-to-r from-[#0097b2] to-[#7ed957] hover:opacity-90 transition-opacity"
+                      onClick={() => setIsEditingCredentials(true)}
+                    >
+                      <Pencil className="size-3.5" />
+                      Edit
+                    </Button>
+                  </>
+                ) : (
+                  /* New or editing: Cancel + Save */
+                  <>
+                    <Button
+                      variant="outline"
+                      className="h-10 px-5 rounded-md text-sm text-[#374151]"
+                      onClick={() => {
+                        if (existingSecretId) {
+                          // cancel edit – go back to readonly view
+                          setIsEditingCredentials(false);
+                        } else {
+                          closeCredentialsModal();
+                        }
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      disabled={isSubmitting || !clientId || !clientSecret}
+                      className="h-10 px-5 rounded-md text-sm font-semibold text-white bg-gradient-to-r from-[#0097b2] to-[#7ed957] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={handleSubmitSecrets}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <svg
+                            className="animate-spin size-3.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                          >
+                            <path
+                              d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                              strokeOpacity="0.25"
+                            />
+                            <path d="M21 12a9 9 0 00-9-9" />
+                          </svg>
+                          Saving…
+                        </>
+                      ) : (
+                        <>
+                          <Check className="size-3.5" />
+                          Save
+                        </>
+                      )}
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Toast ── */}
       {showUpdateToast && (
-        <div className="fixed bottom-6 left-1/2 z-140 -translate-x-1/2 rounded-md bg-green-600 px-5 py-3 text-sm font-medium text-white shadow-xl">
-          Store details updated Successfully!
+        <div className="fixed bottom-6 left-1/2 z-[200] -translate-x-1/2 rounded-md bg-green-600 px-5 py-3 text-sm font-medium text-white shadow-xl">
+          Store details updated successfully!
         </div>
       )}
     </div>
