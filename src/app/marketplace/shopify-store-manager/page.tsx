@@ -1,5 +1,4 @@
 "use client";
-
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { apiClient } from "@/hooks/marketplace/useShopifySecret";
 import {
@@ -55,7 +54,7 @@ const linkSteps = [
 ];
 
 export default function ShopifyStoreManagerPage() {
-  // ── existing state ──────────────────────────────────────────────────────────
+  // ── existing state ────────────────────────────────────────────────────────
   const [storeRows, setStoreRows] = useState<StoreRow[]>(initialStores);
   const [autoConfirmOrders, setAutoConfirmOrders] = useState(true);
   const [isInfoTooltipOpen, setIsInfoTooltipOpen] = useState(false);
@@ -70,12 +69,12 @@ export default function ShopifyStoreManagerPage() {
   const [showUpdateToast, setShowUpdateToast] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // ── link store state ────────────────────────────────────────────────────────
+  // ── link store state ──────────────────────────────────────────────────────
   const [storeUrl, setStoreUrl] = useState("");
   const [linkError, setLinkError] = useState("");
   const [isLinking, setIsLinking] = useState(false);
 
-  // ── credentials modal state ─────────────────────────────────────────────────
+  // ── credentials modal state ───────────────────────────────────────────────
   const [isCredModalOpen, setIsCredModalOpen] = useState(false);
   const [isLoadingSecrets, setIsLoadingSecrets] = useState(false);
   const [isEditingCredentials, setIsEditingCredentials] = useState(false);
@@ -84,22 +83,40 @@ export default function ShopifyStoreManagerPage() {
   const [clientSecret, setClientSecret] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // ── OAuth success modal state ─────────────────────────────────────────────
+  const [oauthSuccess, setOauthSuccess] = useState<{
+    shop: string;
+    accessToken: string;
+  } | null>(null);
+
   const isEditModalOpen = editingStore !== null;
   const isRemoveConfirmOpen = pendingRemoveStore !== null;
 
-  // ── lock body scroll when any overlay is open ───────────────────────────────
+  // ── Parse OAuth callback params on mount ──────────────────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const shop = params.get("shop");
+    const accessToken = params.get("access_token");
+    if (shop && accessToken) {
+      setOauthSuccess({ shop, accessToken });
+      // Clean URL without reload
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, "", cleanUrl);
+    }
+  }, []);
+
+  // ── lock body scroll when any overlay is open ─────────────────────────────
   useEffect(() => {
     if (
       !isLinkStoreDrawerOpen &&
       !isEditModalOpen &&
       !isRemoveConfirmOpen &&
-      !isCredModalOpen
+      !isCredModalOpen &&
+      !oauthSuccess
     )
       return;
-
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-
     const onEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setIsLinkStoreDrawerOpen(false);
@@ -107,9 +124,9 @@ export default function ShopifyStoreManagerPage() {
         setPendingRemoveStore(null);
         setIsCredModalOpen(false);
         setIsEditingCredentials(false);
+        setOauthSuccess(null);
       }
     };
-
     window.addEventListener("keydown", onEscape);
     return () => {
       document.body.style.overflow = previousOverflow;
@@ -120,9 +137,10 @@ export default function ShopifyStoreManagerPage() {
     isLinkStoreDrawerOpen,
     isRemoveConfirmOpen,
     isCredModalOpen,
+    oauthSuccess,
   ]);
 
-  // ── store edit helpers ──────────────────────────────────────────────────────
+  // ── store edit helpers ────────────────────────────────────────────────────
   const openEditModal = (store: StoreRow) => {
     setEditingStore(store);
     setEditStoreName(store.storeName);
@@ -166,27 +184,20 @@ export default function ShopifyStoreManagerPage() {
     closeRemoveConfirmModal();
   };
 
-  // ── link store handler ──────────────────────────────────────────────────────
+  // ── link store handler ────────────────────────────────────────────────────
   const handleLinkStore = async (e: React.MouseEvent | React.KeyboardEvent) => {
     e.preventDefault();
     setLinkError("");
-
     if (!storeUrl.trim()) {
       setLinkError("Please enter your Shopify store URL");
       return;
     }
-
-    // Normalize the store URL
     let normalizedUrl = storeUrl.trim().toLowerCase();
-
-    // Remove protocol if present
     if (normalizedUrl.startsWith("http://")) {
       normalizedUrl = normalizedUrl.replace("http://", "");
     } else if (normalizedUrl.startsWith("https://")) {
       normalizedUrl = normalizedUrl.replace("https://", "");
     }
-
-    // Ensure it ends with .myshopify.com
     if (!normalizedUrl.includes(".myshopify.com")) {
       if (!normalizedUrl.includes(".")) {
         normalizedUrl = `${normalizedUrl}.myshopify.com`;
@@ -197,22 +208,13 @@ export default function ShopifyStoreManagerPage() {
         return;
       }
     }
-
     setIsLinking(true);
     try {
       const response = await apiClient.get(
         `dropshipper/shopify/install?shop=${normalizedUrl}`,
       );
-
-      console.log("response ==> shopify install", response);
-
       const installUrl = response?.authUrl;
-
-       if (!installUrl) {
-        throw new Error("Failed to initiate OAuth flow");
-      }
-
-      // Redirect to Shopify OAuth
+      if (!installUrl) throw new Error("Failed to initiate OAuth flow");
       window.location.href = installUrl;
     } catch (err) {
       setLinkError(
@@ -224,7 +226,7 @@ export default function ShopifyStoreManagerPage() {
     }
   };
 
-  // ── credentials modal helpers ───────────────────────────────────────────────
+  // ── credentials modal helpers ─────────────────────────────────────────────
   const openCredentialsModal = async () => {
     setIsCredModalOpen(true);
     setIsEditingCredentials(false);
@@ -232,22 +234,17 @@ export default function ShopifyStoreManagerPage() {
     setClientId("");
     setClientSecret("");
     setExistingSecretId(null);
-
     try {
       const { data } = await apiClient.get("dropshipper/shopify/secrets");
       const record = data;
-      console.log(record);
       if (record?.shopify_client_id) {
         setExistingSecretId(record.dropshipper_shopify_secretes_id ?? "exists");
         setClientId(record.shopify_client_id ?? "");
         setClientSecret(record.shopify_client_secret ?? "");
-        // fields stay readonly; user must click Edit
       } else {
-        // no saved credentials – open in edit mode immediately
         setIsEditingCredentials(true);
       }
     } catch {
-      // API error or no record – open in edit mode
       setIsEditingCredentials(true);
     } finally {
       setIsLoadingSecrets(false);
@@ -284,7 +281,6 @@ export default function ShopifyStoreManagerPage() {
         <h1 className="text-xl font-bold text-[#111827]">
           Shopify Store Manager
         </h1>
-
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -308,7 +304,6 @@ export default function ShopifyStoreManagerPage() {
               />
             </span>
           </button>
-
           <Popover open={isInfoTooltipOpen} onOpenChange={setIsInfoTooltipOpen}>
             <PopoverTrigger asChild>
               <button
@@ -333,7 +328,6 @@ export default function ShopifyStoreManagerPage() {
               automatically get confirmed and processed further.
             </PopoverContent>
           </Popover>
-
           <Button
             className="ml-2 rounded-xs bg-linear-to-r from-[#0097b2] to-[#7ed957] px-8 text-sm text-white hover:bg-black/90"
             onClick={() => setIsLinkStoreDrawerOpen(true)}
@@ -464,11 +458,9 @@ export default function ShopifyStoreManagerPage() {
                   </div>
                 </div>
               </div>
-
               <h2 className="mb-6 text-sm font-semibold text-[#3d3d3d]">
                 Link your Shopify store in just 4 simple steps:
               </h2>
-
               <ul className="list-disc space-y-5 pl-6 marker:text-[#606060]">
                 {linkSteps.map((step) => (
                   <li key={step} className="pl-1 text-sm leading-8 text-[#444]">
@@ -477,8 +469,6 @@ export default function ShopifyStoreManagerPage() {
                 ))}
               </ul>
             </div>
-
-            {/* ── Drawer footer with URL input + connect button ── */}
             <div className="sticky bottom-0 border-t border-[#ececec] bg-white px-8 py-6 space-y-3">
               <div>
                 <label className="mb-1.5 block text-xs font-semibold text-[#374151]">
@@ -501,7 +491,6 @@ export default function ShopifyStoreManagerPage() {
                   <p className="mt-1.5 text-xs text-red-500">{linkError}</p>
                 )}
               </div>
-
               <Button
                 className="h-12 w-full justify-center rounded-xs bg-black text-sm font-semibold text-white hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={handleLinkStore}
@@ -559,7 +548,6 @@ export default function ShopifyStoreManagerPage() {
                 <X className="size-6" />
               </button>
             </div>
-
             <div className="mb-6 flex items-end justify-between gap-4">
               <div className="flex gap-10 text-sm text-[#111827]">
                 <div>
@@ -578,7 +566,6 @@ export default function ShopifyStoreManagerPage() {
                 shopify
               </div>
             </div>
-
             <div className="mb-6 rounded-xl bg-[#f6f6f6] p-4">
               <div className="flex items-start justify-between gap-4 border-b border-[#d4d4d4] pb-4">
                 <div className="flex items-start gap-4">
@@ -598,13 +585,11 @@ export default function ShopifyStoreManagerPage() {
                       Shopify Store Logo
                     </p>
                     <p className="text-[12px] leading-6 text-[#6b7280]">
-                      File type: JPG, PNG | Max file size: 500kb
-                      <br />
+                      File type: JPG, PNG | Max file size: 500kb <br />
                       Recommended dimensions: 1:1
                     </p>
                   </div>
                 </div>
-
                 <div className="flex gap-2">
                   <input
                     ref={fileInputRef}
@@ -628,7 +613,6 @@ export default function ShopifyStoreManagerPage() {
                   </Button>
                 </div>
               </div>
-
               <div className="pt-4">
                 <p className="mb-2 text-sm font-semibold text-[#222]">
                   Shopify Store Name
@@ -652,17 +636,16 @@ export default function ShopifyStoreManagerPage() {
                 </p>
               </div>
             </div>
-
             <div className="mb-6 rounded-xl border border-[#e3e3e3] p-4">
               <p className="text-xs text-[#6b7280]">Alternate Domain</p>
               <p className="text-xs font-semibold text-[#1f2937]">
                 {editingStore.domain}
               </p>
               <p className="mt-4 border-t border-[#e5e7eb] pt-3 text-xs leading-6 text-[#4b5563]">
-                <span className="mr-1 font-semibold">Tip:</span>
-                Showing a legitimate alternate domain on the label adds
-                credibility on the package for the end Customer and the delivery
-                partner. To know how to add an alternate domain,{" "}
+                <span className="mr-1 font-semibold">Tip:</span> Showing a
+                legitimate alternate domain on the label adds credibility on the
+                package for the end Customer and the delivery partner. To know
+                how to add an alternate domain,{" "}
                 <a
                   href="#"
                   className="font-semibold underline underline-offset-2"
@@ -671,7 +654,6 @@ export default function ShopifyStoreManagerPage() {
                 </a>
               </p>
             </div>
-
             <label className="mb-6 flex cursor-pointer items-center gap-3 text-xs text-[#1f2937]">
               <input
                 type="checkbox"
@@ -681,7 +663,6 @@ export default function ShopifyStoreManagerPage() {
               />
               Make this store as default store
             </label>
-
             <Button
               className="h-10 rounded-sm bg-linear-to-r from-[#7ed957] to-[#0097b2] px-7 text-sm font-semibold text-white hover:bg-black/90"
               onClick={updateStoreDetails}
@@ -728,9 +709,7 @@ export default function ShopifyStoreManagerPage() {
         </div>
       )}
 
-      {/* ── Credentials Modal (FAB → GET prefill → Edit → POST) ── */}
-
-      {/* Floating Action Button */}
+      {/* ── Credentials Modal ── */}
       <button
         onClick={openCredentialsModal}
         className="fixed bottom-6 right-6 z-[150] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-[#0097b2] to-[#7ed957] text-white shadow-lg hover:scale-105 transition"
@@ -748,7 +727,6 @@ export default function ShopifyStoreManagerPage() {
             className="w-full max-w-md rounded-xl bg-white shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal header */}
             <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-[#f0f0f0]">
               <div className="flex items-center gap-2">
                 <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-[#0097b2] to-[#7ed957]">
@@ -768,11 +746,8 @@ export default function ShopifyStoreManagerPage() {
                 <X className="size-5" />
               </button>
             </div>
-
-            {/* Modal body */}
             <div className="px-6 py-5 space-y-4">
               {isLoadingSecrets ? (
-                /* Loading skeleton */
                 <div className="space-y-4 animate-pulse">
                   <div>
                     <div className="h-3 w-28 bg-[#e5e7eb] rounded mb-2" />
@@ -785,7 +760,6 @@ export default function ShopifyStoreManagerPage() {
                 </div>
               ) : (
                 <>
-                  {/* Success badge when credentials exist and not editing */}
                   {existingSecretId && !isEditingCredentials && (
                     <div className="flex items-center gap-2 text-xs text-[#16a34a] bg-[#f0fdf4] border border-[#bbf7d0] rounded-lg px-3 py-2">
                       <Check className="size-3.5 shrink-0" />
@@ -794,8 +768,6 @@ export default function ShopifyStoreManagerPage() {
                       update them.
                     </div>
                   )}
-
-                  {/* Client ID */}
                   <div>
                     <label className="block text-xs font-semibold text-[#374151] mb-1.5">
                       Shopify Client ID
@@ -808,16 +780,13 @@ export default function ShopifyStoreManagerPage() {
                       value={clientId}
                       readOnly={!isEditingCredentials}
                       onChange={(e) => setClientId(e.target.value)}
-                      className={`w-full h-10 border rounded-md px-3 text-sm outline-none transition-colors
-                        ${
-                          !isEditingCredentials
-                            ? "bg-[#f9fafb] border-[#e5e7eb] text-[#6b7280] cursor-not-allowed select-none"
-                            : "bg-white border-[#d1d5db] text-[#111827] focus:border-[#0097b2] focus:ring-1 focus:ring-[#0097b2]/20"
-                        }`}
+                      className={`w-full h-10 border rounded-md px-3 text-sm outline-none transition-colors ${
+                        !isEditingCredentials
+                          ? "bg-[#f9fafb] border-[#e5e7eb] text-[#6b7280] cursor-not-allowed select-none"
+                          : "bg-white border-[#d1d5db] text-[#111827] focus:border-[#0097b2] focus:ring-1 focus:ring-[#0097b2]/20"
+                      }`}
                     />
                   </div>
-
-                  {/* Client Secret */}
                   <div>
                     <label className="block text-xs font-semibold text-[#374151] mb-1.5">
                       Shopify Client Secret
@@ -830,23 +799,19 @@ export default function ShopifyStoreManagerPage() {
                       value={clientSecret}
                       readOnly={!isEditingCredentials}
                       onChange={(e) => setClientSecret(e.target.value)}
-                      className={`w-full h-10 border rounded-md px-3 text-sm outline-none transition-colors
-                        ${
-                          !isEditingCredentials
-                            ? "bg-[#f9fafb] border-[#e5e7eb] text-[#6b7280] cursor-not-allowed"
-                            : "bg-white border-[#d1d5db] text-[#111827] focus:border-[#0097b2] focus:ring-1 focus:ring-[#0097b2]/20"
-                        }`}
+                      className={`w-full h-10 border rounded-md px-3 text-sm outline-none transition-colors ${
+                        !isEditingCredentials
+                          ? "bg-[#f9fafb] border-[#e5e7eb] text-[#6b7280] cursor-not-allowed"
+                          : "bg-white border-[#d1d5db] text-[#111827] focus:border-[#0097b2] focus:ring-1 focus:ring-[#0097b2]/20"
+                      }`}
                     />
                   </div>
                 </>
               )}
             </div>
-
-            {/* Modal footer */}
             {!isLoadingSecrets && (
               <div className="px-6 pb-6 flex justify-end gap-3">
                 {existingSecretId && !isEditingCredentials ? (
-                  /* Existing credentials: Close + Edit */
                   <>
                     <Button
                       variant="outline"
@@ -864,14 +829,12 @@ export default function ShopifyStoreManagerPage() {
                     </Button>
                   </>
                 ) : (
-                  /* New or editing: Cancel + Save */
                   <>
                     <Button
                       variant="outline"
                       className="h-10 px-5 rounded-md text-sm text-[#374151]"
                       onClick={() => {
                         if (existingSecretId) {
-                          // cancel edit – go back to readonly view
                           setIsEditingCredentials(false);
                         } else {
                           closeCredentialsModal();
@@ -913,6 +876,76 @@ export default function ShopifyStoreManagerPage() {
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── OAuth Success Modal ── */}
+      {oauthSuccess && (
+        <div
+          className="fixed inset-0 z-[170] flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setOauthSuccess(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Green header bar */}
+            <div className="h-2 w-full bg-gradient-to-r from-[#0097b2] to-[#7ed957]" />
+
+            <div className="px-8 py-8 text-center">
+              {/* Big green tick */}
+              <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-[#f0fdf4] border-4 border-[#bbf7d0]">
+                <Check className="size-10 text-[#16a34a] stroke-[2.5]" />
+              </div>
+
+              <h2 className="text-xl font-bold text-[#111827] mb-1">
+                Store Connected!
+              </h2>
+              <p className="text-sm text-[#6b7280] mb-6">
+                Your Shopify store has been successfully linked to Unicsi.
+              </p>
+
+              {/* Details card */}
+              <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-4 text-left space-y-3 mb-6">
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#dcfce7]">
+                    <ShoppingBag className="size-3.5 text-[#16a34a]" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-[#9ca3af]">
+                      Shop
+                    </p>
+                    <p className="text-sm font-semibold text-[#111827] break-all">
+                      {oauthSuccess.shop}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="border-t border-[#e5e7eb]" />
+
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#dcfce7]">
+                    <Check className="size-3.5 text-[#16a34a]" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-[#9ca3af]">
+                      Access Token
+                    </p>
+                    <p className="text-sm font-mono font-medium text-[#374151] break-all">
+                      {oauthSuccess.accessToken}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Button
+                className="w-full h-11 rounded-lg bg-gradient-to-r from-[#0097b2] to-[#7ed957] text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+                onClick={() => setOauthSuccess(null)}
+              >
+                Done
+              </Button>
+            </div>
           </div>
         </div>
       )}
