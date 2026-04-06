@@ -206,7 +206,11 @@ export default function ShopifyStoreManagerPage() {
 
       console.log("response ==> shopify install", response);
 
-      const installUrl = response?.installUrl ?? response?.data?.installUrl;
+      const installUrl = response?.authUrl;
+
+       if (!installUrl) {
+        throw new Error("Failed to initiate OAuth flow");
+      }
 
       // Redirect to Shopify OAuth
       window.location.href = installUrl;
