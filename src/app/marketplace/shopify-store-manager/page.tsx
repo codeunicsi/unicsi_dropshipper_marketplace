@@ -89,6 +89,11 @@ export default function ShopifyStoreManagerPage() {
     accessToken: string;
   } | null>(null);
 
+  // ── OAuth failure modal state ─────────────────────────────────────────────
+  const [oauthError, setOauthError] = useState<{ message: string } | null>(
+    null,
+  );
+
   const isEditModalOpen = editingStore !== null;
   const isRemoveConfirmOpen = pendingRemoveStore !== null;
 
@@ -97,11 +102,18 @@ export default function ShopifyStoreManagerPage() {
     const params = new URLSearchParams(window.location.search);
     const shop = params.get("shop");
     const accessToken = params.get("access_token");
+    const error = params.get("error");
+    const errorDescription = params.get("error_description");
+
     if (shop && accessToken) {
       setOauthSuccess({ shop, accessToken });
-      // Clean URL without reload
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, "", cleanUrl);
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (error) {
+      setOauthError({
+        message:
+          errorDescription || "OAuth authorization was denied or failed.",
+      });
+      window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
 
@@ -112,7 +124,8 @@ export default function ShopifyStoreManagerPage() {
       !isEditModalOpen &&
       !isRemoveConfirmOpen &&
       !isCredModalOpen &&
-      !oauthSuccess
+      !oauthSuccess &&
+      !oauthError
     )
       return;
     const previousOverflow = document.body.style.overflow;
@@ -125,6 +138,7 @@ export default function ShopifyStoreManagerPage() {
         setIsCredModalOpen(false);
         setIsEditingCredentials(false);
         setOauthSuccess(null);
+        setOauthError(null);
       }
     };
     window.addEventListener("keydown", onEscape);
@@ -138,6 +152,7 @@ export default function ShopifyStoreManagerPage() {
     isRemoveConfirmOpen,
     isCredModalOpen,
     oauthSuccess,
+    oauthError,
   ]);
 
   // ── store edit helpers ────────────────────────────────────────────────────
@@ -217,11 +232,11 @@ export default function ShopifyStoreManagerPage() {
       if (!installUrl) throw new Error("Failed to initiate OAuth flow");
       window.location.href = installUrl;
     } catch (err) {
-      setLinkError(
+      const message =
         err instanceof Error
           ? err.message
-          : "An error occurred. Please try again.",
-      );
+          : "An error occurred. Please try again.";
+      setOauthError({ message });
       setIsLinking(false);
     }
   };
@@ -945,6 +960,72 @@ export default function ShopifyStoreManagerPage() {
               >
                 Done
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── OAuth Failure Modal ── */}
+      {oauthError && (
+        <div
+          className="fixed inset-0 z-[170] flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setOauthError(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Red header bar */}
+            <div className="h-2 w-full bg-gradient-to-r from-[#e24b4a] to-[#f09595]" />
+
+            <div className="px-8 py-8 text-center">
+              {/* Big red X */}
+              <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-[#fcebeb] border-4 border-[#f7c1c1]">
+                <X className="size-10 text-[#a32d2d] stroke-[2.5]" />
+              </div>
+
+              <h2 className="text-xl font-bold text-[#111827] mb-1">
+                Connection Failed
+              </h2>
+              <p className="text-sm text-[#6b7280] mb-6">
+                We couldn't link your Shopify store. Please try again.
+              </p>
+
+              {/* Error details card */}
+              <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-4 text-left space-y-3 mb-6">
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#fee2e2]">
+                    <X className="size-3.5 text-[#a32d2d]" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-[#9ca3af]">
+                      Error
+                    </p>
+                    <p className="text-sm text-[#374151] break-all">
+                      {oauthError.message}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1 h-11 rounded-lg text-sm font-semibold text-[#374151]"
+                  onClick={() => setOauthError(null)}
+                >
+                  Dismiss
+                </Button>
+                <Button
+                  className="flex-1 h-11 rounded-lg bg-gradient-to-r from-[#0097b2] to-[#7ed957] text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+                  onClick={() => {
+                    setOauthError(null);
+                    setIsLinkStoreDrawerOpen(true);
+                  }}
+                >
+                  Try Again
+                </Button>
+              </div>
             </div>
           </div>
         </div>
