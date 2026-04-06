@@ -1,5 +1,5 @@
 "use client";
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
 import { apiClient } from "@/hooks/marketplace/useShopifySecret";
 import {
   Check,
@@ -7,7 +7,9 @@ import {
   ImageOff,
   Info,
   Link2,
+  Loader2,
   Pencil,
+  RefreshCw,
   ShoppingBag,
   Store,
   Trash2,
@@ -21,6 +23,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
+// ── Types ─────────────────────────────────────────────────────────────────────
 type StoreRow = {
   id: number;
   linkedOn: string;
@@ -30,21 +33,16 @@ type StoreRow = {
   logoUrl?: string;
 };
 
-const initialStores: StoreRow[] = [
-  {
-    id: 1,
-    linkedOn: "23 Feb 2026, 04:10 PM",
-    storeName: "Store-1",
-    domain: "store-1.myshopify.com",
-  },
-  {
-    id: 2,
-    linkedOn: "02 Apr 2025, 02:33 PM",
-    storeName: "Store-2",
-    domain: "store-2.myshopify.com",
-    isDefault: true,
-  },
-];
+// Shape returned by GET /dropshipper/shopify/stores
+type ApiStore = {
+  id?: number;
+  store_name: string;
+  store_url: string;
+  access_token?: string;
+  is_default?: boolean;
+  created_at?: string;
+  installed_at: string;
+};
 
 const linkSteps = [
   'Click on "Link Shopify Store" and you will be redirected to Shopify App Store page',
@@ -53,9 +51,33 @@ const linkSteps = [
   "After installing Unicsi Dropshipping app on Shopify, you will be able to push products on Shopify from Unicsi",
 ];
 
+// ── Helper: map API store → StoreRow ─────────────────────────────────────────
+function mapApiStore(apiStore: ApiStore, index: number): StoreRow {
+  return {
+    id: apiStore.id ?? index + 1,
+    linkedOn: apiStore.installed_at
+      ? new Date(apiStore.installed_at).toLocaleString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        })
+      : "—",
+    storeName: apiStore.store_name,
+    domain: apiStore.store_url,
+    isDefault: !!apiStore.is_default,
+  };
+}
+
 export default function ShopifyStoreManagerPage() {
-  // ── existing state ────────────────────────────────────────────────────────
-  const [storeRows, setStoreRows] = useState<StoreRow[]>(initialStores);
+  // ── store list state ──────────────────────────────────────────────────────
+  const [storeRows, setStoreRows] = useState<StoreRow[]>([]);
+  const [isFetchingStores, setIsFetchingStores] = useState(true);
+  const [fetchStoresError, setFetchStoresError] = useState("");
+
+  // ── other UI state ────────────────────────────────────────────────────────
   const [autoConfirmOrders, setAutoConfirmOrders] = useState(true);
   const [isInfoTooltipOpen, setIsInfoTooltipOpen] = useState(false);
   const [isLinkStoreDrawerOpen, setIsLinkStoreDrawerOpen] = useState(false);
@@ -85,9 +107,12 @@ export default function ShopifyStoreManagerPage() {
 
   // ── OAuth success modal state ─────────────────────────────────────────────
   const [oauthSuccess, setOauthSuccess] = useState<{
-    shop: string;
+    shopName: string;
+    shopUrl: string;
     accessToken: string;
   } | null>(null);
+  const [isLinkingStore, setIsLinkingStore] = useState(false);
+  const [linkStoreError, setLinkStoreError] = useState("");
 
   // ── OAuth failure modal state ─────────────────────────────────────────────
   const [oauthError, setOauthError] = useState<{ message: string } | null>(
@@ -97,21 +122,61 @@ export default function ShopifyStoreManagerPage() {
   const isEditModalOpen = editingStore !== null;
   const isRemoveConfirmOpen = pendingRemoveStore !== null;
 
+  // ── Fetch stores from API ─────────────────────────────────────────────────
+  const fetchStores = useCallback(async () => {
+    setIsFetchingStores(true);
+    setFetchStoresError("");
+    try {
+      const response = await apiClient.get("dropshipper/shopify/access-token");
+      // Support both { data: [...] } and direct array responses
+      const list: ApiStore[] = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : [];
+      setStoreRows(list.map(mapApiStore));
+    } catch (err: any) {
+      setFetchStoresError(
+        err?.message ?? "Failed to load stores. Please try again.",
+      );
+    } finally {
+      setIsFetchingStores(false);
+    }
+  }, []);
+
+  // Fetch on mount
+  useEffect(() => {
+    fetchStores();
+  }, [fetchStores]);
+
   // ── Parse OAuth callback params on mount ──────────────────────────────────
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const shop = params.get("shop");
+    const shopName = params.get("shop_name") ?? shop?.split(".")[0] ?? "";
     const accessToken = params.get("access_token");
     const error = params.get("error");
     const errorDescription = params.get("error_description");
 
     if (shop && accessToken) {
-      setOauthSuccess({ shop, accessToken });
+      setOauthSuccess({ shopName, shopUrl: shop, accessToken });
       window.history.replaceState({}, "", window.location.pathname);
     } else if (error) {
       setOauthError({
         message:
           errorDescription || "OAuth authorization was denied or failed.",
+      });
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (!shop && accessToken) {
+      setOauthError({
+        message:
+          'Invalid OAuth callback: the "shop" parameter is missing or misspelled in the redirect URL.',
+      });
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (shop && !accessToken) {
+      setOauthError({
+        message:
+          'Invalid OAuth callback: the "access_token" parameter is missing in the redirect URL.',
       });
       window.history.replaceState({}, "", window.location.pathname);
     }
@@ -208,11 +273,11 @@ export default function ShopifyStoreManagerPage() {
       return;
     }
     let normalizedUrl = storeUrl.trim().toLowerCase();
-    if (normalizedUrl.startsWith("http://")) {
+    if (normalizedUrl.startsWith("http://"))
       normalizedUrl = normalizedUrl.replace("http://", "");
-    } else if (normalizedUrl.startsWith("https://")) {
+    else if (normalizedUrl.startsWith("https://"))
       normalizedUrl = normalizedUrl.replace("https://", "");
-    }
+
     if (!normalizedUrl.includes(".myshopify.com")) {
       if (!normalizedUrl.includes(".")) {
         normalizedUrl = `${normalizedUrl}.myshopify.com`;
@@ -238,6 +303,31 @@ export default function ShopifyStoreManagerPage() {
           : "An error occurred. Please try again.";
       setOauthError({ message });
       setIsLinking(false);
+    }
+  };
+
+  // ── Save linked store — POST /dropshipper/shopify/access-token ────────────
+  const handleSaveLinkedStore = async () => {
+    if (!oauthSuccess) return;
+    setIsLinkingStore(true);
+    setLinkStoreError("");
+    try {
+      await apiClient.post("dropshipper/shopify/access-token", {
+        store_name: oauthSuccess.shopName,
+        store_url: oauthSuccess.shopUrl,
+        access_token: oauthSuccess.accessToken,
+      });
+      // Re-fetch store list from server to stay in sync
+      await fetchStores();
+      setOauthSuccess(null);
+      setShowUpdateToast(true);
+      window.setTimeout(() => setShowUpdateToast(false), 3000);
+    } catch (err: any) {
+      setLinkStoreError(
+        err?.message ?? "Failed to save store. Please try again.",
+      );
+    } finally {
+      setIsLinkingStore(false);
     }
   };
 
@@ -366,76 +456,146 @@ export default function ShopifyStoreManagerPage() {
             </tr>
           </thead>
           <tbody>
-            {storeRows.map((store) => (
-              <tr
-                key={store.id}
-                className="border-t border-[#e6e6e6] align-top"
-              >
-                <td className="px-6 py-6 text-xs text-[#1f2937]">
-                  {store.id}.
-                </td>
-                <td className="px-6 py-6 text-xs text-[#334155]">
-                  {store.linkedOn}
-                </td>
-                <td className="px-6 py-6">
-                  <div className="flex items-center gap-2">
-                    <ShoppingBag className="size-4 text-[#67a844]" />
-                    <span className="text-sm font-bold italic text-[#111827]">
-                      shopify
-                    </span>
-                  </div>
-                </td>
-                <td className="px-6 py-6">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-16 w-16 items-center justify-center border border-[#cfcfcf] text-[#7b7b7b]">
-                      {store.logoUrl ? (
-                        <img
-                          src={store.logoUrl}
-                          alt={`${store.storeName} logo`}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <Store className="size-6" />
-                      )}
+            {/* ── Loading skeleton ── */}
+            {isFetchingStores &&
+              Array.from({ length: 2 }).map((_, i) => (
+                <tr key={i} className="border-t border-[#e6e6e6] animate-pulse">
+                  <td className="px-6 py-6">
+                    <div className="h-3 w-4 rounded bg-[#e5e7eb]" />
+                  </td>
+                  <td className="px-6 py-6">
+                    <div className="h-3 w-36 rounded bg-[#e5e7eb]" />
+                  </td>
+                  <td className="px-6 py-6">
+                    <div className="h-3 w-20 rounded bg-[#e5e7eb]" />
+                  </td>
+                  <td className="px-6 py-6">
+                    <div className="flex items-center gap-4">
+                      <div className="h-16 w-16 rounded bg-[#e5e7eb]" />
+                      <div className="space-y-2">
+                        <div className="h-3 w-24 rounded bg-[#e5e7eb]" />
+                        <div className="h-3 w-40 rounded bg-[#e5e7eb]" />
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold text-[#1f2937]">
-                        {store.storeName}
-                      </p>
-                      <p className="w-60 text-xs text-[#334155]">
-                        {store.domain}
-                      </p>
-                      {store.isDefault && (
-                        <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-[#efefef] px-2 py-1 text-[10px] text-[#464d57]">
-                          <Check className="size-3" />
-                          Default Store
-                        </span>
-                      )}
+                  </td>
+                  <td className="px-6 py-6">
+                    <div className="flex gap-3">
+                      <div className="h-10 w-24 rounded bg-[#e5e7eb]" />
+                      <div className="h-10 w-24 rounded bg-[#e5e7eb]" />
                     </div>
-                  </div>
-                </td>
-                <td className="px-6 py-6">
-                  <div className="flex items-center gap-3">
-                    <Button
-                      variant="outline"
-                      className="h-10 rounded-sm px-7 text-xs font-semibold text-[#1f2937] hover:bg-[#f6f6f6]"
-                      onClick={() => openEditModal(store)}
-                    >
-                      <Pencil className="size-4" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="h-10 rounded-sm px-7 text-xs font-semibold text-[#1f2937] hover:bg-[#f6f6f6]"
-                      onClick={() => requestRemoveStore(store)}
-                    >
-                      <Trash2 className="size-4" />
-                      Remove
-                    </Button>
-                  </div>
+                  </td>
+                </tr>
+              ))}
+
+            {/* ── Fetch error ── */}
+            {!isFetchingStores && fetchStoresError && (
+              <tr>
+                <td colSpan={5} className="px-6 py-12 text-center">
+                  <p className="mb-4 text-sm text-red-500">
+                    {fetchStoresError}
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="gap-2 text-sm"
+                    onClick={fetchStores}
+                  >
+                    <RefreshCw className="size-4" />
+                    Retry
+                  </Button>
                 </td>
               </tr>
-            ))}
+            )}
+
+            {/* ── Empty state ── */}
+            {!isFetchingStores &&
+              !fetchStoresError &&
+              storeRows.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-16 text-center">
+                    <Store className="mx-auto mb-3 size-10 text-[#d1d5db]" />
+                    <p className="text-sm font-semibold text-[#6b7280]">
+                      No stores linked yet
+                    </p>
+                    <p className="mt-1 text-xs text-[#9ca3af]">
+                      Click "Link New Shopify Store" to get started.
+                    </p>
+                  </td>
+                </tr>
+              )}
+
+            {/* ── Store rows ── */}
+            {!isFetchingStores &&
+              !fetchStoresError &&
+              storeRows.map((store, index) => (
+                <tr
+                  key={store.id}
+                  className="border-t border-[#e6e6e6] align-top"
+                >
+                  <td className="px-6 py-6 text-xs text-[#1f2937]">
+                    {index + 1}.
+                  </td>
+                  <td className="px-6 py-6 text-xs text-[#334155]">
+                    {store.linkedOn}
+                  </td>
+                  <td className="px-6 py-6">
+                    <div className="flex items-center gap-2">
+                      <ShoppingBag className="size-4 text-[#67a844]" />
+                      <span className="text-sm font-bold italic text-[#111827]">
+                        shopify
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-6">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-16 w-16 items-center justify-center border border-[#cfcfcf] text-[#7b7b7b]">
+                        {store.logoUrl ? (
+                          <img
+                            src={store.logoUrl}
+                            alt={`${store.storeName} logo`}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <Store className="size-6" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-[#1f2937]">
+                          {store.storeName}
+                        </p>
+                        <p className="w-60 text-xs text-[#334155]">
+                          {store.domain}
+                        </p>
+                        {store.isDefault && (
+                          <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-[#efefef] px-2 py-1 text-[10px] text-[#464d57]">
+                            <Check className="size-3" />
+                            Default Store
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-6">
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant="outline"
+                        className="h-10 rounded-sm px-7 text-xs font-semibold text-[#1f2937] hover:bg-[#f6f6f6]"
+                        onClick={() => openEditModal(store)}
+                      >
+                        <Pencil className="size-4" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="h-10 rounded-sm px-7 text-xs font-semibold text-[#1f2937] hover:bg-[#f6f6f6]"
+                        onClick={() => requestRemoveStore(store)}
+                      >
+                        <Trash2 className="size-4" />
+                        Remove
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
           </tbody>
         </table>
       </div>
@@ -724,7 +884,7 @@ export default function ShopifyStoreManagerPage() {
         </div>
       )}
 
-      {/* ── Credentials Modal ── */}
+      {/* ── Credentials FAB ── */}
       <button
         onClick={openCredentialsModal}
         className="fixed bottom-6 right-6 z-[150] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-[#0097b2] to-[#7ed957] text-white shadow-lg hover:scale-105 transition"
@@ -733,6 +893,7 @@ export default function ShopifyStoreManagerPage() {
         <span className="text-3xl leading-none">+</span>
       </button>
 
+      {/* ── Credentials Modal ── */}
       {isCredModalOpen && (
         <div
           className="fixed inset-0 z-[160] flex items-center justify-center bg-black/40"
@@ -899,21 +1060,17 @@ export default function ShopifyStoreManagerPage() {
       {oauthSuccess && (
         <div
           className="fixed inset-0 z-[170] flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setOauthSuccess(null)}
+          onClick={() => !isLinkingStore && setOauthSuccess(null)}
         >
           <div
             className="w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Green header bar */}
             <div className="h-2 w-full bg-gradient-to-r from-[#0097b2] to-[#7ed957]" />
-
             <div className="px-8 py-8 text-center">
-              {/* Big green tick */}
               <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-[#f0fdf4] border-4 border-[#bbf7d0]">
                 <Check className="size-10 text-[#16a34a] stroke-[2.5]" />
               </div>
-
               <h2 className="text-xl font-bold text-[#111827] mb-1">
                 Store Connected!
               </h2>
@@ -921,24 +1078,38 @@ export default function ShopifyStoreManagerPage() {
                 Your Shopify store has been successfully linked to Unicsi.
               </p>
 
-              {/* Details card */}
               <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-4 text-left space-y-3 mb-6">
+                {/* Store Name */}
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#dcfce7]">
+                    <Store className="size-3.5 text-[#16a34a]" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-[#9ca3af]">
+                      Store Name
+                    </p>
+                    <p className="text-sm font-semibold text-[#111827] break-all">
+                      {oauthSuccess.shopName}
+                    </p>
+                  </div>
+                </div>
+                <div className="border-t border-[#e5e7eb]" />
+                {/* Store URL */}
                 <div className="flex items-start gap-3">
                   <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#dcfce7]">
                     <ShoppingBag className="size-3.5 text-[#16a34a]" />
                   </span>
                   <div className="min-w-0">
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-[#9ca3af]">
-                      Shop
+                      Store URL
                     </p>
                     <p className="text-sm font-semibold text-[#111827] break-all">
-                      {oauthSuccess.shop}
+                      {oauthSuccess.shopUrl}
                     </p>
                   </div>
                 </div>
-
                 <div className="border-t border-[#e5e7eb]" />
-
+                {/* Access Token */}
                 <div className="flex items-start gap-3">
                   <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#dcfce7]">
                     <Check className="size-3.5 text-[#16a34a]" />
@@ -954,11 +1125,28 @@ export default function ShopifyStoreManagerPage() {
                 </div>
               </div>
 
+              {linkStoreError && (
+                <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-xs text-red-600 text-left">
+                  {linkStoreError}
+                </p>
+              )}
+
               <Button
-                className="w-full h-11 rounded-lg bg-gradient-to-r from-[#0097b2] to-[#7ed957] text-sm font-semibold text-white hover:opacity-90 transition-opacity"
-                onClick={() => setOauthSuccess(null)}
+                disabled={isLinkingStore}
+                className="w-full h-11 rounded-lg bg-gradient-to-r from-[#0097b2] to-[#7ed957] text-sm font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+                onClick={handleSaveLinkedStore}
               >
-                Done
+                {isLinkingStore ? (
+                  <>
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                    Saving…
+                  </>
+                ) : (
+                  <>
+                    <Check className="size-4" />
+                    OK
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -975,23 +1163,17 @@ export default function ShopifyStoreManagerPage() {
             className="w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Red header bar */}
             <div className="h-2 w-full bg-gradient-to-r from-[#e24b4a] to-[#f09595]" />
-
             <div className="px-8 py-8 text-center">
-              {/* Big red X */}
               <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-[#fcebeb] border-4 border-[#f7c1c1]">
                 <X className="size-10 text-[#a32d2d] stroke-[2.5]" />
               </div>
-
               <h2 className="text-xl font-bold text-[#111827] mb-1">
                 Connection Failed
               </h2>
               <p className="text-sm text-[#6b7280] mb-6">
                 We couldn't link your Shopify store. Please try again.
               </p>
-
-              {/* Error details card */}
               <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-4 text-left space-y-3 mb-6">
                 <div className="flex items-start gap-3">
                   <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#fee2e2]">
@@ -1007,7 +1189,6 @@ export default function ShopifyStoreManagerPage() {
                   </div>
                 </div>
               </div>
-
               <div className="flex gap-3">
                 <Button
                   variant="outline"
