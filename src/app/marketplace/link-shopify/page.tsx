@@ -1,35 +1,35 @@
-'use client'
+"use client";
 
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function Page() {
-  const router = useRouter()
-  const [isConnected, setIsConnected] = useState(false)
-  const [shop, setShop] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const router = useRouter();
+  const [isConnected, setIsConnected] = useState(false);
+  const [shop, setShop] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Check if user has a connected Shopify store
     const checkConnection = async () => {
       try {
-        const response = await fetch('/api/shopify/shop')
+        const response = await fetch("/api/shopify/shop");
         if (response.ok) {
-          const data = await response.json()
-          setIsConnected(true)
-          setShop(data.shop)
+          const data = await response.json();
+          setIsConnected(true);
+          setShop(data.shop);
         }
       } catch (error) {
-        console.error('Failed to check connection:', error)
+        console.error("Failed to check connection:", error);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    checkConnection()
-  }, [])
+    checkConnection();
+  }, []);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
@@ -51,9 +51,12 @@ export default function Page() {
               />
             </svg>
           </div>
-          <h1 className="text-4xl font-bold text-foreground mb-3">Shopify Store Manager</h1>
+          <h1 className="text-4xl font-bold text-foreground mb-3">
+            Shopify Store Manager
+          </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Manage your Shopify store seamlessly with secure OAuth authentication
+            Manage your Shopify store seamlessly with secure OAuth
+            authentication
           </p>
         </div>
 
@@ -87,9 +90,19 @@ export default function Page() {
                 </div>
 
                 <div>
-                  <h2 className="text-2xl font-bold text-foreground mb-2">Connected</h2>
+                  <h2 className="text-2xl font-bold text-foreground mb-2">
+                    Connected
+                  </h2>
                   <p className="text-muted-foreground">
-                    {shop && <span>Your store <span className="font-semibold text-foreground">{shop}</span> is connected and ready to use.</span>}
+                    {shop && (
+                      <span>
+                        Your store{" "}
+                        <span className="font-semibold text-foreground">
+                          {shop}
+                        </span>{" "}
+                        is connected and ready to use.
+                      </span>
+                    )}
                   </p>
                 </div>
 
@@ -98,22 +111,34 @@ export default function Page() {
                   <div className="flex gap-3 p-3 bg-secondary/30 rounded-lg">
                     <span className="text-accent font-bold">✓</span>
                     <div>
-                      <h3 className="font-semibold text-foreground text-sm">Secure Authentication</h3>
-                      <p className="text-xs text-muted-foreground">OAuth 2.0 with state validation</p>
+                      <h3 className="font-semibold text-foreground text-sm">
+                        Secure Authentication
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        OAuth 2.0 with state validation
+                      </p>
                     </div>
                   </div>
                   <div className="flex gap-3 p-3 bg-secondary/30 rounded-lg">
                     <span className="text-accent font-bold">✓</span>
                     <div>
-                      <h3 className="font-semibold text-foreground text-sm">Token Storage</h3>
-                      <p className="text-xs text-muted-foreground">Access token securely saved</p>
+                      <h3 className="font-semibold text-foreground text-sm">
+                        Token Storage
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        Access token securely saved
+                      </p>
                     </div>
                   </div>
                   <div className="flex gap-3 p-3 bg-secondary/30 rounded-lg">
                     <span className="text-accent font-bold">✓</span>
                     <div>
-                      <h3 className="font-semibold text-foreground text-sm">Ready to Integrate</h3>
-                      <p className="text-xs text-muted-foreground">Use token for API calls</p>
+                      <h3 className="font-semibold text-foreground text-sm">
+                        Ready to Integrate
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        Use token for API calls
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -126,7 +151,7 @@ export default function Page() {
                   <Button
                     variant="outline"
                     className="w-full h-11 text-base font-semibold"
-                    onClick={() => router.push('/marketplace/connect')}
+                    onClick={() => router.push("/marketplace/connect")}
                   >
                     Connect Another Store
                   </Button>
@@ -156,9 +181,12 @@ export default function Page() {
                 </div>
 
                 <div>
-                  <h2 className="text-2xl font-bold text-foreground mb-2">No Store Connected Yet</h2>
+                  <h2 className="text-2xl font-bold text-foreground mb-2">
+                    No Store Connected Yet
+                  </h2>
                   <p className="text-muted-foreground">
-                    Connect your Shopify store to get started managing your products and orders.
+                    Connect your Shopify store to get started managing your
+                    products and orders.
                   </p>
                 </div>
 
@@ -169,8 +197,12 @@ export default function Page() {
                       1
                     </div>
                     <div>
-                      <h3 className="font-semibold text-foreground">Enter Store URL</h3>
-                      <p className="text-sm text-muted-foreground">Provide your Shopify store domain</p>
+                      <h3 className="font-semibold text-foreground">
+                        Enter Store URL
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Provide your Shopify store domain
+                      </p>
                     </div>
                   </div>
                   <div className="flex gap-3">
@@ -178,8 +210,12 @@ export default function Page() {
                       2
                     </div>
                     <div>
-                      <h3 className="font-semibold text-foreground">Authorize with Shopify</h3>
-                      <p className="text-sm text-muted-foreground">Securely authenticate with your store</p>
+                      <h3 className="font-semibold text-foreground">
+                        Authorize with Shopify
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Securely authenticate with your store
+                      </p>
                     </div>
                   </div>
                   <div className="flex gap-3">
@@ -187,14 +223,21 @@ export default function Page() {
                       3
                     </div>
                     <div>
-                      <h3 className="font-semibold text-foreground">Token Saved</h3>
-                      <p className="text-sm text-muted-foreground">Your access token is stored securely</p>
+                      <h3 className="font-semibold text-foreground">
+                        Token Saved
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Your access token is stored securely
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 {/* CTA Button */}
-                <Button className="w-full h-11 text-base font-semibold my-button text-primary-foreground" onClick={() => router.push('/marketplace/connect')}>
+                <Button
+                  className="w-full h-11 text-base font-semibold my-button text-primary-foreground"
+                  onClick={() => router.push("/marketplace/connect")}
+                >
                   Connect Your Shopify Store
                 </Button>
               </div>
@@ -206,20 +249,33 @@ export default function Page() {
         <div className="mt-12 max-w-2xl mx-auto text-center">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <h3 className="font-semibold text-foreground mb-2">Secure OAuth 2.0</h3>
-              <p className="text-sm text-muted-foreground">Enterprise-grade authentication with state validation and CSRF protection</p>
+              <h3 className="font-semibold text-foreground mb-2">
+                Secure OAuth 2.0
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Enterprise-grade authentication with state validation and CSRF
+                protection
+              </p>
             </div>
             <div>
-              <h3 className="font-semibold text-foreground mb-2">Token Management</h3>
-              <p className="text-sm text-muted-foreground">Access tokens stored securely for seamless API integration</p>
+              <h3 className="font-semibold text-foreground mb-2">
+                Token Management
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Access tokens stored securely for seamless API integration
+              </p>
             </div>
             <div>
-              <h3 className="font-semibold text-foreground mb-2">Developer Friendly</h3>
-              <p className="text-sm text-muted-foreground">Easy to extend with your own custom features</p>
+              <h3 className="font-semibold text-foreground mb-2">
+                Developer Friendly
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Easy to extend with your own custom features
+              </p>
             </div>
           </div>
         </div>
       </div>
     </main>
-  )
+  );
 }
