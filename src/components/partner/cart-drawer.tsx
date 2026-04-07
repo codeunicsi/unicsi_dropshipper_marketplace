@@ -29,7 +29,7 @@ interface DrawerProduct {
 interface CartDrawerProps {
   onClose: () => void;
   selectedProduct: DrawerProduct | null;
-  response: PushToShopifyResponse | null;
+  response: any | null;
   isLoading: boolean;
   error: string | null;
   onRetry: () => void;
@@ -118,8 +118,9 @@ const CartDrawer = ({
   const [adSpendPerOrderInput, setAdSpendPerOrderInput] = useState<string>("");
   const [miscChargesInput, setMiscChargesInput] = useState<string>("");
   const { pushProductToShopify } = usePushToShopify();
-  const { data: productData } = useGetProductById(selectedProduct?.id);
-  // console.log("Selected Product ID:", selectedProduct?.id);
+  const productId = selectedProduct?.id ?? "";
+  const { data: productData } = useGetProductById(productId);
+  // console.log("Selected Product ID:", productId);
 
   const parseNumericInput = (value: string): number | null => {
     const normalized = value.replace(/[^0-9.]/g, "");
@@ -241,7 +242,6 @@ const handlePushToShopify = () => {
       access_token: "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",
       shop: "qwqs68-0w.myshopify.com",
       productData: productData?.data,
-      productId: ""
     },
     {
       onSuccess: (data) => {

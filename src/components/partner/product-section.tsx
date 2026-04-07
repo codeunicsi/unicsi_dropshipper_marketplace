@@ -92,7 +92,6 @@ function ProductsBlock({
   const handlePushToShopify = (product: UIProduct) => {
     setSelectedProduct(product);
     setIsCartOpen(true);
-    pushProductToShopify.mutate({ productId: product.id });
   };
 
   const resolvedResponse: PushToShopifyResponse | null = (() => {
@@ -171,7 +170,6 @@ function ProductsBlock({
           error={pushProductToShopify.error?.message ?? null}
           onRetry={() => {
             if (!selectedProduct) return;
-            pushProductToShopify.mutate({ productId: selectedProduct.id });
           }}
         />
       )}

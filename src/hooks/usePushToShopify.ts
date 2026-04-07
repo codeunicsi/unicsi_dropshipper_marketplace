@@ -5,9 +5,6 @@ import { apiClient } from "@/lib/api-client";
 
 const PUSH_TO_SHOPIFY_ENDPOINT = "dropshipper/shopify/push-product";
 
-export interface PushToShopifyPayload {
-  productId: string;
-}
 
 export interface ShopifyVariant {
   option1?: string;
@@ -37,6 +34,12 @@ export interface PushToShopifyPayload {
   access_token: string;
   shop: string;
   productData: any; // or define proper interface later
+}
+
+export interface PushToShopifyResponse {
+  success: boolean;
+  message: string;
+  productId?: string;
 }
 
 export const usePushToShopify = () => {
