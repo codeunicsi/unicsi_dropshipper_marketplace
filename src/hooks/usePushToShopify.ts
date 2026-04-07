@@ -33,20 +33,16 @@ export interface ShopifyProduct {
   images?: ShopifyImage[];
 }
 
-export interface PushToShopifyResponse {
-  access_token?: string;
-  shop?: string;
-  productData?: {
-    product?: ShopifyProduct;
-  };
+export interface PushToShopifyPayload {
+  access_token: string;
+  shop: string;
+  productData: any; // or define proper interface later
 }
 
 export const usePushToShopify = () => {
   const pushProductToShopify = useMutation({
     mutationFn: async (payload: PushToShopifyPayload) =>
-      apiClient.post(PUSH_TO_SHOPIFY_ENDPOINT, {
-        product_id: payload.productId,
-      }),
+      apiClient.post(PUSH_TO_SHOPIFY_ENDPOINT, payload), // ✅ send full payload directly
   });
 
   return {

@@ -15,7 +15,8 @@
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { Button } from "../ui/button";
-import { PushToShopifyResponse } from "@/hooks/usePushToShopify";
+import { usePushToShopify } from "@/hooks/usePushToShopify";
+import { useGetProductById } from "@/hooks/marketplace/useProduct";
 
 interface DrawerProduct {
   id: string;
@@ -116,6 +117,9 @@ const CartDrawer = ({
   const [deliveryRateInput, setDeliveryRateInput] = useState<string>("50%");
   const [adSpendPerOrderInput, setAdSpendPerOrderInput] = useState<string>("");
   const [miscChargesInput, setMiscChargesInput] = useState<string>("");
+  const { pushProductToShopify } = usePushToShopify();
+  const { data: productData } = useGetProductById(selectedProduct?.id);
+  // console.log("Selected Product ID:", selectedProduct?.id);
 
   const parseNumericInput = (value: string): number | null => {
     const normalized = value.replace(/[^0-9.]/g, "");
@@ -227,6 +231,28 @@ const CartDrawer = ({
     selectedProduct?.image ||
     product?.images?.[0]?.src ||
     "/images/vita-c.webp";
+
+const handlePushToShopify = () => {
+  console.log("Pushing product to Shopify:");
+  console.log("productData", productData);
+
+  pushProductToShopify.mutate(
+    {
+      access_token: "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",
+      shop: "qwqs68-0w.myshopify.com",
+      productData: productData?.data,
+      productId: ""
+    },
+    {
+      onSuccess: (data) => {
+        console.log("Success:", data);
+      },
+      onError: (error) => {
+        console.error("Error:", error);
+      },
+    }
+  );
+};
 
   return (
     <div className="fixed inset-0 z-50 flex">
@@ -387,11 +413,12 @@ const CartDrawer = ({
 
           <Button
             className="flex items-center justify-center w-full bg-black font-medium"
-            disabled={isLoading || !!error}
-            onClick={error ? onRetry : undefined}
+            style={{ border : "2px solid red"}}
+            // disabled={isLoading || !!error}
+            onClick={handlePushToShopify}
           >
             <ArrowUpRight />
-            {error ? "Retry Push To Shopify" : "Push To Shopify"}
+            <span>Push To Shopify</span>
           </Button>
         </div>
       </div>
@@ -485,6 +512,7 @@ const CartDrawer = ({
                 <button
                   type="button"
                   className="px-6 py-3 rounded-xs border border-slate-300 text-slate-400 text-base font-semibold flex items-center gap-3"
+                  onClick={handlePushToShopify}
                 >
                   <ArrowUpRight className="w-6 h-6" />
                   Push To Shopify

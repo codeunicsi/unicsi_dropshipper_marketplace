@@ -131,6 +131,7 @@ export const useGetAllProducts = () => {
 };
 
 export const useGetProductById = (productId: string) => {
+  console.log("Fetching product with ID:", productId);
   return useQuery<GetProductResponse>({
     queryKey: ["product", productId],
     queryFn: async () =>
