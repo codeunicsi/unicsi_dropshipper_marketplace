@@ -18,6 +18,7 @@ import { Button } from "../ui/button";
 import { usePushToShopify } from "@/hooks/usePushToShopify";
 import { useGetProductById } from "@/hooks/marketplace/useProduct";
 import { apiClient } from "@/hooks/marketplace/useShopifySecret";
+import { useRouter } from "next/navigation";
 
 interface DrawerProduct {
   id: string;
@@ -98,6 +99,7 @@ const CartDrawer = ({
   const [isEarningsOpen, setIsEarningsOpen] = useState(false);
   const [isSpendsOpen, setIsSpendsOpen] = useState(false);
   const [defaultStore, setDefaultStore] = useState<ApiStore | null>(null);
+  const router = useRouter();
 
   const product = response?.productData?.product;
   const firstVariant = product?.variants?.[0];
@@ -287,6 +289,8 @@ const CartDrawer = ({
       {
         onSuccess: (data) => {
           console.log("Success:", data);
+          onClose();
+          router.push("/marketplace");
         },
         onError: (error) => {
           console.error("Error:", error);
