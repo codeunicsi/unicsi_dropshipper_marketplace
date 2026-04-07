@@ -68,7 +68,7 @@ const orders: OrderRow[] = [
   },
 ];
 
-const webhooks: WebhookRow[] = [
+const initialWebhooks: WebhookRow[] = [
   {
     topic: "orders/create",
     endpoint: "/api/dropshipper/shopify/webhook/orders",
@@ -156,6 +156,7 @@ function SummaryCard({
 export default function OrdersPage() {
   const [activeTab, setActiveTab] = useState<PanelTab>("orders");
   const [search, setSearch] = useState("");
+  const [webhookRows, setWebhookRows] = useState<WebhookRow[]>(initialWebhooks);
 
   const filteredOrders = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -339,7 +340,7 @@ export default function OrdersPage() {
               </div>
 
               <div className="rounded-xl border border-[#ddddda] bg-white">
-                {webhooks.map((row) => (
+                {webhookRows.map((row) => (
                   <div
                     key={row.topic}
                     className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e7e7e2] px-4 py-3 last:border-b-0"
@@ -369,9 +370,30 @@ export default function OrdersPage() {
 
                       <button
                         type="button"
-                        className="h-9 w-14 rounded-full border border-[#c9c9c4] bg-[#f8f8f6]"
+                        role="switch"
+                        aria-checked={row.registered}
                         aria-label={`Toggle ${row.topic}`}
-                      />
+                        onClick={() => {
+                          setWebhookRows((prev) =>
+                            prev.map((item) =>
+                              item.topic === row.topic
+                                ? { ...item, registered: !item.registered }
+                                : item,
+                            ),
+                          );
+                        }}
+                        className={`relative h-7 w-12 rounded-full border transition-colors ${
+                          row.registered
+                            ? "border-[#9fcb86] bg-[#dceecd]"
+                            : "border-[#c9c9c4] bg-[#f8f8f6]"
+                        }`}
+                      >
+                        <span
+                          className={`absolute top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-white shadow-sm transition-all ${
+                            row.registered ? "left-6" : "left-1"
+                          }`}
+                        />
+                      </button>
                     </div>
                   </div>
                 ))}
