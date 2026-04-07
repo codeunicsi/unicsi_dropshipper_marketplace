@@ -346,9 +346,7 @@ export default function OrdersPage() {
                           <p className="text-xs leading-tight font-semibold text-[#222]">
                             {order.id}
                           </p>
-                          <p className="text-base text-[#4f4f4a]">
-                            {order.date}
-                          </p>
+                          <p className="text-xs text-[#4f4f4a]">{order.date}</p>
                         </td>
                         <td className="px-4 py-4 align-top">
                           <p className="text-xs leading-tight font-medium text-[#222]">
