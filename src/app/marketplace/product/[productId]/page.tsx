@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import {
   ArrowUpRight,
   CopyIcon,
@@ -11,24 +11,33 @@ import {
   ShieldCheck,
   Truck,
   RotateCcw,
-  CheckCircle2,
-  AlertCircle,
   Info,
   Hash,
   Boxes,
   Ruler,
   Weight,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import AdditionalInfoDropdown from "@/components/partner/additional-info-dropdown";
 import ProductDetailBanner from "@/components/partner/product-detail-banner";
 import DownloadMediaDropdown from "@/components/partner/download-media-dropdown";
 import { useGetProductById } from "@/hooks/marketplace/useProduct";
 import { UnicsiLoader } from "@/components/partner/unicsi-loader";
+import { usePushToShopify } from "@/hooks/usePushToShopify";
+import { apiClient } from "@/hooks/marketplace/useShopifySecret";
 
 type ProductDetailPageProps = {
   params: Promise<{
     productId: string;
   }>;
+};
+
+type ApiStore = {
+  store_name: string;
+  store_url: string;
+  access_token?: string;
+  is_default?: boolean;
+  installed_at: string;
 };
 
 /* ─── helpers ──────────────────────────────────────────────── */
@@ -76,6 +85,57 @@ function InfoRow({
 
 /* ─── ProductInfo card ──────────────────────────────────────── */
 export function ProductInfo({ product }: { product: any }) {
+  const router = useRouter();
+  const { pushProductToShopify } = usePushToShopify();
+  const [defaultStore, setDefaultStore] = useState<ApiStore | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  useEffect(() => {
+    const fetchDefaultStore = async () => {
+      try {
+        const response = await apiClient.get(
+          "dropshipper/shopify/access-token",
+        );
+        const list: ApiStore[] = Array.isArray(response)
+          ? response
+          : Array.isArray(response?.data)
+            ? response.data
+            : [];
+        const store = list.find((s) => s.is_default) ?? list[0] ?? null;
+        setDefaultStore(store);
+      } catch (err) {
+        console.error("Failed to fetch Shopify stores:", err);
+      }
+    };
+    fetchDefaultStore();
+  }, []);
+
+  const handlePushToShopify = () => {
+    if (!defaultStore?.access_token || !defaultStore?.store_url) {
+      console.error("No linked Shopify store found.");
+      return;
+    }
+    pushProductToShopify.mutate(
+      {
+        access_token: defaultStore.access_token,
+        shop: defaultStore.store_url,
+        productData: product,
+        productId: "",
+      },
+      {
+        onSuccess: (data) => {
+          console.log("Success:", data);
+
+          setShowSuccess(true); // show UI first
+
+          setTimeout(() => {
+            router.push("/marketplace"); // then redirect
+          }, 1200); // delay so user can see message
+        },
+      },
+    );
+  };
+
   const variant = product.variants?.find((v: any) => v.is_active);
   const price = Number(variant?.price ?? product.mrp ?? 0);
   const mrp = Number(product.mrp ?? 0);
@@ -191,9 +251,23 @@ export function ProductInfo({ product }: { product: any }) {
           </div>
         </div>
 
-        <button className="w-full bg-black text-white py-3 rounded-lg flex justify-center gap-2 hover:bg-slate-800 transition-colors">
-          <ArrowUpRight className="w-5 h-5" />
-          Push To Shopify
+        {/* Push To Shopify button */}
+        <button
+          onClick={handlePushToShopify}
+          disabled={pushProductToShopify.isPending}
+          className="w-full bg-black text-white py-3 rounded-lg flex justify-center items-center gap-2 hover:bg-slate-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {pushProductToShopify.isPending ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Pushing…
+            </>
+          ) : (
+            <>
+              <ArrowUpRight className="w-5 h-5" />
+              Push To Shopify
+            </>
+          )}
         </button>
       </div>
 
@@ -248,6 +322,37 @@ export function ProductInfo({ product }: { product: any }) {
               variant.compare_at_price ? `₹${variant.compare_at_price}` : "—"
             }
           />
+        </div>
+      )}
+      {showSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-xl px-8 py-6 flex flex-col items-center gap-4 animate-fadeIn">
+            {/* Icon */}
+            <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
+              <svg
+                className="w-8 h-8 text-green-600"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={3}
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+
+            {/* Text */}
+            <h2 className="text-lg font-semibold text-slate-900">
+              Product Added Successfully 🎉
+            </h2>
+
+            <p className="text-sm text-slate-500 text-center">
+              Your product has been pushed to Shopify.
+            </p>
+          </div>
         </div>
       )}
     </div>
