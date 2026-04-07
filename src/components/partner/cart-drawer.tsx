@@ -99,6 +99,8 @@ const CartDrawer = ({
   const [isEarningsOpen, setIsEarningsOpen] = useState(false);
   const [isSpendsOpen, setIsSpendsOpen] = useState(false);
   const [defaultStore, setDefaultStore] = useState<ApiStore | null>(null);
+  const [isFetchingStore, setIsFetchingStore] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const router = useRouter();
 
   const product = response?.productData?.product;
@@ -145,21 +147,25 @@ const CartDrawer = ({
   useEffect(() => {
     const fetchDefaultStore = async () => {
       try {
+        setIsFetchingStore(true); // ✅ start loading
+
         const response = await apiClient.get(
           "dropshipper/shopify/access-token",
         );
+
         const list: ApiStore[] = Array.isArray(response)
           ? response
           : Array.isArray(response?.data)
             ? response.data
             : [];
 
-        // Use default store, fallback to first store
         const store = list.find((s) => s.is_default) ?? list[0] ?? null;
-        console.log("store", store);
+
         setDefaultStore(store);
       } catch (err) {
         console.error("Failed to fetch Shopify stores:", err);
+      } finally {
+        setIsFetchingStore(false); // ✅ stop loading
       }
     };
 
@@ -289,8 +295,14 @@ const CartDrawer = ({
       {
         onSuccess: (data) => {
           console.log("Success:", data);
-          onClose();
-          router.push("/marketplace");
+
+          setShowSuccess(true);
+
+          setTimeout(() => {
+            router.push("/marketplace");
+            setShowSuccess(false);
+            onClose();
+          }, 1200);
         },
         onError: (error) => {
           console.error("Error:", error);
@@ -459,11 +471,22 @@ const CartDrawer = ({
           <Button
             className="flex items-center justify-center w-full bg-black font-medium"
             style={{ border: "2px solid red" }}
-            // disabled={isLoading || !!error}
+            disabled={
+              isLoading ||
+              isFetchingStore ||
+              pushProductToShopify.isPending ||
+              !defaultStore
+            }
             onClick={handlePushToShopify}
           >
             <ArrowUpRight />
-            <span>Push To Shopify</span>
+            <span>
+              {isFetchingStore
+                ? "Fetching Store..."
+                : pushProductToShopify.isPending
+                  ? "Pushing..."
+                  : "Push To Shopify"}
+            </span>
           </Button>
         </div>
       </div>
@@ -553,15 +576,6 @@ const CartDrawer = ({
                     </div>
                   </div>
                 </div>
-
-                <button
-                  type="button"
-                  className="px-6 py-3 rounded-xs border border-slate-300 text-slate-400 text-base font-semibold flex items-center gap-3"
-                  onClick={handlePushToShopify}
-                >
-                  <ArrowUpRight className="w-6 h-6" />
-                  Push To Shopify
-                </button>
               </div>
 
               <div className="border-y border-slate-200 py-4 flex items-center gap-4 text-sm">
@@ -902,6 +916,37 @@ const CartDrawer = ({
                 calculations.
               </p>
             </div>
+          </div>
+        </div>
+      )}
+      {showSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-xl px-8 py-6 flex flex-col items-center gap-4 animate-fadeIn">
+            {/* Icon */}
+            <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
+              <svg
+                className="w-8 h-8 text-green-600"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={3}
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+
+            {/* Text */}
+            <h2 className="text-lg font-semibold text-slate-900">
+              Product Added Successfully 🎉
+            </h2>
+
+            <p className="text-sm text-slate-500 text-center">
+              Your product has been pushed to Shopify.
+            </p>
           </div>
         </div>
       )}
