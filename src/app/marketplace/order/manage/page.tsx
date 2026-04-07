@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowUpRight,
   Check,
@@ -21,7 +21,7 @@ type OrderRow = {
   amount: string;
   shipping: string;
   payment: "COD" | "Prepaid";
-  status: "Pending" | "Fulfilled";
+  status: "Pending" | "Paid" | "Fulfilled" | "Cancelled";
 };
 
 type WebhookRow = {
@@ -42,6 +42,14 @@ const tabs: Array<{ value: PanelTab; label: string }> = [
   { value: "webhooks", label: "Webhooks" },
   { value: "setup", label: "Setup guide" },
 ];
+
+const orderStatusOptions = [
+  "All statuses",
+  "Pending",
+  "Paid",
+  "Fulfilled",
+  "Cancelled",
+] as const;
 
 const orders: OrderRow[] = [
   {
@@ -156,20 +164,43 @@ function SummaryCard({
 export default function OrdersPage() {
   const [activeTab, setActiveTab] = useState<PanelTab>("orders");
   const [search, setSearch] = useState("");
+  const [selectedStatus, setSelectedStatus] =
+    useState<(typeof orderStatusOptions)[number]>("All statuses");
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+  const statusDropdownRef = useRef<HTMLDivElement | null>(null);
   const [webhookRows, setWebhookRows] = useState<WebhookRow[]>(initialWebhooks);
 
   const filteredOrders = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return orders;
-
     return orders.filter((order) => {
-      return (
+      const matchesSearch =
+        !query ||
         order.id.toLowerCase().includes(query) ||
         order.customer.toLowerCase().includes(query) ||
-        order.contact.toLowerCase().includes(query)
-      );
+        order.contact.toLowerCase().includes(query);
+
+      const matchesStatus =
+        selectedStatus === "All statuses" || order.status === selectedStatus;
+
+      return matchesSearch && matchesStatus;
     });
-  }, [search]);
+  }, [search, selectedStatus]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        statusDropdownRef.current &&
+        !statusDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsStatusDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   return (
     <div className="mx-auto w-full max-w-7xl p-6">
@@ -251,13 +282,46 @@ export default function OrdersPage() {
                   className="h-12 w-full max-w-107.5 rounded-xl border border-[#d8d8d3] bg-white px-4 text-sm text-[#313131] outline-none placeholder:text-[#8a8a84]"
                 />
 
-                <button
-                  type="button"
-                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-[#d8d8d3] bg-white px-4 text-sm text-[#2f2f2f]"
-                >
-                  All statuses
-                  <ChevronDown className="h-4 w-4" />
-                </button>
+                <div className="relative" ref={statusDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setIsStatusDropdownOpen((previousState) => !previousState)
+                    }
+                    className="inline-flex h-10 min-w-40 items-center justify-between gap-2 rounded-xl border border-[#d8d8d3] bg-white px-4 text-sm text-[#2f2f2f]"
+                  >
+                    {selectedStatus}
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform ${
+                        isStatusDropdownOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {isStatusDropdownOpen && (
+                    <div className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-2xl border border-[#d8d8d3] bg-white shadow-sm">
+                      {orderStatusOptions.map((status) => {
+                        const isSelected = selectedStatus === status;
+                        return (
+                          <button
+                            key={status}
+                            type="button"
+                            onClick={() => {
+                              setSelectedStatus(status);
+                              setIsStatusDropdownOpen(false);
+                            }}
+                            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-[#2f2f2f] hover:bg-[#f5f5f3]"
+                          >
+                            <span className="inline-flex w-4 justify-center text-base leading-none">
+                              {isSelected ? "✓" : ""}
+                            </span>
+                            <span>{status}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="overflow-hidden rounded-xl border border-[#dcdcd7] bg-white">
