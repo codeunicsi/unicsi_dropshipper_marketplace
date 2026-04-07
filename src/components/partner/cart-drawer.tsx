@@ -17,6 +17,7 @@ import React, { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { usePushToShopify } from "@/hooks/usePushToShopify";
 import { useGetProductById } from "@/hooks/marketplace/useProduct";
+import { apiClient } from "@/hooks/marketplace/useShopifySecret";
 
 interface DrawerProduct {
   id: string;
@@ -34,6 +35,15 @@ interface CartDrawerProps {
   error: string | null;
   onRetry: () => void;
 }
+
+type ApiStore = {
+  id?: number;
+  store_name: string;
+  store_url: string;
+  access_token?: string;
+  is_default?: boolean;
+  installed_at: string;
+};
 
 const CartItem = ({
   name,
@@ -87,6 +97,7 @@ const CartDrawer = ({
   const [isOrdersOpen, setIsOrdersOpen] = useState(false);
   const [isEarningsOpen, setIsEarningsOpen] = useState(false);
   const [isSpendsOpen, setIsSpendsOpen] = useState(false);
+  const [defaultStore, setDefaultStore] = useState<ApiStore | null>(null);
 
   const product = response?.productData?.product;
   const firstVariant = product?.variants?.[0];
@@ -128,6 +139,30 @@ const CartDrawer = ({
     const parsed = Number(normalized);
     return Number.isFinite(parsed) ? parsed : null;
   };
+
+  useEffect(() => {
+    const fetchDefaultStore = async () => {
+      try {
+        const response = await apiClient.get(
+          "dropshipper/shopify/access-token",
+        );
+        const list: ApiStore[] = Array.isArray(response)
+          ? response
+          : Array.isArray(response?.data)
+            ? response.data
+            : [];
+
+        // Use default store, fallback to first store
+        const store = list.find((s) => s.is_default) ?? list[0] ?? null;
+        console.log("store", store);
+        setDefaultStore(store);
+      } catch (err) {
+        console.error("Failed to fetch Shopify stores:", err);
+      }
+    };
+
+    fetchDefaultStore();
+  }, []);
 
   useEffect(() => {
     setSellingPrice(cloutPrice);
@@ -233,26 +268,32 @@ const CartDrawer = ({
     product?.images?.[0]?.src ||
     "/images/vita-c.webp";
 
-const handlePushToShopify = () => {
-  console.log("Pushing product to Shopify:");
-  console.log("productData", productData);
-
-  pushProductToShopify.mutate(
-    {
-      access_token: "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",
-      shop: "qwqs68-0w.myshopify.com",
-      productData: productData?.data,
-    },
-    {
-      onSuccess: (data) => {
-        console.log("Success:", data);
-      },
-      onError: (error) => {
-        console.error("Error:", error);
-      },
+  const handlePushToShopify = () => {
+    if (!defaultStore?.access_token || !defaultStore?.store_url) {
+      console.error("No linked Shopify store found.");
+      return;
     }
-  );
-};
+
+    console.log("Pushing product to Shopify:");
+    console.log("productData", productData);
+
+    pushProductToShopify.mutate(
+      {
+        access_token: defaultStore.access_token,
+        shop: defaultStore.store_url,
+        productData: productData?.data,
+        productId: "",
+      },
+      {
+        onSuccess: (data) => {
+          console.log("Success:", data);
+        },
+        onError: (error) => {
+          console.error("Error:", error);
+        },
+      },
+    );
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex">
@@ -277,7 +318,7 @@ const handlePushToShopify = () => {
             <SectionTitle icon={Store} title="Store" />
             <div className="flex justify-between gap-2">
               <span className="text-sm text-slate-900">
-                {response?.shop || "test2-12412412125457568973.myshopify.com"}
+                {response?.shop || defaultStore?.store_url || "No store linked"}
               </span>
             </div>
           </div>
@@ -413,7 +454,7 @@ const handlePushToShopify = () => {
 
           <Button
             className="flex items-center justify-center w-full bg-black font-medium"
-            style={{ border : "2px solid red"}}
+            style={{ border: "2px solid red" }}
             // disabled={isLoading || !!error}
             onClick={handlePushToShopify}
           >
