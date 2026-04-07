@@ -22,6 +22,8 @@ import {
   GraduationCap,
   MessageSquare,
   HelpCircle,
+  ScrollText,
+  Headphones,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -111,11 +113,11 @@ const menuItems = [
     href: "/marketplace/payments",
   },
   {
-    icon: Settings,
+    icon: ScrollText,
     label: "GST Invoices",
     href: "/marketplace/gst-invoices",
   },
-  { icon: HelpCircle, label: "Support", href: "/marketplace/support" },
+  { icon: Headphones, label: "Support", href: "/marketplace/support" },
   {
     icon: HelpCircle,
     label: "FAQs",
