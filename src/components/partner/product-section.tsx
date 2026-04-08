@@ -26,7 +26,7 @@ type UIProduct = {
   price: number;
   image: string;
   weightGrams?: number;
-  stock?: number;
+  stock?: any;
   color?: string;
   size?: string;
   inStock?: boolean;
@@ -35,23 +35,19 @@ type UIProduct = {
 // ✅ Transform
 const transformProducts = (products: Product[]): UIProduct[] => {
   return products.map((product) => {
-    const variant = product.variants?.find((v) => v.is_active);
+    const firstVariant = product.variants?.[0]; // ✅ FIRST VARIANT
     const image = product.images?.[0];
-    const totalInventory = (product.variants ?? []).reduce(
-      (sum, v) => sum + (v.inventory_quantity ?? 0),
-      0,
-    );
 
     return {
       id: product.product_id,
       name: product.title,
-      price: Number(variant?.price ?? 0),
+      price: Number(firstVariant?.price ?? 0),
       image: image?.image_url || "/placeholder.png",
-      weightGrams: Number(variant?.weight_grams ?? 0),
-      stock: variant?.inventory_quantity ?? 0,
-      color: variant?.option1 ?? "",
-      size: variant?.option2 ?? "",
-      inStock: totalInventory > 0,
+      weightGrams: Number(firstVariant?.weight_grams ?? 0),
+      stock: firstVariant?.inventory_quantity ?? 0, // ✅ FIXED
+      color: firstVariant?.option1 ?? "",
+      size: firstVariant?.option2 ?? "",
+      inStock: (firstVariant?.inventory_quantity ?? 0) > 0, // ✅ FIXED
     };
   });
 };

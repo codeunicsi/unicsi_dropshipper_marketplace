@@ -15,6 +15,7 @@ interface ProductCardProps {
   reviews?: number;
   inStock?: boolean;
   size?: string;
+  stock?: number;
   onPushToShopify?: () => void;
   onBulkOrder?: () => void;
 }
@@ -27,6 +28,7 @@ export default function ProductCard({
   size,
   inStock = true,
   onPushToShopify,
+  stock,
 }: ProductCardProps) {
   const router = useRouter();
 
@@ -107,9 +109,24 @@ export default function ProductCard({
               <span>2.5k sold</span>
             </div> */}
 
-            <div className="flex items-center gap-1">
-              <Heart className="w-4 h-4" />
-              <span>{size}</span>
+            <div className="flex items-center gap-20 text-xs text-slate-600 py-2 border-t border-b border-slate-100">
+              {/* Size */}
+              <div className="flex items-center gap-1">
+                <span className="font-medium text-slate-700">Size:</span>
+                <span>{size || "-"}</span>
+              </div>
+
+              {/* Stock */}
+              <div className="flex items-center gap-1">
+                <span className="font-medium text-slate-700">Stock:</span>
+                <span
+                  className={`font-semibold ${
+                    stock && stock > 0 ? "text-green-600" : "text-red-500"
+                  }`}
+                >
+                  {stock ?? 0}
+                </span>
+              </div>
             </div>
           </div>
         </div>
