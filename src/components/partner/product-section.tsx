@@ -12,13 +12,13 @@ import {
   usePushToShopify,
 } from "@/hooks/usePushToShopify";
 
-const PRODUCT_TABS = [
-  "Push to Shopify",
-  "Inventory Request",
-  "Potential Heroes",
-  "Hot Selling Products",
-  "Popular Demand",
-];
+// const PRODUCT_TABS = [
+//   "Push to Shopify",
+//   "Inventory Request",
+//   "Potential Heroes",
+//   "Hot Selling Products",
+//   "Popular Demand",
+// ];
 
 type UIProduct = {
   id: string;
@@ -29,6 +29,7 @@ type UIProduct = {
   stock?: number;
   color?: string;
   size?: string;
+  inStock?: boolean;
 };
 
 // ✅ Transform
@@ -36,6 +37,10 @@ const transformProducts = (products: Product[]): UIProduct[] => {
   return products.map((product) => {
     const variant = product.variants?.find((v) => v.is_active);
     const image = product.images?.[0];
+    const totalInventory = (product.variants ?? []).reduce(
+      (sum, v) => sum + (v.inventory_quantity ?? 0),
+      0,
+    );
 
     return {
       id: product.product_id,
@@ -46,6 +51,7 @@ const transformProducts = (products: Product[]): UIProduct[] => {
       stock: variant?.inventory_quantity ?? 0,
       color: variant?.option1 ?? "",
       size: variant?.option2 ?? "",
+      inStock: totalInventory > 0,
     };
   });
 };
@@ -128,7 +134,7 @@ function ProductsBlock({
       </div>
 
       {/* Tabs */}
-      {showTabs && (
+      {/* {showTabs && (
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
           {PRODUCT_TABS.map((tab, index) => (
             <button
@@ -144,21 +150,23 @@ function ProductsBlock({
             </button>
           ))}
         </div>
-      )}
+      )} */}
 
       {/* Products */}
       <div
         ref={scrollRef}
         className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
       >
-        {products.map((product) => (
-          <ProductCard
-            key={product.id}
-            {...product}
-            onPushToShopify={() => handlePushToShopify(product)}
-            onBulkOrder={() => handleBulkOrder(product)}
-          />
-        ))}
+        {products.map((product) => {
+          return (
+            <ProductCard
+              key={product.id}
+              {...product}
+              onPushToShopify={() => handlePushToShopify(product)}
+              onBulkOrder={() => handleBulkOrder(product)}
+            />
+          );
+        })}
       </div>
 
       {isCartOpen && (

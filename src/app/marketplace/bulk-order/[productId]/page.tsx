@@ -96,6 +96,7 @@ export default function BulkOrderPage() {
   const [isOrderPlacedModalOpen, setIsOrderPlacedModalOpen] = useState(false);
   const [orderError, setOrderError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [gstNumber, setGstNumber] = useState("");
 
   // ── Admin payment details ────────────────────────────────────────────────
   const adminPaymentDetails = useMemo(() => {
@@ -183,6 +184,7 @@ export default function BulkOrderPage() {
         transactionReference: transactionId.trim(),
         amount: pricing.totalAmount,
         paymentScreenshot,
+        gstNumber,
       });
 
       setIsPaymentModalOpen(false);
@@ -320,6 +322,16 @@ export default function BulkOrderPage() {
                   onChange={(e) => setDeliveryAddress(e.target.value)}
                   placeholder="House, street, city, state, pincode"
                   rows={4}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="gstNumber">GST Number</Label>
+                <Input
+                  id="gstNumber"
+                  value={gstNumber}
+                  onChange={(e) => setGstNumber(e.target.value)}
+                  placeholder="Enter GST number"
                 />
               </div>
 
