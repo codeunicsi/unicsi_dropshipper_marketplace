@@ -6,10 +6,9 @@ import {
   Check,
   ChevronDown,
   Dot,
-  Ellipsis,
   RefreshCcw,
 } from "lucide-react";
-
+import { useSyncOrders } from "@/hooks/useSyncOrders";
 type PanelTab = "orders" | "webhooks" | "setup";
 
 type OrderRow = {
@@ -19,8 +18,9 @@ type OrderRow = {
   contact: string;
   product: string;
   amount: string;
+  amountValue: number;
   shipping: string;
-  payment: "COD" | "Prepaid";
+  payment: string;
   status: "Pending" | "Paid" | "Fulfilled" | "Cancelled";
 };
 
@@ -51,7 +51,7 @@ const orderStatusOptions = [
   "Cancelled",
 ] as const;
 
-const orders: OrderRow[] = [
+const fallbackOrders: OrderRow[] = [
   {
     id: "#1002",
     date: "7 Apr 2026",
@@ -59,6 +59,7 @@ const orders: OrderRow[] = [
     contact: "+91 92207 74381",
     product: "Electric fan green / s / cotton",
     amount: "Rs 1,559",
+    amountValue: 1559,
     shipping: "+Rs 379 ship",
     payment: "COD",
     status: "Pending",
@@ -70,6 +71,7 @@ const orders: OrderRow[] = [
     contact: "asid@gmail.com",
     product: "Electric fan green / s / cotton",
     amount: "Rs 1,559",
+    amountValue: 1559,
     shipping: "+Rs 379 ship",
     payment: "COD",
     status: "Pending",
@@ -140,6 +142,128 @@ const setupSteps: SetupStep[] = [
   },
 ];
 
+const formatInr = (value: number) =>
+  new Intl.NumberFormat("en-IN", {
+    maximumFractionDigits: 0,
+  }).format(value);
+
+const normalizeStatus = (value: unknown): OrderRow["status"] => {
+  const normalized = String(value ?? "")
+    .trim()
+    .toLowerCase();
+
+  if (normalized.includes("fulfill")) return "Fulfilled";
+  if (normalized.includes("cancel")) return "Cancelled";
+  if (normalized.includes("paid")) return "Paid";
+  return "Pending";
+};
+
+const extractOrderArray = (payload: any): any[] => {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== "object") return [];
+
+  if (Array.isArray(payload.orders)) return payload.orders;
+  if (Array.isArray(payload.rows)) return payload.rows;
+  if (Array.isArray(payload.data)) return payload.data;
+  if (payload.data && Array.isArray(payload.data.orders))
+    return payload.data.orders;
+  if (payload.data && Array.isArray(payload.data.rows))
+    return payload.data.rows;
+  return [];
+};
+
+const normalizeApiOrders = (payload: any): OrderRow[] => {
+  const rows = extractOrderArray(payload);
+
+  return rows.map((row: any, index: number) => {
+    const customerFirst = String(row?.customer?.first_name ?? "").trim();
+    const customerLast = String(row?.customer?.last_name ?? "").trim();
+    const customerName = `${customerFirst} ${customerLast}`.trim();
+    const customer =
+      customerName ||
+      String(row?.customer_name ?? row?.customer?.name ?? "Unknown Customer");
+
+    const contact = String(
+      row?.customer?.phone ??
+        row?.customer?.email ??
+        row?.email ??
+        row?.phone ??
+        "-",
+    );
+
+    const lineItem = Array.isArray(row?.line_items) ? row.line_items[0] : null;
+    const product = String(
+      lineItem?.title ?? row?.product_name ?? row?.product ?? "-",
+    );
+
+    const amountValue = Number(
+      row?.total_price ??
+        row?.amount ??
+        row?.total_amount ??
+        row?.total ??
+        row?.price ??
+        0,
+    );
+
+    const shippingValue = Number(
+      row?.shipping_price ??
+        row?.shipping_charges ??
+        (Array.isArray(row?.shipping_lines)
+          ? row.shipping_lines[0]?.price
+          : 0) ??
+        0,
+    );
+
+    const paymentRaw = String(
+      row?.payment_method ??
+        row?.financial_status ??
+        row?.gateway ??
+        row?.payment ??
+        "COD",
+    );
+    const payment =
+      paymentRaw.toLowerCase().includes("cod") ||
+      paymentRaw.toLowerCase().includes("cash")
+        ? "COD"
+        : "Prepaid";
+
+    const orderNo = String(
+      row?.name ??
+        row?.order_number ??
+        row?.id ??
+        row?.shopify_order_id ??
+        index + 1,
+    );
+    const id = orderNo.startsWith("#") ? orderNo : `#${orderNo}`;
+
+    const dateSource =
+      row?.created_at ?? row?.order_date ?? row?.createdAt ?? row?.date;
+    const formattedDate = dateSource
+      ? new Date(dateSource).toLocaleDateString("en-IN", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })
+      : "-";
+
+    return {
+      id,
+      date: formattedDate,
+      customer,
+      contact,
+      product,
+      amount: `Rs ${formatInr(amountValue)}`,
+      amountValue,
+      shipping:
+        shippingValue > 0 ? `+Rs ${formatInr(shippingValue)} ship` : "-",
+      payment,
+      status: normalizeStatus(
+        row?.status ?? row?.fulfillment_status ?? row?.financial_status,
+      ),
+    } as OrderRow;
+  });
+};
+
 function SummaryCard({
   label,
   value,
@@ -162,8 +286,10 @@ function SummaryCard({
 }
 
 export default function OrdersPage() {
+  const { syncOrders } = useSyncOrders();
   const [activeTab, setActiveTab] = useState<PanelTab>("orders");
   const [search, setSearch] = useState("");
+  const [orderRows, setOrderRows] = useState<OrderRow[]>(fallbackOrders);
   const [selectedStatus, setSelectedStatus] =
     useState<(typeof orderStatusOptions)[number]>("All statuses");
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
@@ -172,7 +298,7 @@ export default function OrdersPage() {
 
   const filteredOrders = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return orders.filter((order) => {
+    return orderRows.filter((order) => {
       const matchesSearch =
         !query ||
         order.id.toLowerCase().includes(query) ||
@@ -184,7 +310,28 @@ export default function OrdersPage() {
 
       return matchesSearch && matchesStatus;
     });
-  }, [search, selectedStatus]);
+  }, [search, selectedStatus, orderRows]);
+
+  const summary = useMemo(() => {
+    const totalOrders = orderRows.length;
+    const pendingOrders = orderRows.filter(
+      (row) => row.status === "Pending",
+    ).length;
+    const fulfilledOrders = orderRows.filter(
+      (row) => row.status === "Fulfilled",
+    ).length;
+    const revenue = orderRows.reduce(
+      (sum, row) => sum + (row.amountValue || 0),
+      0,
+    );
+
+    return {
+      totalOrders,
+      pendingOrders,
+      fulfilledOrders,
+      revenue,
+    };
+  }, [orderRows]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -200,6 +347,22 @@ export default function OrdersPage() {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
+  }, []);
+
+  const handleSyncOrders = async () => {
+    try {
+      const response = await syncOrders.mutateAsync();
+      const normalizedOrders = normalizeApiOrders(response);
+      setOrderRows(normalizedOrders);
+    } catch (error) {
+      console.error("Failed to sync orders", error);
+    }
+  };
+
+  useEffect(() => {
+    handleSyncOrders();
+    // We only want an initial sync once on first render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -223,10 +386,14 @@ export default function OrdersPage() {
 
             <button
               type="button"
+              onClick={handleSyncOrders}
+              disabled={syncOrders.isPending}
               className="inline-flex items-center gap-2 rounded-2xl border border-[#d5d5d0] bg-white px-5 py-3 text-sm font-medium text-[#222]"
             >
-              <RefreshCcw className="h-5 w-5" />
-              Sync now
+              <RefreshCcw
+                className={`h-5 w-5 ${syncOrders.isPending ? "animate-spin" : ""}`}
+              />
+              {syncOrders.isPending ? "Syncing..." : "Sync now"}
             </button>
 
             <button
@@ -238,19 +405,31 @@ export default function OrdersPage() {
           </div>
         </header>
 
+        {syncOrders.isError && (
+          <p className="mt-2 text-xs text-red-600">
+            {(syncOrders.error as Error)?.message || "Failed to sync orders"}
+          </p>
+        )}
+
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <SummaryCard label="Total orders" value="2" />
+          <SummaryCard
+            label="Total orders"
+            value={String(summary.totalOrders)}
+          />
           <SummaryCard
             label="Pending"
-            value="2"
+            value={String(summary.pendingOrders)}
             valueClassName="text-[#bb7723]"
           />
           <SummaryCard
             label="Fulfilled"
-            value="0"
+            value={String(summary.fulfilledOrders)}
             valueClassName="text-[#3d7b24]"
           />
-          <SummaryCard label="Revenue (INR)" value="Rs 3,118" />
+          <SummaryCard
+            label="Revenue (INR)"
+            value={`Rs ${formatInr(summary.revenue)}`}
+          />
         </div>
 
         <section className="mt-6 rounded-2xl border border-[#d8d8d3] bg-[#f7f7f5] p-5">
