@@ -21,7 +21,7 @@ type OrderRow = {
   amountValue: number;
   shipping: string;
   payment: string;
-  status: "Pending" | "Paid" | "Fulfilled" | "Cancelled";
+  status: "Pending" | "Confirmed" | "Paid" | "Fulfilled" | "Cancelled";
 };
 
 type WebhookRow = {
@@ -46,6 +46,7 @@ const tabs: Array<{ value: PanelTab; label: string }> = [
 const orderStatusOptions = [
   "All statuses",
   "Pending",
+  "Confirmed",
   "Paid",
   "Fulfilled",
   "Cancelled",
@@ -155,6 +156,7 @@ const normalizeStatus = (value: unknown): OrderRow["status"] => {
   if (normalized.includes("fulfill")) return "Fulfilled";
   if (normalized.includes("cancel")) return "Cancelled";
   if (normalized.includes("paid")) return "Paid";
+  if (normalized.includes("confirm")) return "Confirmed";
   return "Pending";
 };
 
@@ -295,6 +297,16 @@ export default function OrdersPage() {
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const statusDropdownRef = useRef<HTMLDivElement | null>(null);
   const [webhookRows, setWebhookRows] = useState<WebhookRow[]>(initialWebhooks);
+
+  const handleMarkConfirmed = (orderId: string) => {
+    setOrderRows((previousRows) =>
+      previousRows.map((row) =>
+        row.id === orderId && row.status === "Pending"
+          ? { ...row, status: "Confirmed" }
+          : row,
+      ),
+    );
+  };
 
   const filteredOrders = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -458,7 +470,7 @@ export default function OrdersPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search by order # or customer..."
-                  className="h-12 w-full max-w-107.5 rounded-xl border border-[#d8d8d3] bg-white px-4 text-sm text-[#313131] outline-none placeholder:text-[#8a8a84]"
+                  className="h-12 w-full max-w-[430px] rounded-xl border border-[#d8d8d3] bg-white px-4 text-sm text-[#313131] outline-none placeholder:text-[#8a8a84]"
                 />
 
                 <div className="relative" ref={statusDropdownRef}>
@@ -492,7 +504,7 @@ export default function OrdersPage() {
                             className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-[#2f2f2f] hover:bg-[#f5f5f3]"
                           >
                             <span className="inline-flex w-4 justify-center text-base leading-none">
-                              {isSelected ? "✓" : ""}
+                              {isSelected ? "?" : ""}
                             </span>
                             <span>{status}</span>
                           </button>
@@ -513,6 +525,7 @@ export default function OrdersPage() {
                       <th className="px-4 py-3">Amount</th>
                       <th className="px-4 py-3">Payment</th>
                       <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -548,14 +561,35 @@ export default function OrdersPage() {
                         </td>
                         <td className="px-4 py-4 align-top">
                           <span className="inline-flex items-center rounded-full bg-[#efe5d3] px-3 py-1 text-xs font-semibold text-[#9b641e]">
-                            <Dot className="h-4 w-4 fill-current" />
                             {order.payment}
                           </span>
                         </td>
                         <td className="px-4 py-4 align-top">
-                          <span className="inline-flex rounded-full bg-[#efe5d3] px-3 py-1 text-xs font-semibold text-[#94621e]">
+                          <span
+                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                              order.status === "Confirmed"
+                                ? "bg-[#e2efd6] text-[#3f7c25]"
+                                : "bg-[#efe5d3] text-[#94621e]"
+                            }`}
+                          >
                             {order.status}
                           </span>
+                        </td>
+                        <td className="px-4 py-4 align-top">
+                          <button
+                            type="button"
+                            onClick={() => handleMarkConfirmed(order.id)}
+                            disabled={order.status !== "Pending"}
+                            className={`rounded-lg border px-3 py-1 text-xs font-semibold transition ${
+                              order.status === "Pending"
+                                ? "border-[#d6c29a] bg-[#fff7e8] text-[#9b641e] hover:bg-[#f9efd9]"
+                                : "cursor-not-allowed border-[#d8d8d3] bg-[#f4f4f1] text-[#7f7f78]"
+                            }`}
+                          >
+                            {order.status === "Pending"
+                              ? "Mark Confirmed"
+                              : "Confirmed"}
+                          </button>
                         </td>
                       </tr>
                     ))}
