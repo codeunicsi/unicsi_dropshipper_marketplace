@@ -501,11 +501,10 @@ export default function OrdersPage() {
                               setSelectedStatus(status);
                               setIsStatusDropdownOpen(false);
                             }}
-                            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-[#2f2f2f] hover:bg-[#f5f5f3]"
+                            className={`flex w-full items-center px-4 py-2.5 text-left text-sm text-[#2f2f2f] hover:bg-[#f5f5f3] ${
+                              isSelected ? "" : ""
+                            }`}
                           >
-                            <span className="inline-flex w-4 justify-center text-base leading-none">
-                              {isSelected ? "?" : ""}
-                            </span>
                             <span>{status}</span>
                           </button>
                         );
@@ -582,7 +581,7 @@ export default function OrdersPage() {
                             disabled={order.status !== "Pending"}
                             className={`rounded-lg border px-3 py-1 text-xs font-semibold transition ${
                               order.status === "Pending"
-                                ? "border-[#d6c29a] bg-[#fff7e8] text-[#9b641e] hover:bg-[#f9efd9]"
+                                ? "bg-linear-to-r from-[#0097b2] to-[#7ed957] text-white hover:bg-[#f9efd9]"
                                 : "cursor-not-allowed border-[#d8d8d3] bg-[#f4f4f1] text-[#7f7f78]"
                             }`}
                           >
