@@ -15,7 +15,10 @@
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { Button } from "../ui/button";
-import { PushToShopifyResponse } from "@/hooks/usePushToShopify";
+import { usePushToShopify } from "@/hooks/usePushToShopify";
+import { useGetProductById } from "@/hooks/marketplace/useProduct";
+import { apiClient } from "@/hooks/marketplace/useShopifySecret";
+import { useRouter } from "next/navigation";
 
 interface DrawerProduct {
   id: string;
@@ -28,11 +31,20 @@ interface DrawerProduct {
 interface CartDrawerProps {
   onClose: () => void;
   selectedProduct: DrawerProduct | null;
-  response: PushToShopifyResponse | null;
+  response: any | null;
   isLoading: boolean;
   error: string | null;
   onRetry: () => void;
 }
+
+type ApiStore = {
+  id?: number;
+  store_name: string;
+  store_url: string;
+  access_token?: string;
+  is_default?: boolean;
+  installed_at: string;
+};
 
 const CartItem = ({
   name,
@@ -86,6 +98,10 @@ const CartDrawer = ({
   const [isOrdersOpen, setIsOrdersOpen] = useState(false);
   const [isEarningsOpen, setIsEarningsOpen] = useState(false);
   const [isSpendsOpen, setIsSpendsOpen] = useState(false);
+  const [defaultStore, setDefaultStore] = useState<ApiStore | null>(null);
+  const [isFetchingStore, setIsFetchingStore] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const router = useRouter();
 
   const product = response?.productData?.product;
   const firstVariant = product?.variants?.[0];
@@ -116,6 +132,10 @@ const CartDrawer = ({
   const [deliveryRateInput, setDeliveryRateInput] = useState<string>("50%");
   const [adSpendPerOrderInput, setAdSpendPerOrderInput] = useState<string>("");
   const [miscChargesInput, setMiscChargesInput] = useState<string>("");
+  const { pushProductToShopify } = usePushToShopify();
+  const productId = selectedProduct?.id ?? "";
+  const { data: productData } = useGetProductById(productId);
+  // console.log("Selected Product ID:", productId);
 
   const parseNumericInput = (value: string): number | null => {
     const normalized = value.replace(/[^0-9.]/g, "");
@@ -123,6 +143,34 @@ const CartDrawer = ({
     const parsed = Number(normalized);
     return Number.isFinite(parsed) ? parsed : null;
   };
+
+  useEffect(() => {
+    const fetchDefaultStore = async () => {
+      try {
+        setIsFetchingStore(true); // ✅ start loading
+
+        const response = await apiClient.get(
+          "dropshipper/shopify/access-token",
+        );
+
+        const list: ApiStore[] = Array.isArray(response)
+          ? response
+          : Array.isArray(response?.data)
+            ? response.data
+            : [];
+
+        const store = list.find((s) => s.is_default) ?? list[0] ?? null;
+
+        setDefaultStore(store);
+      } catch (err) {
+        console.error("Failed to fetch Shopify stores:", err);
+      } finally {
+        setIsFetchingStore(false); // ✅ stop loading
+      }
+    };
+
+    fetchDefaultStore();
+  }, []);
 
   useEffect(() => {
     setSellingPrice(cloutPrice);
@@ -228,6 +276,41 @@ const CartDrawer = ({
     product?.images?.[0]?.src ||
     "/images/vita-c.webp";
 
+  const handlePushToShopify = () => {
+    if (!defaultStore?.access_token || !defaultStore?.store_url) {
+      console.error("No linked Shopify store found.");
+      return;
+    }
+
+    console.log("Pushing product to Shopify:");
+    console.log("productData", productData);
+
+    pushProductToShopify.mutate(
+      {
+        access_token: defaultStore.access_token,
+        shop: defaultStore.store_url,
+        productData: productData?.data,
+        productId: "",
+      },
+      {
+        onSuccess: (data) => {
+          console.log("Success:", data);
+
+          setShowSuccess(true);
+
+          setTimeout(() => {
+            router.push("/marketplace");
+            setShowSuccess(false);
+            onClose();
+          }, 1200);
+        },
+        onError: (error) => {
+          console.error("Error:", error);
+        },
+      },
+    );
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-black/40" onClick={onClose} />
@@ -251,7 +334,7 @@ const CartDrawer = ({
             <SectionTitle icon={Store} title="Store" />
             <div className="flex justify-between gap-2">
               <span className="text-sm text-slate-900">
-                {response?.shop || "test2-12412412125457568973.myshopify.com"}
+                {response?.shop || defaultStore?.store_url || "No store linked"}
               </span>
             </div>
           </div>
@@ -387,11 +470,23 @@ const CartDrawer = ({
 
           <Button
             className="flex items-center justify-center w-full bg-black font-medium"
-            disabled={isLoading || !!error}
-            onClick={error ? onRetry : undefined}
+            style={{ border: "2px solid red" }}
+            disabled={
+              isLoading ||
+              isFetchingStore ||
+              pushProductToShopify.isPending ||
+              !defaultStore
+            }
+            onClick={handlePushToShopify}
           >
             <ArrowUpRight />
-            {error ? "Retry Push To Shopify" : "Push To Shopify"}
+            <span>
+              {isFetchingStore
+                ? "Fetching Store..."
+                : pushProductToShopify.isPending
+                  ? "Pushing..."
+                  : "Push To Shopify"}
+            </span>
           </Button>
         </div>
       </div>
@@ -481,14 +576,6 @@ const CartDrawer = ({
                     </div>
                   </div>
                 </div>
-
-                <button
-                  type="button"
-                  className="px-6 py-3 rounded-xs border border-slate-300 text-slate-400 text-base font-semibold flex items-center gap-3"
-                >
-                  <ArrowUpRight className="w-6 h-6" />
-                  Push To Shopify
-                </button>
               </div>
 
               <div className="border-y border-slate-200 py-4 flex items-center gap-4 text-sm">
@@ -829,6 +916,37 @@ const CartDrawer = ({
                 calculations.
               </p>
             </div>
+          </div>
+        </div>
+      )}
+      {showSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-xl px-8 py-6 flex flex-col items-center gap-4 animate-fadeIn">
+            {/* Icon */}
+            <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
+              <svg
+                className="w-8 h-8 text-green-600"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={3}
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+
+            {/* Text */}
+            <h2 className="text-lg font-semibold text-slate-900">
+              Product Added Successfully 🎉
+            </h2>
+
+            <p className="text-sm text-slate-500 text-center">
+              Your product has been pushed to Shopify.
+            </p>
           </div>
         </div>
       )}

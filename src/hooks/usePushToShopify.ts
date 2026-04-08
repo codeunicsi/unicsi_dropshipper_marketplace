@@ -5,10 +5,6 @@ import { apiClient } from "@/lib/api-client";
 
 const PUSH_TO_SHOPIFY_ENDPOINT = "dropshipper/shopify/push-product";
 
-export interface PushToShopifyPayload {
-  productId: string;
-}
-
 export interface ShopifyVariant {
   option1?: string;
   price?: string;
@@ -33,20 +29,23 @@ export interface ShopifyProduct {
   images?: ShopifyImage[];
 }
 
+export interface PushToShopifyPayload {
+  access_token: string;
+  shop: string;
+  productData: any; // or define proper interface later
+  productId?: string;
+}
+
 export interface PushToShopifyResponse {
-  access_token?: string;
-  shop?: string;
-  productData?: {
-    product?: ShopifyProduct;
-  };
+  success: boolean;
+  message: string;
+  productId?: string;
 }
 
 export const usePushToShopify = () => {
   const pushProductToShopify = useMutation({
     mutationFn: async (payload: PushToShopifyPayload) =>
-      apiClient.post(PUSH_TO_SHOPIFY_ENDPOINT, {
-        product_id: payload.productId,
-      }),
+      apiClient.post(PUSH_TO_SHOPIFY_ENDPOINT, payload), // ✅ send full payload directly
   });
 
   return {

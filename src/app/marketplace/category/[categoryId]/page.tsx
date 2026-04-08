@@ -131,10 +131,9 @@ function ProductCard({ product }: { product: Product }) {
     >
       {/* Image */}
       <div className="relative h-44 bg-slate-100">
-        <Image
+        <img
           src={image}
           alt={product.title}
-          fill
           className="object-cover group-hover:scale-[1.03] transition-transform duration-300"
         />
         <span
