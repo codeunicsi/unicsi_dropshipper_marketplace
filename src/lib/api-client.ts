@@ -11,9 +11,9 @@ export const apiClient = {
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       const message =
-        data && typeof data.message === "string"
-          ? data.message
-          : response.statusText;
+        (data && typeof data.message === "string" && data.message) ||
+        (data && typeof data.error === "string" && data.error) ||
+        response.statusText;
       throw new Error(message);
     }
     return data;

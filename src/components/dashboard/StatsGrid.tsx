@@ -34,6 +34,8 @@ type StatsGridProps = {
   /** Optional overrides for the six cards (same order as admin defaults). */
   labels?: readonly string[]
   hints?: readonly string[]
+  /** Second line under hint (e.g. vs prior period); index-aligned, omit or empty to hide. */
+  comparisonHints?: readonly (string | undefined)[]
   /** Partner metrics reuse the same numeric shape with different semantics. */
   variant?: 'admin' | 'partner'
 }
@@ -58,15 +60,18 @@ export function StatsGrid({
   stats = DEFAULT_STATS,
   labels = ADMIN_LABELS,
   hints = ADMIN_HINTS,
+  comparisonHints,
   variant = 'admin',
 }: StatsGridProps) {
   const labelAt = (i: number) => labels[i] ?? ADMIN_LABELS[i]
   const hintAt = (i: number) => hints[i] ?? ADMIN_HINTS[i]
+  const comparisonAt = (i: number) => comparisonHints?.[i]?.trim()
 
   const positiveAt = (index: number) => {
     if (variant === 'partner') {
-      if (index === 2) return stats.rejectionRate < 10
+      if (index === 2) return stats.rejectionRate >= 70
       if (index === 3) return stats.pendingApprovals === 0
+      if (index === 5) return stats.listedProducts === 0
     }
     if (index === 2) return stats.rejectionRate < 10
     if (index === 3) return false
@@ -139,6 +144,9 @@ export function StatsGrid({
                   >
                     {stat.change}
                   </p>
+                  {comparisonAt(index) ? (
+                    <p className="text-xs text-muted-foreground">{comparisonAt(index)}</p>
+                  ) : null}
                 </div>
               </div>
             </CardContent>
