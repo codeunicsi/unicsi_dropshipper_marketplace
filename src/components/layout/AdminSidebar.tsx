@@ -15,13 +15,26 @@ import {
   TrendingUp,
   Settings,
   Users,
+  Store,
   ChevronRight,
   HelpCircle,
   Menu,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-const menuItems = [
+interface MenuItem {
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  href: string
+  children?: Array<{ label: string; href: string }>
+}
+
+interface AdminSidebarProps {
+  open?: boolean
+  onClose?: () => void
+}
+
+const SIDEBAR_MENU: MenuItem[] = [
   { icon: Home, label: 'Dashboard', href: '/admin/dashboard' },
   {
     icon: Users,
@@ -30,9 +43,13 @@ const menuItems = [
     children: [
       { label: 'All Suppliers', href: '/admin/suppliers' },
       { label: 'KYC Verification', href: '/admin/suppliers/kyc' },
-      // { label: 'Performance Metrics', href: '/admin/suppliers/metrics' },
-      // { label: 'Supplier Disputes', href: '/admin/suppliers/disputes' },
     ],
+  },
+  {
+    icon: Store,
+    label: 'Dropshipper Management',
+    href: '#',
+    children: [{ label: 'All Dropshippers', href: '/admin/dropshippers' }],
   },
   {
     icon: Package,
@@ -43,7 +60,6 @@ const menuItems = [
       { label: 'Live Products', href: '/admin/products/live' },
       { label: 'Rejected Products', href: '/admin/products/rejected' },
       { label: 'Product Categories', href: '/admin/products/categories' },
-      // { label: 'Attributes', href: '/admin/products/attributes' },
     ],
   },
   {
@@ -137,21 +153,21 @@ const menuItems = [
   { icon: HelpCircle, label: 'Help & Support', href: '/admin/support' },
 ]
 
-interface MenuItem {
-  icon: React.ComponentType<{ className?: string }>
-  label: string
-  href: string
-  children?: Array<{ label: string; href: string }>
-}
-
-interface AdminSidebarProps {
-  open?: boolean
-  onClose?: () => void
-}
-
 export function AdminSidebar({ open = true, onClose }: AdminSidebarProps) {
   const pathname = usePathname()
   const [expandedItems, setExpandedItems] = React.useState<Set<string>>(new Set())
+
+  React.useEffect(() => {
+    const openLabels = SIDEBAR_MENU.filter((item) =>
+      item.children?.some((child) => pathname.startsWith(child.href)),
+    ).map((item) => item.label)
+    if (openLabels.length === 0) return
+    setExpandedItems((prev) => {
+      const next = new Set(prev)
+      for (const label of openLabels) next.add(label)
+      return next
+    })
+  }, [pathname])
 
   const toggleExpand = (label: string) => {
     const newExpanded = new Set(expandedItems)
@@ -203,7 +219,7 @@ export function AdminSidebar({ open = true, onClose }: AdminSidebarProps) {
       {/* Menu Items */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         <ul className="space-y-2">
-          {menuItems.map((item: MenuItem) => {
+          {SIDEBAR_MENU.map((item: MenuItem) => {
             const Icon = item.icon
             const hasChildren = item.children && item.children.length > 0
             const isExpanded = expandedItems.has(item.label)
