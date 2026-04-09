@@ -13,6 +13,7 @@
   Store,
   X,
 } from "lucide-react";
+
 import React, { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { usePushToShopify } from "@/hooks/usePushToShopify";
@@ -124,6 +125,19 @@ const CartDrawer = ({
     Number(variantMeta?.rto_charges ?? Math.round(cloutPrice * 0.28)),
     0,
   );
+
+  const handleSellingPriceUpdate = async (newPrice: number) => {
+    if (!newPrice || newPrice <= 0) return;
+
+    try {
+      await apiClient.post("dropshipper/shopify/mrp-update", {
+        productId: selectedProduct?.id,
+        newMRP: newPrice,
+      });
+    } catch (err) {
+      console.error("Failed to update MRP:", err);
+    }
+  };
 
   const [sellingPrice, setSellingPrice] = useState<number>(cloutPrice);
   const [calcSellingPrice, setCalcSellingPrice] = useState<number>(cloutPrice);
@@ -375,6 +389,7 @@ const CartDrawer = ({
                     const nextValue = Number(e.target.value);
                     setSellingPrice(Number.isNaN(nextValue) ? 0 : nextValue);
                   }}
+                  onBlur={() => handleSellingPriceUpdate(sellingPrice)}
                   className="w-14 bg-transparent outline-none text-right font-medium"
                 />
               </div>
@@ -609,6 +624,7 @@ const CartDrawer = ({
                           Number.isNaN(nextValue) ? 0 : nextValue,
                         );
                       }}
+                      onBlur={() => handleSellingPriceUpdate(calcSellingPrice)}
                     />
                   </div>
                   <div className="flex items-center justify-between pb-3 border-b border-slate-300">

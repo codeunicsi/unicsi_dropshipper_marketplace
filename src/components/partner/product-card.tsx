@@ -14,6 +14,8 @@ interface ProductCardProps {
   rating?: number;
   reviews?: number;
   inStock?: boolean;
+  size?: string;
+  stock?: number;
   onPushToShopify?: () => void;
   onBulkOrder?: () => void;
 }
@@ -23,11 +25,10 @@ export default function ProductCard({
   name,
   price,
   image,
-  rating = 4.5,
-  reviews = 26,
+  size,
   inStock = true,
   onPushToShopify,
-  onBulkOrder,
+  stock,
 }: ProductCardProps) {
   const router = useRouter();
 
@@ -81,9 +82,9 @@ export default function ProductCard({
               {name}
             </h3>
 
-            <div className="flex items-center gap-1 shrink-0">
+            {/* <div className="flex items-center gap-1 shrink-0">
               <span className="text-xs text-slate-600">{rating}</span>
-            </div>
+            </div> */}
           </div>
 
           <div className="flex items-center justify-between">
@@ -91,22 +92,41 @@ export default function ProductCard({
               ₹{price.toLocaleString()}
             </span>
 
-            {inStock && (
-              <span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded">
-                In Stock
-              </span>
-            )}
+            <span
+              className={`text-xs px-2 py-1 rounded ${
+                inStock
+                  ? "bg-green-50 text-green-700"
+                  : "bg-red-50 text-red-600"
+              }`}
+            >
+              {inStock ? "In Stock" : "Out of Stock"}
+            </span>
           </div>
 
           <div className="flex items-center justify-between text-xs text-slate-600 py-2 border-t border-b border-slate-100">
-            <div className="flex items-center gap-1">
+            {/* <div className="flex items-center gap-1">
               <TrendingUp className="w-4 h-4" />
               <span>2.5k sold</span>
-            </div>
+            </div> */}
 
-            <div className="flex items-center gap-1">
-              <Heart className="w-4 h-4" />
-              <span>XL</span>
+            <div className="flex items-center gap-20 text-xs text-slate-600 py-2 border-t border-b border-slate-100">
+              {/* Size */}
+              <div className="flex items-center gap-1">
+                <span className="font-medium text-slate-700">Size:</span>
+                <span>{size || "-"}</span>
+              </div>
+
+              {/* Stock */}
+              <div className="flex items-center gap-1">
+                <span className="font-medium text-slate-700">Stock:</span>
+                <span
+                  className={`font-semibold ${
+                    stock && stock > 0 ? "text-green-600" : "text-red-500"
+                  }`}
+                >
+                  {stock ?? 0}
+                </span>
+              </div>
             </div>
           </div>
         </div>

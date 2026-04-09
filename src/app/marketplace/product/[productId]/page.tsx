@@ -446,57 +446,57 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {[
-            { label: "Product ID", value: product.product_id, mono: true },
+            // { label: "Product ID", value: product.product_id, mono: true },
             { label: "Brand", value: product.brand },
             { label: "Category", value: product.category?.name },
-            {
-              label: "Lifecycle Status",
-              value: (
-                <Badge
-                  label={product.lifecycle_status}
-                  variant={
-                    product.lifecycle_status === "active"
-                      ? "success"
-                      : "warning"
-                  }
-                />
-              ),
-            },
-            {
-              label: "Approval Status",
-              value: (
-                <Badge
-                  label={product.approval_status}
-                  variant={
-                    product.approval_status === "approved"
-                      ? "success"
-                      : "warning"
-                  }
-                />
-              ),
-            },
-            {
-              label: "Approved At",
-              value: product.approved_at
-                ? new Date(product.approved_at).toLocaleDateString("en-IN", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })
-                : "—",
-            },
+            // {
+            //   label: "Lifecycle Status",
+            //   value: (
+            //     <Badge
+            //       label={product.lifecycle_status}
+            //       variant={
+            //         product.lifecycle_status === "active"
+            //           ? "success"
+            //           : "warning"
+            //       }
+            //     />
+            //   ),
+            // },
+            // {
+            //   label: "Approval Status",
+            //   value: (
+            //     <Badge
+            //       label={product.approval_status}
+            //       variant={
+            //         product.approval_status === "approved"
+            //           ? "success"
+            //           : "warning"
+            //       }
+            //     />
+            //   ),
+            // },
+            // {
+            //   label: "Approved At",
+            //   value: product.approved_at
+            //     ? new Date(product.approved_at).toLocaleDateString("en-IN", {
+            //         day: "numeric",
+            //         month: "short",
+            //         year: "numeric",
+            //       })
+            //     : "—",
+            // },
             {
               label: "Bulk Price Refresh",
               value: `Every ${product.bulk_price_refresh_days} days`,
             },
-            {
-              label: "Created At",
-              value: new Date(product.createdAt).toLocaleDateString("en-IN", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              }),
-            },
+            // {
+            //   label: "Created At",
+            //   value: new Date(product.createdAt).toLocaleDateString("en-IN", {
+            //     day: "numeric",
+            //     month: "short",
+            //     year: "numeric",
+            //   }),
+            // },
           ].map((item, i) => (
             <div key={i} className="bg-slate-50 rounded-lg p-3">
               <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-1">
@@ -515,7 +515,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
       </div>
 
       {/* <AdditionalInfoDropdown /> */}
-      <ProductDetailBanner />
+      {/* <ProductDetailBanner /> */}
     </div>
   );
 }
