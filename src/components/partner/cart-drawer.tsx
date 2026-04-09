@@ -298,6 +298,8 @@ const CartDrawer = ({
 
     console.log("Pushing product to Shopify:");
     console.log("productData", productData);
+    console.log("sellingPrice", sellingPrice);
+    productData.data.dropshipperSellingPrice = sellingPrice;
 
     pushProductToShopify.mutate(
       {
@@ -309,6 +311,8 @@ const CartDrawer = ({
       {
         onSuccess: (data) => {
           console.log("Success:", data);
+
+          handleSellingPriceUpdate(sellingPrice); // 👈 called after push success
 
           setShowSuccess(true);
 
@@ -389,7 +393,7 @@ const CartDrawer = ({
                     const nextValue = Number(e.target.value);
                     setSellingPrice(Number.isNaN(nextValue) ? 0 : nextValue);
                   }}
-                  onBlur={() => handleSellingPriceUpdate(sellingPrice)}
+                  // onBlur={() => handleSellingPriceUpdate(sellingPrice)}
                   className="w-14 bg-transparent outline-none text-right font-medium"
                 />
               </div>
