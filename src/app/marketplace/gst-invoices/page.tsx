@@ -108,7 +108,14 @@ export default function GSTInvoicesPage() {
       while (heightLeft > 0) {
         position = heightLeft - imageHeight + margin;
         pdf.addPage();
-        pdf.addImage(imgData, "PNG", margin, position, usableWidth, imageHeight);
+        pdf.addImage(
+          imgData,
+          "PNG",
+          margin,
+          position,
+          usableWidth,
+          imageHeight,
+        );
         heightLeft -= pageHeight - margin * 2;
       }
 
@@ -129,7 +136,7 @@ export default function GSTInvoicesPage() {
           type="button"
           onClick={handleDownloadPDF}
           disabled={isDownloading}
-          className="inline-flex items-center gap-2 rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-black/85 disabled:cursor-not-allowed disabled:opacity-70"
+          className="inline-flex items-center gap-2 rounded-md bg-linear-to-r from-[#0097b2] to-[#7ed957] px-4 py-2 text-sm font-medium text-white transition hover:bg-black/85 disabled:cursor-not-allowed disabled:opacity-70"
         >
           <Download className="h-4 w-4" />
           {isDownloading ? "Generating PDF..." : "Download GST Invoice (PDF)"}
@@ -149,9 +156,15 @@ export default function GSTInvoicesPage() {
             <h2 className="text-xl font-bold text-gray-900">
               {invoiceDetails.seller.name}
             </h2>
-            <p className="mt-1 text-sm text-gray-600">{invoiceDetails.seller.address}</p>
-            <p className="text-sm text-gray-600">GSTIN: {invoiceDetails.seller.gstin}</p>
-            <p className="text-sm text-gray-600">{invoiceDetails.seller.email}</p>
+            <p className="mt-1 text-sm text-gray-600">
+              {invoiceDetails.seller.address}
+            </p>
+            <p className="text-sm text-gray-600">
+              GSTIN: {invoiceDetails.seller.gstin}
+            </p>
+            <p className="text-sm text-gray-600">
+              {invoiceDetails.seller.email}
+            </p>
           </div>
 
           <div className="min-w-[220px] rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm">
@@ -164,7 +177,8 @@ export default function GSTInvoicesPage() {
               {invoiceDetails.invoiceDate}
             </p>
             <p className="mb-1">
-              <span className="font-semibold">Order ID:</span> {invoiceDetails.orderId}
+              <span className="font-semibold">Order ID:</span>{" "}
+              {invoiceDetails.orderId}
             </p>
             <p>
               <span className="font-semibold">Place of Supply:</span>{" "}
@@ -178,20 +192,36 @@ export default function GSTInvoicesPage() {
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
               Bill To
             </p>
-            <p className="font-semibold text-gray-900">{invoiceDetails.buyer.name}</p>
-            <p className="text-sm text-gray-600">{invoiceDetails.buyer.address}</p>
-            <p className="text-sm text-gray-600">GSTIN: {invoiceDetails.buyer.gstin}</p>
-            <p className="text-sm text-gray-600">{invoiceDetails.buyer.email}</p>
+            <p className="font-semibold text-gray-900">
+              {invoiceDetails.buyer.name}
+            </p>
+            <p className="text-sm text-gray-600">
+              {invoiceDetails.buyer.address}
+            </p>
+            <p className="text-sm text-gray-600">
+              GSTIN: {invoiceDetails.buyer.gstin}
+            </p>
+            <p className="text-sm text-gray-600">
+              {invoiceDetails.buyer.email}
+            </p>
           </div>
 
           <div className="rounded-lg border border-gray-200 p-4">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
               Ship From
             </p>
-            <p className="font-semibold text-gray-900">{invoiceDetails.seller.name}</p>
-            <p className="text-sm text-gray-600">{invoiceDetails.seller.address}</p>
-            <p className="text-sm text-gray-600">GSTIN: {invoiceDetails.seller.gstin}</p>
-            <p className="text-sm text-gray-600">{invoiceDetails.seller.email}</p>
+            <p className="font-semibold text-gray-900">
+              {invoiceDetails.seller.name}
+            </p>
+            <p className="text-sm text-gray-600">
+              {invoiceDetails.seller.address}
+            </p>
+            <p className="text-sm text-gray-600">
+              GSTIN: {invoiceDetails.seller.gstin}
+            </p>
+            <p className="text-sm text-gray-600">
+              {invoiceDetails.seller.email}
+            </p>
           </div>
         </div>
 
@@ -211,13 +241,20 @@ export default function GSTInvoicesPage() {
               {invoiceItems.map((item) => {
                 const amount = item.qty * item.rate;
                 return (
-                  <tr key={`${item.description}-${item.hsnSac}`} className="border-t border-gray-200">
+                  <tr
+                    key={`${item.description}-${item.hsnSac}`}
+                    className="border-t border-gray-200"
+                  >
                     <td className="px-4 py-3">{item.description}</td>
                     <td className="px-4 py-3">{item.hsnSac}</td>
                     <td className="px-4 py-3 text-right">{item.qty}</td>
-                    <td className="px-4 py-3 text-right">{currency(item.rate)}</td>
+                    <td className="px-4 py-3 text-right">
+                      {currency(item.rate)}
+                    </td>
                     <td className="px-4 py-3 text-right">{item.taxPercent}%</td>
-                    <td className="px-4 py-3 text-right font-medium">{currency(amount)}</td>
+                    <td className="px-4 py-3 text-right font-medium">
+                      {currency(amount)}
+                    </td>
                   </tr>
                 );
               })}
@@ -245,7 +282,8 @@ export default function GSTInvoicesPage() {
         </div>
 
         <p className="mt-6 text-xs text-gray-500">
-          This is a computer-generated GST invoice and does not require a physical signature.
+          This is a computer-generated GST invoice and does not require a
+          physical signature.
         </p>
       </div>
     </div>
