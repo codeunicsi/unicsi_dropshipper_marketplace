@@ -72,7 +72,7 @@ export default function SupportPage() {
                   href="tel:07554304201"
                   className="text-lg font-medium no-underline hover:underline"
                 >
-                  0123456789
+                  09771622333
                 </a>
               </div>
             </div>
