@@ -87,6 +87,7 @@ const CartDrawer = ({
   const [isOrdersOpen, setIsOrdersOpen] = useState(false);
   const [isEarningsOpen, setIsEarningsOpen] = useState(false);
   const [isSpendsOpen, setIsSpendsOpen] = useState(false);
+  const [isChargesOpen, setIsChargesOpen] = useState(false);
 
   const product = response?.productData?.product;
   const firstVariant = product?.variants?.[0];
@@ -339,9 +340,55 @@ const CartDrawer = ({
           <div className="text-xs bg-gray-100 rounded-sm p-4 text-center">
             RTO and RVP charges are applicable and vary depending on the product
             weight.{" "}
-            <span className="underline font-medium">
-              view charges for this product
-            </span>
+            <button
+              type="button"
+              className="underline font-medium cursor-pointer"
+              onClick={() => setIsChargesOpen((prev) => !prev)}
+            >
+              {isChargesOpen ? "hide charges" : "view charges for this product"}
+            </button>
+            {isChargesOpen && (
+              <div className="mt-3 w-full rounded-xl border border-[#e4e4e7] bg-white p-4 text-left shadow-sm">
+                <div className="max-h-56 overflow-y-auto pr-1">
+                  <div className="grid grid-cols-2 overflow-hidden rounded-md border border-[#ececf1]">
+                    <div className="border-r border-[#ececf1] bg-[#f3f4f8] p-3">
+                      <p className="text-sm font-semibold text-[#3fb700]">
+                        RVP Charges
+                      </p>
+                      <p className="text-xs text-[#71717a]">
+                        (For This Product)
+                      </p>
+                    </div>
+                    <div className="bg-[#f3f4f8] p-3">
+                      <p className="text-sm font-semibold text-[#3fb700]">
+                        RTO Charges
+                      </p>
+                      <p className="text-xs text-[#71717a]">(All Inclusive)</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 border-x border-b border-[#ececf1]">
+                    <div className="border-r border-[#ececf1] p-3 text-xs font-semibold text-[#5b2fd1]">
+                      Please Contact Admin
+                    </div>
+                    <div className="p-3 text-sm font-semibold text-[#111827]">
+                      ₹{rtoChargePerOrder}
+                    </div>
+                  </div>
+
+                  <div className="pt-4 text-sm text-[#18181b]">
+                    <p className="mb-2 text-sm font-medium">Note:</p>
+                    <ul className="list-disc space-y-1 pl-5 text-xs leading-5">
+                      <li>RTO & RVP will be changed to actual numbers.</li>
+                      <li>
+                        RVP will be changed on orders where supplier is not
+                        found to be at fault.
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <Button
