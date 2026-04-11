@@ -9,6 +9,7 @@ import {
   Link2,
   Loader2,
   Pencil,
+  Plus,
   RefreshCw,
   ShoppingBag,
   Store,
@@ -434,7 +435,16 @@ export default function ShopifyStoreManagerPage() {
             </PopoverContent>
           </Popover>
           <Button
-            className="ml-2 rounded-xs bg-linear-to-r from-[#0097b2] to-[#7ed957] px-8 text-sm text-white hover:bg-black/90"
+            type="button"
+            onClick={openCredentialsModal}
+            aria-label="Manage Shopify API credentials"
+            className="ml-2 rounded-xs bg-linear-to-r from-[#0097b2] to-[#7ed957] px-3 text-white hover:bg-black/90"
+          >
+            <Plus className="size-5" />
+            Add Shopify Credential
+          </Button>
+          <Button
+            className="rounded-xs bg-linear-to-r from-[#0097b2] to-[#7ed957] px-8 text-sm text-white hover:bg-black/90"
             onClick={() => setIsLinkStoreDrawerOpen(true)}
           >
             <Link2 className="size-6" />
@@ -883,15 +893,6 @@ export default function ShopifyStoreManagerPage() {
           </div>
         </div>
       )}
-
-      {/* ── Credentials FAB ── */}
-      <button
-        onClick={openCredentialsModal}
-        className="fixed bottom-6 right-6 z-[150] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-[#0097b2] to-[#7ed957] text-white shadow-lg hover:scale-105 transition"
-        aria-label="Manage Shopify API credentials"
-      >
-        <span className="text-3xl leading-none">+</span>
-      </button>
 
       {/* ── Credentials Modal ── */}
       {isCredModalOpen && (
