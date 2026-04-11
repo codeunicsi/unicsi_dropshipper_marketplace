@@ -66,7 +66,7 @@ const CartItem = ({
 );
 
 const SectionTitle = ({ icon: Icon, title }: { icon: any; title: string }) => (
-  <div className="flex items-center gap-2 font-semibold text-black/80 border-b px-6 py-4">
+  <div className="flex min-w-0 items-center gap-2 font-semibold text-black/80">
     <Icon className="w-6 h-6" />
     {title}
   </div>
@@ -260,7 +260,7 @@ const CartDrawer = ({
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-black/40" onClick={onClose} />
 
-      <div className="w-120 bg-white shadow-xl animate-slideIn flex flex-col">
+      <div className="w-full max-w-[480px] bg-white shadow-xl animate-slideIn flex flex-col overflow-x-hidden px-4">
         <div className="flex justify-between items-center px-6 py-4 border-b">
           <h2 className="text-2xl font-bold">Push To Shopify</h2>
           <button onClick={onClose}>
@@ -268,24 +268,24 @@ const CartDrawer = ({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-6">
           <CartItem name={productTitle} sku={productSku} image={productImage} />
 
-          <div className="flex justify-between items-center">
+          <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-b border-slate-200 pb-4">
             <SectionTitle icon={Store} title="Store" />
-            <div className="flex justify-between gap-2">
-              <span className="text-sm text-slate-900">
+            <div className="min-w-0">
+              <span className="block text-sm text-slate-900 break-all">
                 {response?.shop || "test2-12412412125457568973.myshopify.com"}
               </span>
             </div>
           </div>
 
-          <div className="flex justify-between items-center gap-4">
+          <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-b border-slate-200 pb-4">
             <SectionTitle icon={Banknote} title="Pricing" />
             <button
               type="button"
               onClick={() => setIsCalculatorOpen(true)}
-              className="min-w-62 bg-[#e9e3f8] hover:bg-[#e3daf8] transition-colors rounded-md px-3 py-1 flex items-center justify-between"
+              className="w-full bg-[#e9e3f8] hover:bg-[#e3daf8] transition-colors rounded-md px-3 py-1 flex items-center justify-between"
             >
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center">
@@ -299,9 +299,11 @@ const CartDrawer = ({
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 px-6 py-3">
+          <div className="grid grid-cols-2 gap-4 py-3">
             <div>
-              <p className="mb-2 text-sm font-semibold text-slate-700">Price</p>
+              <p className="mb-2 text-sm font-semibold text-slate-700 ml-1">
+                Price
+              </p>
               <div className="h-10 rounded-md border border-slate-200 bg-slate-100 px-3 flex items-center justify-between">
                 <span className="text-sm text-slate-600">{cloutPrice}</span>
                 <span className="text-sm font-semibold text-slate-700">₹</span>
@@ -309,9 +311,8 @@ const CartDrawer = ({
             </div>
 
             <div>
-              <p className="flex gap-1 justify-center items-center mb-2 text-sm font-semibold text-slate-700">
+              <p className="flex gap-1 justify-start items-center mb-2 text-sm font-semibold text-slate-700 ml-1">
                 Set Your Selling Price
-                <HelpCircle className="w-4 h-4" />
               </p>
               <div className="h-10 rounded-md border border-slate-200 bg-white px-3 flex items-center justify-between">
                 <input
@@ -345,7 +346,6 @@ const CartDrawer = ({
 
           <Button
             className="flex items-center justify-center w-full bg-black font-medium"
-            style={{ border: "2px solid red" }}
             // disabled={isLoading || !!error}
             onClick={handlePushToShopify}
           >
