@@ -60,10 +60,10 @@ const menuItems = [
     label: "Manage Products",
     href: "#",
     children: [
-      {
-        label: "Inventory Request",
-        href: "/marketplace/manage-products/inventoryRequest",
-      },
+      // {
+      //   label: "Inventory Request",
+      //   href: "/marketplace/manage-products/inventoryRequest",
+      // },
       {
         label: "Pushed To Shopify",
         href: "/marketplace/manage-products/pushedToShopify",

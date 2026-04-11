@@ -2,7 +2,7 @@
 
 import { ActiveTabs } from "@/components/ui/active-tabs";
 import { StoreDropdown } from "@/components/ui/store-dropdown";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function ManageProductsLayout({
@@ -10,27 +10,21 @@ export default function ManageProductsLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
   const router = useRouter();
 
-  const tabs = [
-    { label: "Pushed To Shopify", value: "pushedToShopify" },
-    { label: "Inventory Requests", value: "inventoryRequest" },
-  ];
+  const tabs = [{ label: "Pushed To Shopify", value: "pushedToShopify" }];
 
   const [store, setStore] = useState("xxncby-gx");
 
-  //  Active tab derive from route
-  const active = pathname.includes("inventoryRequest")
-    ? "inventoryRequest"
-    : "pushedToShopify";
+  // Only one tab → no need for conditional logic
+  const active = "pushedToShopify";
 
   return (
     <>
       <div className="flex flex-row justify-between">
         <div>
           <h1 className="text-2xl font-bold mb-1">Manage Products</h1>
-          <p>Manage all your products and inventory from here.</p>
+          <p>Manage all your push to shopify products from here.</p>
         </div>
         <div className="text-sm">
           <StoreDropdown
@@ -40,6 +34,7 @@ export default function ManageProductsLayout({
           />
         </div>
       </div>
+
       <div className="p-6">
         <ActiveTabs
           tabs={tabs}
