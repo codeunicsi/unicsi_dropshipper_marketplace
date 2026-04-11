@@ -299,14 +299,21 @@ const CartDrawer = ({
             </button>
           </div>
 
-          <div className="px-6 space-y-4 text-sm">
-            <div className="flex items-center justify-between gap-3 font-semibold border-b border-dashed pb-3">
-              <div className="flex items-center gap-2">
-                Set Your Selling Price (₹)
-                <HelpCircle className="w-4 h-4" />
+          <div className="grid grid-cols-2 gap-4 px-6 py-3">
+            <div>
+              <p className="mb-2 text-sm font-semibold text-slate-700">Price</p>
+              <div className="h-10 rounded-md border border-slate-200 bg-slate-100 px-3 flex items-center justify-between">
+                <span className="text-sm text-slate-600">{cloutPrice}</span>
+                <span className="text-sm font-semibold text-slate-700">₹</span>
               </div>
-              <div className="h-11 min-w-26 border border-black/60 rounded-sm px-3 flex items-center gap-2 bg-white">
-                <span className="font-semibold">₹</span>
+            </div>
+
+            <div>
+              <p className="flex gap-1 justify-center items-center mb-2 text-sm font-semibold text-slate-700">
+                Set Your Selling Price
+                <HelpCircle className="w-4 h-4" />
+              </p>
+              <div className="h-10 rounded-md border border-slate-200 bg-white px-3 flex items-center justify-between">
                 <input
                   type="number"
                   min={0}
@@ -316,45 +323,24 @@ const CartDrawer = ({
                     const nextValue = Number(e.target.value);
                     setSellingPrice(Number.isNaN(nextValue) ? 0 : nextValue);
                   }}
-                  className="w-14 bg-transparent outline-none text-right font-medium"
+                  className="w-full bg-transparent text-sm text-slate-700 outline-none"
                 />
+                <span className="text-sm font-semibold text-slate-700">₹</span>
               </div>
             </div>
-
-            <div className="flex justify-between">
-              <span>Price</span>
-              <span className="font-semibold">₹{cloutPrice}</span>
+          </div>
+          <div className="bg-[#ebf8e5] rounded-sm text-sm">
+            <div className="flex justify-between p-3 font-bold text-[#3fb700]">
+              <span>Your Margin</span>
+              <span>₹{margin}</span>
             </div>
-
-            <div className="bg-[#ebf8e5] rounded-sm text-xs">
-              <div className="flex justify-between px-3 pt-3 font-bold text-[#3fb700]">
-                <span>Your Margin</span>
-                <span>₹{margin}</span>
-              </div>
-
-              <div className="flex justify-between px-3 py-2">
-                <div className="flex gap-1">
-                  <span className="font-semibold text-black/80">
-                    + Shipping Discount
-                  </span>
-                  <span>(1-59 orders)</span>
-                </div>
-                <span className="font-semibold">₹{shippingDiscount}</span>
-              </div>
-
-              <div className="flex justify-between bg-[#3fb700] text-white font-semibold px-3 py-2 rounded-sm text-sm">
-                <span>Your Effective Earnings</span>
-                <span>₹{effectiveEarnings}</span>
-              </div>
-            </div>
-
-            <div className="text-xs bg-gray-100 rounded-sm p-4 text-center">
-              RTO and RVP charges are applicable and vary depending on the
-              product weight.{" "}
-              <span className="underline font-medium">
-                view charges for this product
-              </span>
-            </div>
+          </div>
+          <div className="text-xs bg-gray-100 rounded-sm p-4 text-center">
+            RTO and RVP charges are applicable and vary depending on the product
+            weight.{" "}
+            <span className="underline font-medium">
+              view charges for this product
+            </span>
           </div>
 
           <Button
