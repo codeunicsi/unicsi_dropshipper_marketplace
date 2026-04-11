@@ -143,9 +143,6 @@ const CartDrawer = ({
     Number(variantMeta?.shipping_discount ?? 57),
     0,
   );
-  const shippingCharges = Math.round(cloutPrice * 0.45);
-  const productPrice = Math.max(cloutPrice - shippingCharges, 0);
-  const effectiveCloutPrice = Math.max(cloutPrice - shippingDiscount, 0);
   const margin = Math.max(safeSellingPrice - cloutPrice, 0);
   const effectiveEarnings = margin + shippingDiscount;
   const safeCalcSellingPrice = Number.isFinite(calcSellingPrice)
@@ -327,58 +324,6 @@ const CartDrawer = ({
             <div className="flex justify-between">
               <span>Price</span>
               <span className="font-semibold">₹{cloutPrice}</span>
-            </div>
-
-            <div className="relative inline-flex group">
-              <p className="text-xs text-gray-600 underline flex items-center gap-1 cursor-default">
-                Including GST, Shipping Charges & Discount
-                <Info className="w-3 h-3" />
-              </p>
-
-              <div className="absolute left-0 top-full mt-3 z-20 hidden group-hover:block group-focus-within:block">
-                <div className="relative bg-[#474747] text-white rounded-md shadow-xl min-w-85 p-4">
-                  <div className="absolute -top-2 left-10 w-4 h-4 bg-[#474747] rotate-45" />
-
-                  <div className="flex items-center justify-between text-sm font-semibold">
-                    <span>Price</span>
-                    <span>₹{cloutPrice}</span>
-                  </div>
-
-                  <div className="mt-3 space-y-3 text-xs">
-                    <div className="flex items-start justify-between gap-6">
-                      <div>
-                        <p className="font-semibold">• Product Price</p>
-                        <p className="text-gray-300 text-xs">
-                          (Includes 18% Product GST)
-                        </p>
-                      </div>
-                      <span className="font-semibold">₹{productPrice}</span>
-                    </div>
-
-                    <div className="flex items-start justify-between gap-6">
-                      <div>
-                        <p className="font-semibold">• Shipping Charges</p>
-                        <p className="text-gray-300 text-xs">
-                          (Includes 18% Shipping GST)
-                        </p>
-                      </div>
-                      <span className="font-semibold">₹{shippingCharges}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="text-xs space-y-1">
-              <p className="font-semibold">
-                Effective Price: ₹{effectiveCloutPrice}
-              </p>
-              <p className="text-gray-600">
-                Difference amount will be given as
-              </p>
-              <p className="font-semibold text-gray-500">
-                Shipping Discount: ₹{shippingDiscount}
-              </p>
             </div>
 
             <div className="bg-[#ebf8e5] rounded-sm text-xs">
