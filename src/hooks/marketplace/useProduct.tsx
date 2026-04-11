@@ -47,7 +47,7 @@ export interface Product {
   variants: ProductVariant[];
   images: ProductImage[];
   category?: Category;
-  dropshipperSellingPrice: string;
+  dropshipperSellingPrice: number;
 }
 
 export interface ProductVariant {

@@ -296,6 +296,11 @@ const CartDrawer = ({
       return;
     }
 
+    if (!productData?.data) {
+      console.error("Product data is missing.");
+      return;
+    }
+
     console.log("Pushing product to Shopify:");
     console.log("productData", productData);
     console.log("sellingPrice", sellingPrice);
