@@ -97,7 +97,7 @@ const RtoPincodePage = () => {
           </div>
           <div className="w-full px-8">
             <Image
-              src="/svg/Navigation-pana.svg"
+              src="/svg/delivery-point.svg"
               alt="Delivery Point"
               width={600}
               height={400}
