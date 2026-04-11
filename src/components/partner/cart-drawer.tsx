@@ -37,11 +37,11 @@ interface CartDrawerProps {
 
 const CartItem = ({
   name,
-  productId,
+  sku,
   image,
 }: {
   name: string;
-  productId: string;
+  sku: string;
   image: string;
 }) => (
   <div className="flex items-start gap-3 bg-gray-100 rounded-md p-3">
@@ -57,8 +57,8 @@ const CartItem = ({
       <p className="text-sm font-medium text-slate-900 leading-tight">{name}</p>
 
       <div className="flex items-center gap-2 text-xs text-slate-600 pt-1">
-        <span>C-Code:</span>
-        <span className="font-bold text-slate-900">{productId}</span>
+        <span>SKU:</span>
+        <span className="font-bold text-slate-900">{sku}</span>
         <Copy strokeWidth={2.5} className="w-4 h-4 cursor-pointer" />
       </div>
     </div>
@@ -120,6 +120,10 @@ const CartDrawer = ({
   const { pushProductToShopify } = usePushToShopify();
   const productId = selectedProduct?.id ?? "";
   const { data: productData } = useGetProductById(productId);
+  const fetchedProduct = productData?.data;
+  const fetchedActiveVariant =
+    fetchedProduct?.variants?.find((variant: any) => variant?.is_active) ??
+    fetchedProduct?.variants?.[0];
   // console.log("Selected Product ID:", productId);
 
   const parseNumericInput = (value: string): number | null => {
@@ -227,32 +231,33 @@ const CartDrawer = ({
     product?.title ||
     selectedProduct?.name ||
     "Tangerine Vita C Dark Spot Care Cream 100gm Each (Pack of 2)";
-  const productCode = selectedProduct?.id || firstVariant?.sku || "C2463343";
+  const productSku =
+    fetchedActiveVariant?.sku || firstVariant?.sku || "SKU not available";
   const productImage =
     selectedProduct?.image ||
     product?.images?.[0]?.src ||
     "/images/vita-c.webp";
 
-const handlePushToShopify = () => {
-  console.log("Pushing product to Shopify:");
-  console.log("productData", productData);
+  const handlePushToShopify = () => {
+    console.log("Pushing product to Shopify:");
+    console.log("productData", productData);
 
-  pushProductToShopify.mutate(
-    {
-      access_token: "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",
-      shop: "qwqs68-0w.myshopify.com",
-      productData: productData?.data,
-    },
-    {
-      onSuccess: (data) => {
-        console.log("Success:", data);
+    pushProductToShopify.mutate(
+      {
+        access_token: "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",
+        shop: "qwqs68-0w.myshopify.com",
+        productData: productData?.data,
       },
-      onError: (error) => {
-        console.error("Error:", error);
+      {
+        onSuccess: (data) => {
+          console.log("Success:", data);
+        },
+        onError: (error) => {
+          console.error("Error:", error);
+        },
       },
-    }
-  );
-};
+    );
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex">
@@ -267,11 +272,7 @@ const handlePushToShopify = () => {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
-          <CartItem
-            name={productTitle}
-            productId={productCode}
-            image={productImage}
-          />
+          <CartItem name={productTitle} sku={productSku} image={productImage} />
 
           <div className="flex justify-between items-center">
             <SectionTitle icon={Store} title="Store" />
@@ -413,7 +414,7 @@ const handlePushToShopify = () => {
 
           <Button
             className="flex items-center justify-center w-full bg-black font-medium"
-            style={{ border : "2px solid red"}}
+            style={{ border: "2px solid red" }}
             // disabled={isLoading || !!error}
             onClick={handlePushToShopify}
           >
