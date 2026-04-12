@@ -129,7 +129,6 @@ export default function ShopifyStoreManagerPage() {
     setFetchStoresError("");
     try {
       const response = await apiClient.get("dropshipper/shopify/access-token");
-      // Support both { data: [...] } and direct array responses
       const list: ApiStore[] = Array.isArray(response)
         ? response
         : Array.isArray(response?.data)
@@ -137,9 +136,9 @@ export default function ShopifyStoreManagerPage() {
           : [];
       setStoreRows(list.map(mapApiStore));
     } catch (err: any) {
-      setFetchStoresError(
-        err?.message ?? "Failed to load stores. Please try again.",
-      );
+      // If no stores are linked yet, the API may throw — treat as empty list
+      setStoreRows([]);
+      setFetchStoresError("");
     } finally {
       setIsFetchingStores(false);
     }
