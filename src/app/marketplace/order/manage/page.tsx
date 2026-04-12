@@ -9,6 +9,8 @@ import {
   RefreshCcw,
 } from "lucide-react";
 import { useSyncOrders } from "@/hooks/useSyncOrders";
+import { apiClient } from "@/lib/api-client";
+import { shopifyOrdersApi } from "@/lib/shopify-orders-api";
 type PanelTab = "orders" | "webhooks" | "setup";
 
 type OrderRow = {
@@ -21,7 +23,9 @@ type OrderRow = {
   amountValue: number;
   shipping: string;
   payment: string;
-  status: "Pending" | "Confirmed" | "Paid" | "Fulfilled" | "Cancelled";
+  /** Display label — includes internal Shopify-order workflow statuses */
+  status: string;
+  tracking?: string;
 };
 
 type WebhookRow = {
@@ -37,6 +41,12 @@ type SetupStep = {
   cta?: string;
 };
 
+type PersistedShopifyOrderRow = {
+  shopify_order_id?: string;
+  status?: string;
+  tracking_number?: string | null;
+};
+
 const tabs: Array<{ value: PanelTab; label: string }> = [
   { value: "orders", label: "Orders" },
   { value: "webhooks", label: "Webhooks" },
@@ -45,65 +55,46 @@ const tabs: Array<{ value: PanelTab; label: string }> = [
 
 const orderStatusOptions = [
   "All statuses",
+  "New",
+  "Routed",
+  "Accepted",
+  "Packed",
+  "Shipped",
+  "Fulfilled",
+  "Delivered",
+  "Cancelled",
   "Pending",
   "Confirmed",
   "Paid",
-  "Fulfilled",
-  "Cancelled",
 ] as const;
 
-const fallbackOrders: OrderRow[] = [
-  {
-    id: "#1002",
-    date: "7 Apr 2026",
-    customer: "Mohd Niya Haque",
-    contact: "+91 92207 74381",
-    product: "Electric fan green / s / cotton",
-    amount: "Rs 1,559",
-    amountValue: 1559,
-    shipping: "+Rs 379 ship",
-    payment: "COD",
-    status: "Pending",
-  },
-  {
-    id: "#1001",
-    date: "7 Apr 2026",
-    customer: "Asif Khan",
-    contact: "asid@gmail.com",
-    product: "Electric fan green / s / cotton",
-    amount: "Rs 1,559",
-    amountValue: 1559,
-    shipping: "+Rs 379 ship",
-    payment: "COD",
-    status: "Pending",
-  },
-];
+const WEBHOOK_DOC = `POST /api/v1/${shopifyOrdersApi.webhookPathSegment}`;
 
 const initialWebhooks: WebhookRow[] = [
   {
     topic: "orders/create",
-    endpoint: "/api/dropshipper/shopify/webhook/orders",
-    registered: true,
+    endpoint: WEBHOOK_DOC,
+    registered: false,
   },
   {
     topic: "orders/updated",
-    endpoint: "/api/dropshipper/shopify/webhook/orders",
-    registered: true,
+    endpoint: `${WEBHOOK_DOC} (optional)`,
+    registered: false,
   },
   {
     topic: "orders/paid",
-    endpoint: "/api/dropshipper/shopify/webhook/orders",
+    endpoint: `${WEBHOOK_DOC} (optional)`,
     registered: false,
   },
   {
     topic: "orders/cancelled",
-    endpoint: "/api/dropshipper/shopify/webhook/orders",
-    registered: true,
+    endpoint: `${WEBHOOK_DOC} (optional)`,
+    registered: false,
   },
   {
     topic: "orders/fulfilled",
-    endpoint: "/api/dropshipper/shopify/webhook/orders",
-    registered: true,
+    endpoint: `${WEBHOOK_DOC} (optional)`,
+    registered: false,
   },
 ];
 
@@ -119,20 +110,20 @@ const setupSteps: SetupStep[] = [
     id: "2",
     title: "Backend receives order payload",
     description:
-      "Your endpoint at /webhook/orders processes the JSON Shopify sends on each order event.",
+      `Shopify POSTs JSON to ${WEBHOOK_DOC} (HMAC-verified, raw body). Handler responds 200 immediately then persists the order.`,
     cta: "View handler code",
   },
   {
     id: "3",
     title: "Orders saved to your database",
     description:
-      "Backend upserts the order using shopify_order_id as the unique key to avoid duplicates.",
+      "Rows go into shopify_orders with shopify_order_id unique. Sync also backfills from Shopify Admin API when you open this page.",
   },
   {
     id: "4",
     title: "Orders appear in this panel",
     description:
-      "The order list queries your DB - no Shopify API call needed at read time.",
+      "List is loaded from Shopify Admin API and merged with saved Unicsi status (routed, accepted, shipped) from your database.",
   },
   {
     id: "5",
@@ -153,6 +144,18 @@ const normalizeStatus = (value: unknown): OrderRow["status"] => {
     .trim()
     .toLowerCase();
 
+  const internal: Record<string, OrderRow["status"]> = {
+    new: "New",
+    routed: "Routed",
+    accepted: "Accepted",
+    packed: "Packed",
+    shipped: "Shipped",
+    fulfilled: "Fulfilled",
+    delivered: "Delivered",
+    cancelled: "Cancelled",
+  };
+  if (internal[normalized]) return internal[normalized];
+
   if (normalized.includes("fulfill")) return "Fulfilled";
   if (normalized.includes("cancel")) return "Cancelled";
   if (normalized.includes("paid")) return "Paid";
@@ -167,6 +170,8 @@ const extractOrderArray = (payload: any): any[] => {
   if (Array.isArray(payload.orders)) return payload.orders;
   if (Array.isArray(payload.rows)) return payload.rows;
   if (Array.isArray(payload.data)) return payload.data;
+  if (payload.success && Array.isArray(payload.data?.orders))
+    return payload.data.orders;
   if (payload.data && Array.isArray(payload.data.orders))
     return payload.data.orders;
   if (payload.data && Array.isArray(payload.data.rows))
@@ -187,10 +192,10 @@ const normalizeApiOrders = (payload: any): OrderRow[] => {
 
     const contact = String(
       row?.customer?.phone ??
-        row?.customer?.email ??
-        row?.email ??
-        row?.phone ??
-        "-",
+      row?.customer?.email ??
+      row?.email ??
+      row?.phone ??
+      "-",
     );
 
     const lineItem = Array.isArray(row?.line_items) ? row.line_items[0] : null;
@@ -200,41 +205,43 @@ const normalizeApiOrders = (payload: any): OrderRow[] => {
 
     const amountValue = Number(
       row?.total_price ??
-        row?.amount ??
-        row?.total_amount ??
-        row?.total ??
-        row?.price ??
-        0,
+      row?.amount ??
+      row?.total_amount ??
+      row?.total ??
+      row?.price ??
+      0,
     );
 
     const shippingValue = Number(
       row?.shipping_price ??
-        row?.shipping_charges ??
-        (Array.isArray(row?.shipping_lines)
-          ? row.shipping_lines[0]?.price
-          : 0) ??
-        0,
+      row?.shipping_charges ??
+      (Array.isArray(row?.shipping_lines)
+        ? row.shipping_lines[0]?.price
+        : 0) ??
+      0,
     );
+
+    const tracking = String(row?.tracking_number ?? "").trim();
 
     const paymentRaw = String(
       row?.payment_method ??
-        row?.financial_status ??
-        row?.gateway ??
-        row?.payment ??
-        "COD",
+      row?.financial_status ??
+      row?.gateway ??
+      row?.payment ??
+      "COD",
     );
     const payment =
       paymentRaw.toLowerCase().includes("cod") ||
-      paymentRaw.toLowerCase().includes("cash")
+        paymentRaw.toLowerCase().includes("cash")
         ? "COD"
         : "Prepaid";
 
     const orderNo = String(
       row?.name ??
-        row?.order_number ??
-        row?.id ??
-        row?.shopify_order_id ??
-        index + 1,
+      row?.order_number ??
+      row?.id ??
+      row?.shopify_order_id ??
+      index + 1,
     );
     const id = orderNo.startsWith("#") ? orderNo : `#${orderNo}`;
 
@@ -242,10 +249,10 @@ const normalizeApiOrders = (payload: any): OrderRow[] => {
       row?.created_at ?? row?.order_date ?? row?.createdAt ?? row?.date;
     const formattedDate = dateSource
       ? new Date(dateSource).toLocaleDateString("en-IN", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-        })
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
       : "-";
 
     return {
@@ -262,6 +269,7 @@ const normalizeApiOrders = (payload: any): OrderRow[] => {
       status: normalizeStatus(
         row?.status ?? row?.fulfillment_status ?? row?.financial_status,
       ),
+      tracking: tracking || undefined,
     } as OrderRow;
   });
 };
@@ -291,7 +299,8 @@ export default function OrdersPage() {
   const { syncOrders } = useSyncOrders();
   const [activeTab, setActiveTab] = useState<PanelTab>("orders");
   const [search, setSearch] = useState("");
-  const [orderRows, setOrderRows] = useState<OrderRow[]>(fallbackOrders);
+  const [orderRows, setOrderRows] = useState<OrderRow[]>([]);
+  const [ordersInitialLoad, setOrdersInitialLoad] = useState(true);
   const [selectedStatus, setSelectedStatus] =
     useState<(typeof orderStatusOptions)[number]>("All statuses");
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
@@ -301,7 +310,8 @@ export default function OrdersPage() {
   const handleMarkConfirmed = (orderId: string) => {
     setOrderRows((previousRows) =>
       previousRows.map((row) =>
-        row.id === orderId && row.status === "Pending"
+        row.id === orderId &&
+        (row.status === "Pending" || row.status === "New")
           ? { ...row, status: "Confirmed" }
           : row,
       ),
@@ -327,7 +337,10 @@ export default function OrdersPage() {
   const summary = useMemo(() => {
     const totalOrders = orderRows.length;
     const pendingOrders = orderRows.filter(
-      (row) => row.status === "Pending",
+      (row) =>
+        row.status === "Pending" ||
+        row.status === "New" ||
+        row.status === "Routed",
     ).length;
     const fulfilledOrders = orderRows.filter(
       (row) => row.status === "Fulfilled",
@@ -364,16 +377,47 @@ export default function OrdersPage() {
   const handleSyncOrders = async () => {
     try {
       const response = await syncOrders.mutateAsync();
-      const normalizedOrders = normalizeApiOrders(response);
+      const shopifyRows = extractOrderArray(response);
+
+      let persisted: PersistedShopifyOrderRow[] = [];
+      try {
+        const dbRes = await apiClient.get(shopifyOrdersApi.dropshipperList(250));
+        if (dbRes?.success && Array.isArray(dbRes?.data?.orders)) {
+          persisted = dbRes.data.orders;
+        }
+      } catch {
+        /* cookie / role — still show Shopify-only list */
+      }
+
+      const byShopifyOrderId = new Map(
+        persisted.map((o) => [String(o.shopify_order_id), o]),
+      );
+      const merged = shopifyRows.map((row: Record<string, unknown>) => {
+        const sid = String(row.id ?? "");
+        const p = byShopifyOrderId.get(sid);
+        if (!p) return row;
+        return {
+          ...row,
+          status: p.status ?? row.status,
+          tracking_number: p.tracking_number ?? row.tracking_number,
+        };
+      });
+
+      const normalizedOrders = normalizeApiOrders({
+        success: true,
+        data: { orders: merged },
+      });
       setOrderRows(normalizedOrders);
     } catch (error) {
       console.error("Failed to sync orders", error);
+      setOrderRows([]);
+    } finally {
+      setOrdersInitialLoad(false);
     }
   };
 
   useEffect(() => {
-    handleSyncOrders();
-    // We only want an initial sync once on first render.
+    void handleSyncOrders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -386,7 +430,7 @@ export default function OrdersPage() {
               Shopify orders
             </h1>
             <p className="text-sm leading-tight text-[#3f3f3f]">
-              qwqs68-0w.myshopify.com
+              Orders from your connected Shopify stores (saved on Unicsi)
             </p>
           </div>
 
@@ -452,9 +496,8 @@ export default function OrdersPage() {
                   key={tab.value}
                   type="button"
                   onClick={() => setActiveTab(tab.value)}
-                  className={`border-r border-[#cbcbc7] px-6 py-3 text-sm font-semibold text-[#202020] last:border-r-0 ${
-                    activeTab === tab.value ? "bg-[#f2f2ed]" : "bg-white"
-                  }`}
+                  className={`border-r border-[#cbcbc7] px-6 py-3 text-sm font-semibold text-[#202020] last:border-r-0 ${activeTab === tab.value ? "bg-[#f2f2ed]" : "bg-white"
+                    }`}
                 >
                   {tab.label}
                 </button>
@@ -464,6 +507,25 @@ export default function OrdersPage() {
 
           {activeTab === "orders" && (
             <div className="pt-4">
+              {ordersInitialLoad && (
+                <div className="flex items-center justify-center gap-2 py-12 text-sm text-[#555]">
+                  <RefreshCcw className="h-5 w-5 animate-spin" />
+                  Loading orders…
+                </div>
+              )}
+
+              {!ordersInitialLoad && orderRows.length === 0 && (
+                <div className="rounded-xl border border-[#dcdcd7] bg-white py-16 text-center text-sm text-[#666]">
+                  No orders yet. When a customer checks out on your Shopify store,
+                  orders appear here automatically.
+                </div>
+              )}
+
+              {!ordersInitialLoad && orderRows.length > 0 && syncOrders.isPending && (
+                <p className="mb-2 text-xs text-[#666]">Refreshing…</p>
+              )}
+
+              {!ordersInitialLoad && orderRows.length > 0 && (
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <input
                   type="text"
@@ -483,9 +545,8 @@ export default function OrdersPage() {
                   >
                     {selectedStatus}
                     <ChevronDown
-                      className={`h-4 w-4 transition-transform ${
-                        isStatusDropdownOpen ? "rotate-180" : ""
-                      }`}
+                      className={`h-4 w-4 transition-transform ${isStatusDropdownOpen ? "rotate-180" : ""
+                        }`}
                     />
                   </button>
 
@@ -501,9 +562,8 @@ export default function OrdersPage() {
                               setSelectedStatus(status);
                               setIsStatusDropdownOpen(false);
                             }}
-                            className={`flex w-full items-center px-4 py-2.5 text-left text-sm text-[#2f2f2f] hover:bg-[#f5f5f3] ${
-                              isSelected ? "" : ""
-                            }`}
+                            className={`flex w-full items-center px-4 py-2.5 text-left text-sm text-[#2f2f2f] hover:bg-[#f5f5f3] ${isSelected ? "" : ""
+                              }`}
                           >
                             <span>{status}</span>
                           </button>
@@ -513,7 +573,17 @@ export default function OrdersPage() {
                   )}
                 </div>
               </div>
+              )}
 
+              {!ordersInitialLoad &&
+                orderRows.length > 0 &&
+                filteredOrders.length === 0 && (
+                  <div className="rounded-xl border border-[#dcdcd7] bg-white py-10 text-center text-sm text-[#666]">
+                    No orders match your search or status filter.
+                  </div>
+                )}
+
+              {!ordersInitialLoad && orderRows.length > 0 && filteredOrders.length > 0 && (
               <div className="overflow-hidden rounded-xl border border-[#dcdcd7] bg-white">
                 <table className="w-full border-collapse">
                   <thead className="border-b border-[#dfdfda]">
@@ -522,6 +592,7 @@ export default function OrdersPage() {
                       <th className="px-4 py-3">Customer</th>
                       <th className="px-4 py-3">Product</th>
                       <th className="px-4 py-3">Amount</th>
+                      <th className="px-4 py-3">Tracking</th>
                       <th className="px-4 py-3">Payment</th>
                       <th className="px-4 py-3">Status</th>
                       <th className="px-4 py-3">Action</th>
@@ -558,6 +629,9 @@ export default function OrdersPage() {
                             {order.shipping}
                           </p>
                         </td>
+                        <td className="px-4 py-4 align-top text-xs text-[#4f4f4a]">
+                          {order.tracking || "—"}
+                        </td>
                         <td className="px-4 py-4 align-top">
                           <span className="inline-flex items-center rounded-full bg-[#efe5d3] px-3 py-1 text-xs font-semibold text-[#9b641e]">
                             {order.payment}
@@ -565,11 +639,10 @@ export default function OrdersPage() {
                         </td>
                         <td className="px-4 py-4 align-top">
                           <span
-                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                              order.status === "Confirmed"
+                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${order.status === "Confirmed"
                                 ? "bg-[#e2efd6] text-[#3f7c25]"
                                 : "bg-[#efe5d3] text-[#94621e]"
-                            }`}
+                              }`}
                           >
                             {order.status}
                           </span>
@@ -579,11 +652,10 @@ export default function OrdersPage() {
                             type="button"
                             onClick={() => handleMarkConfirmed(order.id)}
                             disabled={order.status !== "Pending"}
-                            className={`rounded-lg border px-3 py-1 text-xs font-semibold transition ${
-                              order.status === "Pending"
+                            className={`rounded-lg border px-3 py-1 text-xs font-semibold transition ${order.status === "Pending"
                                 ? "bg-linear-to-r from-[#0097b2] to-[#7ed957] text-white hover:bg-[#f9efd9]"
                                 : "cursor-not-allowed border-[#d8d8d3] bg-[#f4f4f1] text-[#7f7f78]"
-                            }`}
+                              }`}
                           >
                             {order.status === "Pending"
                               ? "Mark Confirmed"
@@ -595,6 +667,7 @@ export default function OrdersPage() {
                   </tbody>
                 </table>
               </div>
+              )}
             </div>
           )}
 
@@ -628,16 +701,14 @@ export default function OrdersPage() {
 
                     <div className="flex items-center gap-3">
                       <span
-                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                          row.registered
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${row.registered
                             ? "bg-[#e2efd6] text-[#3f7c25]"
                             : "bg-[#f0efeb] text-[#75756f]"
-                        }`}
+                          }`}
                       >
                         <div
-                          className={`w-2 h-2 rounded-full m-1 ${
-                            row.registered ? "bg-[#3f7c25]" : "bg-[#75756f]"
-                          }`}
+                          className={`w-2 h-2 rounded-full m-1 ${row.registered ? "bg-[#3f7c25]" : "bg-[#75756f]"
+                            }`}
                         ></div>
                         {row.registered ? "Registered" : "Not registered"}
                       </span>
@@ -656,16 +727,14 @@ export default function OrdersPage() {
                             ),
                           );
                         }}
-                        className={`relative h-7 w-12 rounded-full border transition-colors ${
-                          row.registered
+                        className={`relative h-7 w-12 rounded-full border transition-colors ${row.registered
                             ? "border-[#9fcb86] bg-[#dceecd]"
                             : "border-[#c9c9c4] bg-[#f8f8f6]"
-                        }`}
+                          }`}
                       >
                         <span
-                          className={`absolute top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-white shadow-sm transition-all ${
-                            row.registered ? "left-6" : "left-1"
-                          }`}
+                          className={`absolute top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-white shadow-sm transition-all ${row.registered ? "left-6" : "left-1"
+                            }`}
                         />
                       </button>
                     </div>

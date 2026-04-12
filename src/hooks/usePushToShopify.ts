@@ -3,49 +3,26 @@
 import { useMutation } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 
-const PUSH_TO_SHOPIFY_ENDPOINT = "dropshipper/shopify/push-product";
-
-export interface ShopifyVariant {
-  option1?: string;
-  price?: string;
-  sku?: string;
-  weight_grams?: number | string;
-  weight?: number | string;
-  shipping_discount?: number | string;
-  rto_charges?: number | string;
+export interface MrpUpdatePayload {
+  productId: string;
+  newMRP: number;
 }
 
-export interface ShopifyImage {
-  src?: string;
-}
-
-export interface ShopifyProduct {
-  title?: string;
-  body_html?: string;
-  vendor?: string;
-  product_type?: string;
-  status?: string;
-  variants?: ShopifyVariant[];
-  images?: ShopifyImage[];
-}
-
-export interface PushToShopifyPayload {
-  access_token: string;
-  shop: string;
-  productData: any; // or define proper interface later
-  productId?: string;
-}
-
-export interface PushToShopifyResponse {
+export interface MrpUpdateResponse {
   success: boolean;
-  message: string;
-  productId?: string;
+  message?: string;
+  shopify_product_id?: string | number;
+  data?: unknown;
 }
 
+/**
+ * Push / update catalog product on the dropshipper's Shopify store via backend
+ * (persists shopify_product_id on dropshipper mapping — do not use push-product).
+ */
 export const usePushToShopify = () => {
   const pushProductToShopify = useMutation({
-    mutationFn: async (payload: PushToShopifyPayload) =>
-      apiClient.post(PUSH_TO_SHOPIFY_ENDPOINT, payload), // ✅ send full payload directly
+    mutationFn: async (payload: MrpUpdatePayload) =>
+      apiClient.post("dropshipper/shopify/mrp-update", payload) as Promise<MrpUpdateResponse>,
   });
 
   return {

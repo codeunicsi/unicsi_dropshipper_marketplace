@@ -16,9 +16,8 @@
 
 import React, { useEffect, useState } from "react";
 import { Button } from "../ui/button";
-import { usePushToShopify } from "@/hooks/usePushToShopify";
 import { useGetProductById } from "@/hooks/marketplace/useProduct";
-import { apiClient } from "@/hooks/marketplace/useShopifySecret";
+import { apiClient } from "@/lib/api-client";
 import { useRouter } from "next/navigation";
 
 interface DrawerProduct {
@@ -102,9 +101,20 @@ const CartDrawer = ({
   const [defaultStore, setDefaultStore] = useState<ApiStore | null>(null);
   const [isFetchingStore, setIsFetchingStore] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isPushing, setIsPushing] = useState(false);
+  const [pushError, setPushError] = useState<string | null>(null);
+  const [sellingPrice, setSellingPrice] = useState(0);
+  const [calcSellingPrice, setCalcSellingPrice] = useState(0);
+  const [expectedOrders, setExpectedOrders] = useState<number>(100);
+  const [confirmedRateInput, setConfirmedRateInput] = useState<string>("90%");
+  const [deliveryRateInput, setDeliveryRateInput] = useState<string>("50%");
+  const [adSpendPerOrderInput, setAdSpendPerOrderInput] = useState<string>("");
+  const [miscChargesInput, setMiscChargesInput] = useState<string>("");
   const router = useRouter();
 
-  const product = response?.productData?.product;
+  const productId = selectedProduct?.id ?? "";
+  const { data: productData } = useGetProductById(productId);
+  const product = productData?.data ?? response?.productData?.product;
   const firstVariant = product?.variants?.[0];
   const variantMeta = firstVariant as
     | {
@@ -125,32 +135,6 @@ const CartDrawer = ({
     Number(variantMeta?.rto_charges ?? Math.round(cloutPrice * 0.28)),
     0,
   );
-
-  const handleSellingPriceUpdate = async (newPrice: number) => {
-    if (!newPrice || newPrice <= 0) return;
-
-    try {
-      await apiClient.post("dropshipper/shopify/mrp-update", {
-        productId: selectedProduct?.id,
-        newMRP: newPrice,
-      });
-    } catch (err) {
-      console.error("Failed to update MRP:", err);
-    }
-  };
-
-  const [sellingPrice, setSellingPrice] = useState<number>(cloutPrice);
-  const [calcSellingPrice, setCalcSellingPrice] = useState<number>(cloutPrice);
-  const [expectedOrders, setExpectedOrders] = useState<number>(100);
-  const [confirmedRateInput, setConfirmedRateInput] = useState<string>("90%");
-  const [deliveryRateInput, setDeliveryRateInput] = useState<string>("50%");
-  const [adSpendPerOrderInput, setAdSpendPerOrderInput] = useState<string>("");
-  const [miscChargesInput, setMiscChargesInput] = useState<string>("");
-  const { pushProductToShopify } = usePushToShopify();
-  const productId = selectedProduct?.id ?? "";
-  const { data: productData } = useGetProductById(productId);
-  // console.log("Selected Product ID:", productId);
-
   const parseNumericInput = (value: string): number | null => {
     const normalized = value.replace(/[^0-9.]/g, "");
     if (!normalized) return null;
@@ -163,14 +147,14 @@ const CartDrawer = ({
       try {
         setIsFetchingStore(true); // ✅ start loading
 
-        const response = await apiClient.get(
+        const storeRes = await apiClient.get(
           "dropshipper/shopify/access-token",
         );
 
-        const list: ApiStore[] = Array.isArray(response)
-          ? response
-          : Array.isArray(response?.data)
-            ? response.data
+        const list: ApiStore[] = Array.isArray(storeRes)
+          ? storeRes
+          : Array.isArray(storeRes?.data)
+            ? storeRes.data
             : [];
 
         const store = list.find((s) => s.is_default) ?? list[0] ?? null;
@@ -290,43 +274,38 @@ const CartDrawer = ({
     product?.images?.[0]?.src ||
     "/images/vita-c.webp";
 
-  const handlePushToShopify = () => {
-    if (!defaultStore?.access_token || !defaultStore?.store_url) {
-      console.error("No linked Shopify store found.");
+  const handlePushToShopify = async () => {
+    if (!selectedProduct?.id) {
+      setPushError("Missing product.");
+      return;
+    }
+    if (!defaultStore?.store_url) {
+      setPushError("Connect a Shopify store first.");
+      return;
+    }
+    if (!sellingPrice || sellingPrice <= 0) {
+      setPushError("Enter a valid selling price (MRP).");
       return;
     }
 
-    console.log("Pushing product to Shopify:");
-    console.log("productData", productData);
-    console.log("sellingPrice", sellingPrice);
-    productData.data.dropshipperSellingPrice = sellingPrice;
-
-    pushProductToShopify.mutate(
-      {
-        access_token: defaultStore.access_token,
-        shop: defaultStore.store_url,
-        productData: productData?.data,
-        productId: "",
-      },
-      {
-        onSuccess: (data) => {
-          console.log("Success:", data);
-
-          handleSellingPriceUpdate(sellingPrice); // 👈 called after push success
-
-          setShowSuccess(true);
-
-          setTimeout(() => {
-            router.push("/marketplace");
-            setShowSuccess(false);
-            onClose();
-          }, 1200);
-        },
-        onError: (error) => {
-          console.error("Error:", error);
-        },
-      },
-    );
+    setPushError(null);
+    setIsPushing(true);
+    try {
+      await apiClient.post("dropshipper/shopify/mrp-update", {
+        productId: selectedProduct.id,
+        newMRP: sellingPrice,
+      });
+      setShowSuccess(true);
+      setTimeout(() => {
+        router.push("/marketplace");
+        setShowSuccess(false);
+        onClose();
+      }, 1200);
+    } catch (e) {
+      setPushError((e as Error).message || "Failed to push product");
+    } finally {
+      setIsPushing(false);
+    }
   };
 
   return (
@@ -352,10 +331,14 @@ const CartDrawer = ({
             <SectionTitle icon={Store} title="Store" />
             <div className="flex justify-between gap-2">
               <span className="text-sm text-slate-900">
-                {response?.shop || defaultStore?.store_url || "No store linked"}
+                {defaultStore?.store_url || "No store linked"}
               </span>
             </div>
           </div>
+
+          {pushError && (
+            <p className="text-sm text-red-600 px-2">{pushError}</p>
+          )}
 
           <div className="flex justify-between items-center gap-4">
             <SectionTitle icon={Banknote} title="Pricing" />
@@ -489,20 +472,14 @@ const CartDrawer = ({
 
           <Button
             className="flex items-center justify-center w-full bg-black font-medium"
-            style={{ border: "2px solid red" }}
-            disabled={
-              isLoading ||
-              isFetchingStore ||
-              pushProductToShopify.isPending ||
-              !defaultStore
-            }
-            onClick={handlePushToShopify}
+            disabled={isLoading || isFetchingStore || isPushing || !defaultStore}
+            onClick={() => void handlePushToShopify()}
           >
             <ArrowUpRight />
             <span>
               {isFetchingStore
                 ? "Fetching Store..."
-                : pushProductToShopify.isPending
+                : isPushing
                   ? "Pushing..."
                   : "Push To Shopify"}
             </span>
@@ -628,7 +605,6 @@ const CartDrawer = ({
                           Number.isNaN(nextValue) ? 0 : nextValue,
                         );
                       }}
-                      onBlur={() => handleSellingPriceUpdate(calcSellingPrice)}
                     />
                   </div>
                   <div className="flex items-center justify-between pb-3 border-b border-slate-300">

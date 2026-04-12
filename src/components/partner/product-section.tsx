@@ -7,10 +7,7 @@ import { ChevronLeft, ChevronRight, Loader2, Package } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Product, useGetAllProducts } from "@/hooks/marketplace/useProduct";
 import { API_BASE_URL } from "@/lib/api-client";
-import {
-  PushToShopifyResponse,
-  usePushToShopify,
-} from "@/hooks/usePushToShopify";
+import { usePushToShopify } from "@/hooks/usePushToShopify";
 
 // const PRODUCT_TABS = [
 //   "Push to Shopify",
@@ -96,17 +93,6 @@ function ProductsBlock({
     setIsCartOpen(true);
   };
 
-  const resolvedResponse: PushToShopifyResponse | null = (() => {
-    const raw = pushProductToShopify.data as
-      | PushToShopifyResponse
-      | { data?: PushToShopifyResponse }
-      | undefined;
-
-    if (!raw) return null;
-    if ("data" in raw && raw.data) return raw.data;
-    return raw as PushToShopifyResponse;
-  })();
-
   return (
     <div className={`${bgColor} rounded-2xl border border-slate-200 p-8 mb-8`}>
       {/* Header */}
@@ -169,7 +155,7 @@ function ProductsBlock({
         <CartDrawer
           onClose={() => setIsCartOpen(false)}
           selectedProduct={selectedProduct}
-          response={resolvedResponse}
+          response={null}
           isLoading={pushProductToShopify.isPending}
           error={pushProductToShopify.error?.message ?? null}
           onRetry={() => {
@@ -199,6 +185,10 @@ export default function ProductsSection({
     MarketplaceProduct[]
   >([]);
   const [categoryLoading, setCategoryLoading] = useState(false);
+  const [categoryCartOpen, setCategoryCartOpen] = useState(false);
+  const [categorySelected, setCategorySelected] = useState<UIProduct | null>(
+    null,
+  );
 
   // ✅ Extract + transform API data
   const rawProducts: Product[] = Array.isArray((data as any)?.data)
@@ -255,12 +245,34 @@ export default function ProductsSection({
                   name={p.title}
                   price={Number(p.variants?.[0]?.variant_price ?? 0)}
                   image={p.images?.[0]?.image_url ?? ""}
-                  onPushToShopify={() => {}}
+                  onPushToShopify={() => {
+                    setCategorySelected({
+                      id: p.product_id,
+                      name: p.title,
+                      price: Number(p.variants?.[0]?.variant_price ?? 0),
+                      image: p.images?.[0]?.image_url ?? "/placeholder.png",
+                    });
+                    setCategoryCartOpen(true);
+                  }}
                 />
               ))}
             </div>
           )}
         </div>
+      )}
+
+      {categoryCartOpen && categorySelected && (
+        <CartDrawer
+          onClose={() => {
+            setCategoryCartOpen(false);
+            setCategorySelected(null);
+          }}
+          selectedProduct={categorySelected}
+          response={null}
+          isLoading={false}
+          error={null}
+          onRetry={() => {}}
+        />
       )}
 
       {/* Main Sections */}

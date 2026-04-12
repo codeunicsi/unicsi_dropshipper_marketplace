@@ -24,20 +24,20 @@ import DownloadMediaDropdown from "@/components/partner/download-media-dropdown"
 import { useGetProductById } from "@/hooks/marketplace/useProduct";
 import { UnicsiLoader } from "@/components/partner/unicsi-loader";
 import { usePushToShopify } from "@/hooks/usePushToShopify";
-import { apiClient } from "@/hooks/marketplace/useShopifySecret";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 type ProductDetailPageProps = {
   params: Promise<{
     productId: string;
   }>;
-};
-
-type ApiStore = {
-  store_name: string;
-  store_url: string;
-  access_token?: string;
-  is_default?: boolean;
-  installed_at: string;
 };
 
 /* ─── helpers ──────────────────────────────────────────────── */
@@ -87,54 +87,10 @@ function InfoRow({
 export function ProductInfo({ product }: { product: any }) {
   const router = useRouter();
   const { pushProductToShopify } = usePushToShopify();
-  const [defaultStore, setDefaultStore] = useState<ApiStore | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-
-  useEffect(() => {
-    const fetchDefaultStore = async () => {
-      try {
-        const response = await apiClient.get(
-          "dropshipper/shopify/access-token",
-        );
-        const list: ApiStore[] = Array.isArray(response)
-          ? response
-          : Array.isArray(response?.data)
-            ? response.data
-            : [];
-        const store = list.find((s) => s.is_default) ?? list[0] ?? null;
-        setDefaultStore(store);
-      } catch (err) {
-        console.error("Failed to fetch Shopify stores:", err);
-      }
-    };
-    fetchDefaultStore();
-  }, []);
-
-  const handlePushToShopify = () => {
-    if (!defaultStore?.access_token || !defaultStore?.store_url) {
-      console.error("No linked Shopify store found.");
-      return;
-    }
-    pushProductToShopify.mutate(
-      {
-        access_token: defaultStore.access_token,
-        shop: defaultStore.store_url,
-        productData: product,
-        productId: "",
-      },
-      {
-        onSuccess: (data) => {
-          console.log("Success:", data);
-
-          setShowSuccess(true); // show UI first
-
-          setTimeout(() => {
-            router.push("/marketplace"); // then redirect
-          }, 1200); // delay so user can see message
-        },
-      },
-    );
-  };
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [mrpInput, setMrpInput] = useState("");
+  const [dialogError, setDialogError] = useState<string | null>(null);
 
   const variant = product.variants?.find((v: any) => v.is_active);
   const price = Number(variant?.price ?? product.mrp ?? 0);
@@ -146,6 +102,34 @@ export function ProductInfo({ product }: { product: any }) {
   const moq = product.minimum_order_quantity ?? "—";
 
   const discount = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : null;
+
+  useEffect(() => {
+    setMrpInput(String(Math.max(price, 1)));
+  }, [price]);
+
+  const confirmPushToShopify = () => {
+    const n = Number(mrpInput);
+    if (!product.product_id || !Number.isFinite(n) || n <= 0) {
+      setDialogError("Enter a valid selling price (MRP).");
+      return;
+    }
+    setDialogError(null);
+    pushProductToShopify.mutate(
+      { productId: product.product_id, newMRP: n },
+      {
+        onSuccess: () => {
+          setDialogOpen(false);
+          setShowSuccess(true);
+          setTimeout(() => {
+            router.push("/marketplace");
+          }, 1200);
+        },
+        onError: (e: Error) => {
+          setDialogError(e?.message || "Request failed");
+        },
+      },
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -230,30 +214,32 @@ export function ProductInfo({ product }: { product: any }) {
         {/* Shipping flags */}
         <div className="flex gap-3">
           <div
-            className={`flex-1 flex items-center gap-2 text-xs rounded-lg p-2.5 border ${
-              product.rvp_enabled
+            className={`flex-1 flex items-center gap-2 text-xs rounded-lg p-2.5 border ${product.rvp_enabled
                 ? "bg-emerald-50 border-emerald-200 text-emerald-700"
                 : "bg-slate-50 border-slate-200 text-slate-400"
-            }`}
+              }`}
           >
             <RotateCcw className="w-3.5 h-3.5" />
             RVP {product.rvp_enabled ? "Enabled" : "Disabled"}
           </div>
           <div
-            className={`flex-1 flex items-center gap-2 text-xs rounded-lg p-2.5 border ${
-              product.rto_enabled
+            className={`flex-1 flex items-center gap-2 text-xs rounded-lg p-2.5 border ${product.rto_enabled
                 ? "bg-emerald-50 border-emerald-200 text-emerald-700"
                 : "bg-slate-50 border-slate-200 text-slate-400"
-            }`}
+              }`}
           >
             <Truck className="w-3.5 h-3.5" />
             RTO {product.rto_enabled ? "Enabled" : "Disabled"}
           </div>
         </div>
 
-        {/* Push To Shopify button */}
+        {/* Push To Shopify — opens MRP dialog (backend: mrp-update) */}
         <button
-          onClick={handlePushToShopify}
+          type="button"
+          onClick={() => {
+            setDialogError(null);
+            setDialogOpen(true);
+          }}
           disabled={pushProductToShopify.isPending}
           className="w-full bg-black text-white py-3 rounded-lg flex justify-center items-center gap-2 hover:bg-slate-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
@@ -269,6 +255,49 @@ export function ProductInfo({ product }: { product: any }) {
             </>
           )}
         </button>
+
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Selling price on Shopify</DialogTitle>
+              <DialogDescription>
+                Enter the price (MRP) customers will pay on your Shopify store.
+                This calls the server to create or update the product and save
+                the mapping.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 py-2">
+              <label className="text-sm font-medium">MRP (₹)</label>
+              <input
+                type="number"
+                min={1}
+                step={1}
+                className="w-full border rounded-md px-3 py-2 text-sm"
+                value={mrpInput}
+                onChange={(e) => setMrpInput(e.target.value)}
+              />
+              {dialogError && (
+                <p className="text-sm text-red-600">{dialogError}</p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={confirmPushToShopify}
+                disabled={pushProductToShopify.isPending}
+              >
+                {pushProductToShopify.isPending ? "Saving…" : "Confirm"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Variant details */}
@@ -394,11 +423,10 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
               <div
                 key={i}
                 onClick={() => setSelectedImage(img)}
-                className={`relative h-20 w-20 border rounded cursor-pointer overflow-hidden transition-all ${
-                  activeImage === img
+                className={`relative h-20 w-20 border rounded cursor-pointer overflow-hidden transition-all ${activeImage === img
                     ? "border-black border-2"
                     : "border-gray-200 hover:border-gray-400"
-                }`}
+                  }`}
               >
                 <img
                   src={img}
@@ -503,9 +531,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                 {item.label}
               </p>
               <p
-                className={`text-xs font-medium text-slate-800 break-all ${
-                  (item as any).mono ? "font-mono" : ""
-                }`}
+                className={`text-xs font-medium text-slate-800 break-all ${(item as any).mono ? "font-mono" : ""
+                  }`}
               >
                 {item.value}
               </p>
