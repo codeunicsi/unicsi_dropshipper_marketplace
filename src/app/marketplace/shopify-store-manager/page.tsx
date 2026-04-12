@@ -45,15 +45,70 @@ type ApiStore = {
   installed_at: string;
 };
 
-const linkSteps = [
-  "Go to your store: https://admin.shopify.com/store/qwqs68-0w?ui_locales=en-IN",
-  "Click on Settings, go to Apps, click Develop apps, then click Build App in Dev Dashboard.",
-  "Create app and fill required details: App URL: https://unicsi.com, Embed app in Shopify admin: untick this.",
-  "Set scopes: read_all_orders, read_assigned_fulfillment_orders, write_assigned_fulfillment_orders, read_customer_events, read_customers, read_customer_data_erasure, write_customer_data_erasure, read_customer_payment_methods, read_customer_merge, write_customer_merge, write_draft_orders, read_draft_orders, read_merchant_managed_fulfillment_orders, write_merchant_managed_fulfillment_orders, read_orders, write_orders, write_payment_mandate, read_payment_mandate, read_payment_terms, write_payment_terms, read_privacy_settings, write_privacy_settings, read_products, write_products, write_reports, read_reports, read_returns, write_returns, read_third_party_fulfillment_orders, write_third_party_fulfillment_orders, customer_read_companies, customer_write_companies, customer_write_customers, customer_read_customers, customer_read_draft_orders, customer_read_markets, customer_read_metaobjects, customer_read_orders, customer_write_orders, customer_read_quick_sale, customer_write_quick_sale, customer_read_store_credit_account_transactions, customer_read_store_credit_accounts, customer_write_own_subscription_contracts, customer_read_own_subscription_contracts, unauthenticated_write_customers, unauthenticated_read_customers, unauthenticated_read_customer_tags",
-  "Add redirect URL: https://apis.unicsi.com/api/v1/dropshipper/shopify/callback",
-  "Release app. Go to settings and copy Client ID and Secret.",
-  "Back to our platform, paste Client ID and Secret there and save.",
-  "Go back to https://admin.shopify.com/store/qwqs68-0w?ui_locales=en-IN, copy store URL and paste here.",
+type LinkStep = {
+  id: string;
+  text: string;
+  linkLabel?: string;
+  linkHref?: string;
+  trailingText?: string;
+  tooltipLabel?: string;
+  tooltipContent?: string;
+};
+
+const shopifyStoreAdminUrl =
+  "https://admin.shopify.com/store/qwqs68-0w?ui_locales=en-IN";
+const appUrl = "https://unicsi.com";
+const redirectUrl =
+  "https://apis.unicsi.com/api/v1/dropshipper/shopify/callback";
+
+const scopesText =
+  "read_all_orders, read_assigned_fulfillment_orders, write_assigned_fulfillment_orders, read_customer_events, read_customers, read_customer_data_erasure, write_customer_data_erasure, read_customer_payment_methods, read_customer_merge, write_customer_merge, write_draft_orders, read_draft_orders, read_merchant_managed_fulfillment_orders, write_merchant_managed_fulfillment_orders, read_orders, write_orders, write_payment_mandate, read_payment_mandate, read_payment_terms, write_payment_terms, read_privacy_settings, write_privacy_settings, read_products, write_products, write_reports, read_reports, read_returns, write_returns, read_third_party_fulfillment_orders, write_third_party_fulfillment_orders, customer_read_companies, customer_write_companies, customer_write_customers, customer_read_customers, customer_read_draft_orders, customer_read_markets, customer_read_metaobjects, customer_read_orders, customer_write_orders, customer_read_quick_sale, customer_write_quick_sale, customer_read_store_credit_account_transactions, customer_read_store_credit_accounts, customer_write_own_subscription_contracts, customer_read_own_subscription_contracts, unauthenticated_write_customers, unauthenticated_read_customers, unauthenticated_read_customer_tags";
+
+const linkSteps: LinkStep[] = [
+  {
+    id: "store",
+    text: "Go to your store:",
+    linkLabel: shopifyStoreAdminUrl,
+    linkHref: shopifyStoreAdminUrl,
+  },
+  {
+    id: "develop-app",
+    text: "Click on Settings, go to Apps, click Develop apps, then click Build App in Dev Dashboard.",
+  },
+  {
+    id: "create-app",
+    text: "Create app and fill required details. App URL:",
+    linkLabel: appUrl,
+    linkHref: appUrl,
+    trailingText: "Embed app in Shopify admin: untick this.",
+  },
+  {
+    id: "scopes",
+    text: "Set scopes.",
+    tooltipLabel: "Hover to view full scopes",
+    tooltipContent: scopesText,
+  },
+  {
+    id: "redirect",
+    text: "Add redirect URL:",
+    linkLabel: redirectUrl,
+    linkHref: redirectUrl,
+  },
+  {
+    id: "release",
+    text: "Release app. Go to settings and copy Client ID and Secret.",
+  },
+  {
+    id: "paste-creds",
+    text: "Back to our platform, paste Client ID and Secret there and save.",
+  },
+  {
+    id: "final-store-url",
+    text: "Go back to",
+    linkLabel: shopifyStoreAdminUrl,
+    linkHref: shopifyStoreAdminUrl,
+    trailingText: "copy store URL and paste here.",
+  },
 ];
 
 // ── Helper: map API store → StoreRow ─────────────────────────────────────────
@@ -648,12 +703,40 @@ export default function ShopifyStoreManagerPage() {
                 </div>
               </div>
               <h2 className="mb-6 text-sm font-semibold text-[#3d3d3d]">
-                Link your Shopify store in just 4 simple steps:
+                Link your Shopify store in simple steps:
               </h2>
               <ul className="list-disc space-y-5 pl-6 marker:text-[#606060]">
                 {linkSteps.map((step) => (
-                  <li key={step} className="pl-1 text-sm leading-8 text-[#444]">
-                    {step}
+                  <li
+                    key={step.id}
+                    className="pl-1 text-sm leading-7 text-[#444]"
+                  >
+                    {step.text}{" "}
+                    {step.linkHref && step.linkLabel && (
+                      <a
+                        href={step.linkHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="break-all text-[#2563eb] underline underline-offset-2"
+                      >
+                        {step.linkLabel}
+                      </a>
+                    )}{" "}
+                    {step.trailingText && (
+                      <span className="text-[#444]">{step.trailingText}</span>
+                    )}
+                    {step.tooltipContent && step.tooltipLabel && (
+                      <span className="group relative ml-2 inline-block align-middle">
+                        <span className="cursor-help text-[#2563eb] underline underline-offset-2">
+                          {step.tooltipLabel}
+                        </span>
+                        <span className="pointer-events-none invisible absolute left-0 top-4 z-20 mt-2 w-96 max-w-[70vw] rounded-md border border-[#e5e7eb] bg-white px-3 py-4 text-xs leading-5 text-[#374151] opacity-0 shadow-lg transition-all duration-150 group-hover:visible group-hover:opacity-100">
+                          <span className="block max-h-44 overflow-y-auto pr-1">
+                            {step.tooltipContent}
+                          </span>
+                        </span>
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>
