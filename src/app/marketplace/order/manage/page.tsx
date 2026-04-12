@@ -277,6 +277,7 @@ export default function OrdersPage() {
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const statusDropdownRef = useRef<HTMLDivElement | null>(null);
   const [webhookRows, setWebhookRows] = useState<WebhookRow[]>(initialWebhooks);
+  const isDisconnectedSkeleton = !isStoreConnected && !isStoreCheckLoading;
 
   const handleMarkConfirmed = (orderId: string) => {
     setOrderRows((previousRows) =>
@@ -433,76 +434,120 @@ export default function OrdersPage() {
         </header>
 
         {syncOrders.isError && (
-          <p className="mt-2 text-base text-black/90">
+          <p className="mt-2 text-xs text-red-600">
             {(syncOrders.error as Error)?.message || "Failed to sync orders"}
           </p>
         )}
 
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <SummaryCard
-            label="Total orders"
-            value={String(isStoreConnected ? summary.totalOrders : 0)}
-          />
-          <SummaryCard
-            label="Pending"
-            value={String(isStoreConnected ? summary.pendingOrders : 0)}
-            valueClassName="text-[#bb7723]"
-          />
-          <SummaryCard
-            label="Fulfilled"
-            value={String(isStoreConnected ? summary.fulfilledOrders : 0)}
-            valueClassName="text-[#3d7b24]"
-          />
-          <SummaryCard
-            label="Revenue (INR)"
-            value={`Rs ${formatInr(isStoreConnected ? summary.revenue : 0)}`}
-          />
+          {isDisconnectedSkeleton ? (
+            <>
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div
+                  key={`summary-skeleton-${index}`}
+                  className="rounded-xl bg-[#f1f1ed] p-5"
+                >
+                  <div className="h-6 w-28 rounded bg-[#e4e4de] animate-pulse" />
+                  <div className="mt-4 h-10 w-20 rounded bg-[#e4e4de] animate-pulse" />
+                </div>
+              ))}
+            </>
+          ) : (
+            <>
+              <SummaryCard
+                label="Total orders"
+                value={String(summary.totalOrders)}
+              />
+              <SummaryCard
+                label="Pending"
+                value={String(summary.pendingOrders)}
+                valueClassName="text-[#bb7723]"
+              />
+              <SummaryCard
+                label="Fulfilled"
+                value={String(summary.fulfilledOrders)}
+                valueClassName="text-[#3d7b24]"
+              />
+              <SummaryCard
+                label="Revenue (INR)"
+                value={`Rs ${formatInr(summary.revenue)}`}
+              />
+            </>
+          )}
         </div>
 
         <section className="mt-6 rounded-2xl border border-[#d8d8d3] bg-[#f7f7f5] p-5">
           <div className="border-b border-[#dbdbd6] pb-3">
-            <div className="inline-flex overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.value}
-                  type="button"
-                  onClick={() => setActiveTab(tab.value)}
-                  className={`border-r border-[#cbcbc7] px-6 py-3 text-sm font-semibold text-[#202020] last:border-r-0 ${
-                    activeTab === tab.value ? "bg-[#f2f2ed]" : "bg-white"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+            {isDisconnectedSkeleton ? (
+              <div className="inline-flex overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div
+                    key={`tab-skeleton-${index}`}
+                    className="border-r border-[#cbcbc7] px-6 py-3 last:border-r-0"
+                  >
+                    <div className="h-5 w-20 rounded bg-[#e8e8e3] animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="inline-flex overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.value}
+                    type="button"
+                    onClick={() => setActiveTab(tab.value)}
+                    className={`border-r border-[#cbcbc7] px-6 py-3 text-sm font-semibold text-[#202020] last:border-r-0 ${
+                      activeTab === tab.value ? "bg-[#f2f2ed]" : "bg-white"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {activeTab === "orders" && (
             <div className="pt-4">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search by order # or customer..."
-                  className="h-12 w-full max-w-[430px] rounded-xl border border-[#d8d8d3] bg-white px-4 text-sm text-[#313131] outline-none placeholder:text-[#8a8a84]"
-                />
+                {isDisconnectedSkeleton ? (
+                  <div className="h-12 w-full max-w-[430px] rounded-xl border border-[#d8d8d3] bg-white px-4 flex items-center">
+                    <div className="h-5 w-56 rounded bg-[#ecece7] animate-pulse" />
+                  </div>
+                ) : (
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search by order # or customer..."
+                    className="h-12 w-full max-w-[430px] rounded-xl border border-[#d8d8d3] bg-white px-4 text-sm text-[#313131] outline-none placeholder:text-[#8a8a84]"
+                  />
+                )}
 
                 <div className="relative" ref={statusDropdownRef}>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setIsStatusDropdownOpen((previousState) => !previousState)
-                    }
-                    className="inline-flex h-10 min-w-40 items-center justify-between gap-2 rounded-xl border border-[#d8d8d3] bg-white px-4 text-sm text-[#2f2f2f]"
-                  >
-                    {selectedStatus}
-                    <ChevronDown
-                      className={`h-4 w-4 transition-transform ${
-                        isStatusDropdownOpen ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
+                  {isDisconnectedSkeleton ? (
+                    <div className="inline-flex h-10 min-w-40 items-center justify-between gap-2 rounded-xl border border-[#d8d8d3] bg-white px-4">
+                      <div className="h-5 w-20 rounded bg-[#ecece7] animate-pulse" />
+                      <div className="h-4 w-4 rounded bg-[#ecece7] animate-pulse" />
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setIsStatusDropdownOpen(
+                          (previousState) => !previousState,
+                        )
+                      }
+                      className="inline-flex h-10 min-w-40 items-center justify-between gap-2 rounded-xl border border-[#d8d8d3] bg-white px-4 text-sm text-[#2f2f2f]"
+                    >
+                      {selectedStatus}
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${
+                          isStatusDropdownOpen ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+                  )}
 
                   {isStatusDropdownOpen && (
                     <div className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-2xl border border-[#d8d8d3] bg-white shadow-sm">
@@ -533,13 +578,28 @@ export default function OrdersPage() {
                 <table className="w-full border-collapse">
                   <thead className="border-b border-[#dfdfda]">
                     <tr className="text-left text-sm font-medium text-[#474742]">
-                      <th className="px-4 py-3">Order</th>
-                      <th className="px-4 py-3">Customer</th>
-                      <th className="px-4 py-3">Product</th>
-                      <th className="px-4 py-3">Amount</th>
-                      <th className="px-4 py-3">Payment</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3">Action</th>
+                      {isDisconnectedSkeleton ? (
+                        <>
+                          {Array.from({ length: 7 }).map((_, index) => (
+                            <th
+                              key={`head-skeleton-${index}`}
+                              className="px-4 py-3"
+                            >
+                              <div className="h-5 w-16 rounded bg-[#ecece7] animate-pulse" />
+                            </th>
+                          ))}
+                        </>
+                      ) : (
+                        <>
+                          <th className="px-4 py-3">Order</th>
+                          <th className="px-4 py-3">Customer</th>
+                          <th className="px-4 py-3">Product</th>
+                          <th className="px-4 py-3">Amount</th>
+                          <th className="px-4 py-3">Payment</th>
+                          <th className="px-4 py-3">Status</th>
+                          <th className="px-4 py-3">Action</th>
+                        </>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -577,7 +637,7 @@ export default function OrdersPage() {
                       <tr>
                         <td
                           colSpan={7}
-                          className="px-4 py-10 text-center text-sm font-medium text-red-600"
+                          className="px-4 py-10 text-center text-lg font-semibold text-black/90"
                         >
                           {storeConnectionMessage ||
                             "Shopify store not connected"}
