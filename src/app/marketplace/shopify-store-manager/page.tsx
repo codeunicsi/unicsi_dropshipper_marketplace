@@ -730,7 +730,7 @@ export default function ShopifyStoreManagerPage() {
                         <span className="cursor-help text-[#2563eb] underline underline-offset-2">
                           {step.tooltipLabel}
                         </span>
-                        <span className="pointer-events-none invisible absolute left-0 top-4 z-20 mt-2 w-96 max-w-[70vw] rounded-md border border-[#e5e7eb] bg-white px-3 py-4 text-xs leading-5 text-[#374151] opacity-0 shadow-lg transition-all duration-150 group-hover:visible group-hover:opacity-100">
+                        <span className="pointer-events-none invisible absolute left-0 top-full z-20 w-96 max-w-[70vw] rounded-md border border-[#e5e7eb] bg-white px-3 py-4 text-xs leading-5 text-[#374151] opacity-0 shadow-lg transition-all duration-150 group-hover:visible group-hover:pointer-events-auto group-hover:opacity-100">
                           <span className="block max-h-44 overflow-y-auto pr-1">
                             {step.tooltipContent}
                           </span>
