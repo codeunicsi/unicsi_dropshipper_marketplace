@@ -12,13 +12,13 @@ import {
   usePushToShopify,
 } from "@/hooks/usePushToShopify";
 
-const PRODUCT_TABS = [
-  "Push to Shopify",
-  "Inventory Request",
-  "Potential Heroes",
-  "Hot Selling Products",
-  "Popular Demand",
-];
+// const PRODUCT_TABS = [
+//   "Push to Shopify",
+//   "Inventory Request",
+//   "Potential Heroes",
+//   "Hot Selling Products",
+//   "Popular Demand",
+// ];
 
 type UIProduct = {
   id: string;
@@ -26,26 +26,30 @@ type UIProduct = {
   price: number;
   image: string;
   weightGrams?: number;
-  stock?: number;
+  stock?: any;
   color?: string;
   size?: string;
+  inStock?: boolean;
+  sku: string;
 };
 
 // ✅ Transform
 const transformProducts = (products: Product[]): UIProduct[] => {
   return products.map((product) => {
-    const variant = product.variants?.find((v) => v.is_active);
+    const firstVariant = product.variants?.[0]; // ✅ FIRST VARIANT
     const image = product.images?.[0];
 
     return {
       id: product.product_id,
       name: product.title,
-      price: Number(variant?.price ?? 0),
+      price: Number(firstVariant?.price ?? 0),
       image: image?.image_url || "/placeholder.png",
-      weightGrams: Number(variant?.weight_grams ?? 0),
-      stock: variant?.inventory_quantity ?? 0,
-      color: variant?.option1 ?? "",
-      size: variant?.option2 ?? "",
+      weightGrams: Number(firstVariant?.weight_grams ?? 0),
+      stock: firstVariant?.inventory_quantity ?? 0, // ✅ FIXED
+      color: firstVariant?.option1 ?? "",
+      size: firstVariant?.option2 ?? "",
+      sku: firstVariant?.sku ?? "",
+      inStock: (firstVariant?.inventory_quantity ?? 0) > 0, // ✅ FIXED
     };
   });
 };
@@ -128,7 +132,7 @@ function ProductsBlock({
       </div>
 
       {/* Tabs */}
-      {showTabs && (
+      {/* {showTabs && (
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
           {PRODUCT_TABS.map((tab, index) => (
             <button
@@ -144,21 +148,23 @@ function ProductsBlock({
             </button>
           ))}
         </div>
-      )}
+      )} */}
 
       {/* Products */}
       <div
         ref={scrollRef}
         className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
       >
-        {products.map((product) => (
-          <ProductCard
-            key={product.id}
-            {...product}
-            onPushToShopify={() => handlePushToShopify(product)}
-            onBulkOrder={() => handleBulkOrder(product)}
-          />
-        ))}
+        {products.map((product) => {
+          return (
+            <ProductCard
+              key={product.id}
+              {...product}
+              onPushToShopify={() => handlePushToShopify(product)}
+              onBulkOrder={() => handleBulkOrder(product)}
+            />
+          );
+        })}
       </div>
 
       {isCartOpen && (

@@ -47,6 +47,8 @@ export interface Product {
   variants: ProductVariant[];
   images: ProductImage[];
   category?: Category;
+  dropshipperSellingPrice: number;
+  gst_rate?:string;
 }
 
 export interface ProductVariant {

@@ -23,6 +23,8 @@ import {
   GraduationCap,
   MessageSquare,
   HelpCircle,
+  ScrollText,
+  Headphones,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -59,10 +61,10 @@ const menuItems = [
     label: "Manage Products",
     href: "#",
     children: [
-      {
-        label: "Inventory Request",
-        href: "/marketplace/manage-products/inventoryRequest",
-      },
+      // {
+      //   label: "Inventory Request",
+      //   href: "/marketplace/manage-products/inventoryRequest",
+      // },
       {
         label: "Pushed To Shopify",
         href: "/marketplace/manage-products/pushedToShopify",
@@ -121,7 +123,7 @@ const menuItems = [
     label: "GST Invoices",
     href: "/marketplace/gst-invoices",
   },
-  { icon: HelpCircle, label: "Support", href: "/marketplace/support" },
+  { icon: Headphones, label: "Support", href: "/marketplace/support" },
   {
     icon: HelpCircle,
     label: "FAQs",

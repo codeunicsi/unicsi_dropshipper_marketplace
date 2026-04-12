@@ -5,7 +5,6 @@ import { apiClient } from "@/lib/api-client";
 
 const PUSH_TO_SHOPIFY_ENDPOINT = "dropshipper/shopify/push-product";
 
-
 export interface ShopifyVariant {
   option1?: string;
   price?: string;
@@ -34,6 +33,7 @@ export interface PushToShopifyPayload {
   access_token: string;
   shop: string;
   productData: any; // or define proper interface later
+  productId?: string;
 }
 
 export interface PushToShopifyResponse {
