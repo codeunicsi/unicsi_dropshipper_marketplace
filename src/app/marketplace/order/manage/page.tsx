@@ -363,7 +363,7 @@ export default function OrdersPage() {
 
   const handleSyncOrders = async () => {
     try {
-      const response = await syncOrders.mutateAsync();
+      const response = await syncOrders.mutateAsync("refresh");
       const normalizedOrders = normalizeApiOrders(response);
       setOrderRows(normalizedOrders);
     } catch (error) {
@@ -372,8 +372,16 @@ export default function OrdersPage() {
   };
 
   useEffect(() => {
-    handleSyncOrders();
-    // We only want an initial sync once on first render.
+    void (async () => {
+      try {
+        const response = await syncOrders.mutateAsync("initial");
+        const normalizedOrders = normalizeApiOrders(response);
+        setOrderRows(normalizedOrders);
+      } catch (error) {
+        console.error("Failed to load orders", error);
+      }
+    })();
+    // We only want an initial load once on first render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

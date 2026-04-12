@@ -78,7 +78,7 @@ const SIDEBAR_MENU: MenuItem[] = [
     label: 'Order Management',
     href: '#',
     children: [
-      { label: 'All Orders', href: '/admin/orders' },
+      { label: 'Shopify orders', href: '/admin/orders' },
       { label: 'Processing', href: '/admin/orders/processing' },
       { label: 'Shipped', href: '/admin/orders/shipped' },
       { label: 'Delivered', href: '/admin/orders/delivered' },
