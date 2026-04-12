@@ -9,6 +9,7 @@ import {
   RefreshCcw,
 } from "lucide-react";
 import { useSyncOrders } from "@/hooks/useSyncOrders";
+import { apiClient } from "@/lib/api-client";
 type PanelTab = "orders" | "webhooks" | "setup";
 
 type OrderRow = {
@@ -51,33 +52,6 @@ const orderStatusOptions = [
   "Fulfilled",
   "Cancelled",
 ] as const;
-
-const fallbackOrders: OrderRow[] = [
-  {
-    id: "#1002",
-    date: "7 Apr 2026",
-    customer: "Mohd Niya Haque",
-    contact: "+91 92207 74381",
-    product: "Electric fan green / s / cotton",
-    amount: "Rs 1,559",
-    amountValue: 1559,
-    shipping: "+Rs 379 ship",
-    payment: "COD",
-    status: "Pending",
-  },
-  {
-    id: "#1001",
-    date: "7 Apr 2026",
-    customer: "Asif Khan",
-    contact: "asid@gmail.com",
-    product: "Electric fan green / s / cotton",
-    amount: "Rs 1,559",
-    amountValue: 1559,
-    shipping: "+Rs 379 ship",
-    payment: "COD",
-    status: "Pending",
-  },
-];
 
 const initialWebhooks: WebhookRow[] = [
   {
@@ -291,7 +265,13 @@ export default function OrdersPage() {
   const { syncOrders } = useSyncOrders();
   const [activeTab, setActiveTab] = useState<PanelTab>("orders");
   const [search, setSearch] = useState("");
-  const [orderRows, setOrderRows] = useState<OrderRow[]>(fallbackOrders);
+  const [orderRows, setOrderRows] = useState<OrderRow[]>([]);
+  const [isStoreCheckLoading, setIsStoreCheckLoading] = useState(true);
+  const [isStoreConnected, setIsStoreConnected] = useState(false);
+  const [storeConnectionMessage, setStoreConnectionMessage] = useState(
+    "Shopify store not connected",
+  );
+  const [connectedStoreUrl, setConnectedStoreUrl] = useState("");
   const [selectedStatus, setSelectedStatus] =
     useState<(typeof orderStatusOptions)[number]>("All statuses");
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
@@ -361,7 +341,46 @@ export default function OrdersPage() {
     };
   }, []);
 
+  useEffect(() => {
+    const checkStoreConnection = async () => {
+      setIsStoreCheckLoading(true);
+      try {
+        const response = await apiClient.get(
+          "dropshipper/shopify/access-token",
+        );
+        const stores = Array.isArray(response)
+          ? response
+          : Array.isArray(response?.data)
+            ? response.data
+            : [];
+
+        if (stores.length > 0) {
+          setIsStoreConnected(true);
+          setConnectedStoreUrl(
+            String(stores[0]?.store_url ?? stores[0]?.shop ?? ""),
+          );
+          setStoreConnectionMessage("");
+        } else {
+          setIsStoreConnected(false);
+          setStoreConnectionMessage("Shopify store not connected");
+        }
+      } catch (error) {
+        setIsStoreConnected(false);
+        setStoreConnectionMessage(
+          error instanceof Error && error.message
+            ? error.message
+            : "Shopify store not connected",
+        );
+      } finally {
+        setIsStoreCheckLoading(false);
+      }
+    };
+
+    checkStoreConnection();
+  }, []);
+
   const handleSyncOrders = async () => {
+    if (!isStoreConnected || isStoreCheckLoading) return;
     try {
       const response = await syncOrders.mutateAsync();
       const normalizedOrders = normalizeApiOrders(response);
@@ -370,12 +389,6 @@ export default function OrdersPage() {
       console.error("Failed to sync orders", error);
     }
   };
-
-  useEffect(() => {
-    handleSyncOrders();
-    // We only want an initial sync once on first render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <div className="mx-auto w-full max-w-7xl p-6">
@@ -386,7 +399,7 @@ export default function OrdersPage() {
               Shopify orders
             </h1>
             <p className="text-sm leading-tight text-[#3f3f3f]">
-              qwqs68-0w.myshopify.com
+              {connectedStoreUrl || ""}
             </p>
           </div>
 
@@ -399,7 +412,9 @@ export default function OrdersPage() {
             <button
               type="button"
               onClick={handleSyncOrders}
-              disabled={syncOrders.isPending}
+              disabled={
+                syncOrders.isPending || !isStoreConnected || isStoreCheckLoading
+              }
               className="inline-flex items-center gap-2 rounded-2xl border border-[#d5d5d0] bg-white px-5 py-3 text-sm font-medium text-[#222]"
             >
               <RefreshCcw
@@ -418,7 +433,7 @@ export default function OrdersPage() {
         </header>
 
         {syncOrders.isError && (
-          <p className="mt-2 text-xs text-red-600">
+          <p className="mt-2 text-base text-black/90">
             {(syncOrders.error as Error)?.message || "Failed to sync orders"}
           </p>
         )}
@@ -426,21 +441,21 @@ export default function OrdersPage() {
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <SummaryCard
             label="Total orders"
-            value={String(summary.totalOrders)}
+            value={String(isStoreConnected ? summary.totalOrders : 0)}
           />
           <SummaryCard
             label="Pending"
-            value={String(summary.pendingOrders)}
+            value={String(isStoreConnected ? summary.pendingOrders : 0)}
             valueClassName="text-[#bb7723]"
           />
           <SummaryCard
             label="Fulfilled"
-            value={String(summary.fulfilledOrders)}
+            value={String(isStoreConnected ? summary.fulfilledOrders : 0)}
             valueClassName="text-[#3d7b24]"
           />
           <SummaryCard
             label="Revenue (INR)"
-            value={`Rs ${formatInr(summary.revenue)}`}
+            value={`Rs ${formatInr(isStoreConnected ? summary.revenue : 0)}`}
           />
         </div>
 
@@ -528,70 +543,116 @@ export default function OrdersPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredOrders.map((order) => (
-                      <tr
-                        key={order.id}
-                        className="border-b border-[#e8e8e2] last:border-b-0"
-                      >
-                        <td className="px-4 py-4 align-top">
-                          <p className="text-xs leading-tight font-semibold text-[#222]">
-                            {order.id}
-                          </p>
-                          <p className="text-xs text-[#4f4f4a]">{order.date}</p>
-                        </td>
-                        <td className="px-4 py-4 align-top">
-                          <p className="text-xs leading-tight font-medium text-[#222]">
-                            {order.customer}
-                          </p>
-                          <p className="text-xs text-[#4f4f4a]">
-                            {order.contact}
-                          </p>
-                        </td>
-                        <td className="px-4 py-4 align-top text-xs leading-tight text-[#2c2c2c]">
-                          {order.product}
-                        </td>
-                        <td className="px-4 py-4 align-top">
-                          <p className="text-xs leading-tight font-semibold text-[#1f1f1f]">
-                            {order.amount}
-                          </p>
-                          <p className="text-xs text-[#4f4f4a]">
-                            {order.shipping}
-                          </p>
-                        </td>
-                        <td className="px-4 py-4 align-top">
-                          <span className="inline-flex items-center rounded-full bg-[#efe5d3] px-3 py-1 text-xs font-semibold text-[#9b641e]">
-                            {order.payment}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 align-top">
-                          <span
-                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                              order.status === "Confirmed"
-                                ? "bg-[#e2efd6] text-[#3f7c25]"
-                                : "bg-[#efe5d3] text-[#94621e]"
-                            }`}
-                          >
-                            {order.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 align-top">
-                          <button
-                            type="button"
-                            onClick={() => handleMarkConfirmed(order.id)}
-                            disabled={order.status !== "Pending"}
-                            className={`rounded-lg border px-3 py-1 text-xs font-semibold transition ${
-                              order.status === "Pending"
-                                ? "bg-linear-to-r from-[#0097b2] to-[#7ed957] text-white hover:bg-[#f9efd9]"
-                                : "cursor-not-allowed border-[#d8d8d3] bg-[#f4f4f1] text-[#7f7f78]"
-                            }`}
-                          >
-                            {order.status === "Pending"
-                              ? "Mark Confirmed"
-                              : "Confirmed"}
-                          </button>
+                    {isStoreCheckLoading &&
+                      Array.from({ length: 3 }).map((_, index) => (
+                        <tr
+                          key={`skeleton-${index}`}
+                          className="border-b border-[#e8e8e2] last:border-b-0 animate-pulse"
+                        >
+                          <td className="px-4 py-4">
+                            <div className="h-4 w-20 rounded bg-[#ececec]" />
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="h-4 w-28 rounded bg-[#ececec]" />
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="h-4 w-24 rounded bg-[#ececec]" />
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="h-4 w-20 rounded bg-[#ececec]" />
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="h-6 w-16 rounded-full bg-[#ececec]" />
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="h-6 w-20 rounded-full bg-[#ececec]" />
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="h-7 w-28 rounded-lg bg-[#ececec]" />
+                          </td>
+                        </tr>
+                      ))}
+
+                    {!isStoreCheckLoading && !isStoreConnected && (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="px-4 py-10 text-center text-sm font-medium text-red-600"
+                        >
+                          {storeConnectionMessage ||
+                            "Shopify store not connected"}
                         </td>
                       </tr>
-                    ))}
+                    )}
+
+                    {!isStoreCheckLoading &&
+                      isStoreConnected &&
+                      filteredOrders.map((order) => (
+                        <tr
+                          key={order.id}
+                          className="border-b border-[#e8e8e2] last:border-b-0"
+                        >
+                          <td className="px-4 py-4 align-top">
+                            <p className="text-xs leading-tight font-semibold text-[#222]">
+                              {order.id}
+                            </p>
+                            <p className="text-xs text-[#4f4f4a]">
+                              {order.date}
+                            </p>
+                          </td>
+                          <td className="px-4 py-4 align-top">
+                            <p className="text-xs leading-tight font-medium text-[#222]">
+                              {order.customer}
+                            </p>
+                            <p className="text-xs text-[#4f4f4a]">
+                              {order.contact}
+                            </p>
+                          </td>
+                          <td className="px-4 py-4 align-top text-xs leading-tight text-[#2c2c2c]">
+                            {order.product}
+                          </td>
+                          <td className="px-4 py-4 align-top">
+                            <p className="text-xs leading-tight font-semibold text-[#1f1f1f]">
+                              {order.amount}
+                            </p>
+                            <p className="text-xs text-[#4f4f4a]">
+                              {order.shipping}
+                            </p>
+                          </td>
+                          <td className="px-4 py-4 align-top">
+                            <span className="inline-flex items-center rounded-full bg-[#efe5d3] px-3 py-1 text-xs font-semibold text-[#9b641e]">
+                              {order.payment}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 align-top">
+                            <span
+                              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                                order.status === "Confirmed"
+                                  ? "bg-[#e2efd6] text-[#3f7c25]"
+                                  : "bg-[#efe5d3] text-[#94621e]"
+                              }`}
+                            >
+                              {order.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 align-top">
+                            <button
+                              type="button"
+                              onClick={() => handleMarkConfirmed(order.id)}
+                              disabled={order.status !== "Pending"}
+                              className={`rounded-lg border px-3 py-1 text-xs font-semibold transition ${
+                                order.status === "Pending"
+                                  ? "bg-linear-to-r from-[#0097b2] to-[#7ed957] text-white hover:bg-[#f9efd9]"
+                                  : "cursor-not-allowed border-[#d8d8d3] bg-[#f4f4f1] text-[#7f7f78]"
+                              }`}
+                            >
+                              {order.status === "Pending"
+                                ? "Mark Confirmed"
+                                : "Confirmed"}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
