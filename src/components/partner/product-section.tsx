@@ -30,6 +30,7 @@ type UIProduct = {
   color?: string;
   size?: string;
   inStock?: boolean;
+  sku: string;
 };
 
 // ✅ Transform
@@ -47,6 +48,7 @@ const transformProducts = (products: Product[]): UIProduct[] => {
       stock: firstVariant?.inventory_quantity ?? 0, // ✅ FIXED
       color: firstVariant?.option1 ?? "",
       size: firstVariant?.option2 ?? "",
+      sku: firstVariant?.sku ?? "",
       inStock: (firstVariant?.inventory_quantity ?? 0) > 0, // ✅ FIXED
     };
   });

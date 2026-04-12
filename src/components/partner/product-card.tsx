@@ -16,6 +16,7 @@ interface ProductCardProps {
   inStock?: boolean;
   size?: string;
   stock?: number;
+  sku?: string;
   onPushToShopify?: () => void;
   onBulkOrder?: () => void;
 }
@@ -29,6 +30,7 @@ export default function ProductCard({
   inStock = true,
   onPushToShopify,
   stock,
+  sku,
 }: ProductCardProps) {
   const router = useRouter();
 
@@ -88,9 +90,9 @@ export default function ProductCard({
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-lg font-bold text-slate-900">
+            {/* <span className="text-lg font-bold text-slate-900">
               ₹{price.toLocaleString()}
-            </span>
+            </span> */}
 
             <span
               className={`text-xs px-2 py-1 rounded ${
@@ -111,9 +113,9 @@ export default function ProductCard({
 
             <div className="flex items-center gap-20 text-xs text-slate-600 py-2 border-t border-b border-slate-100">
               {/* Size */}
-              <div className="flex items-center gap-1">
-                <span className="font-medium text-slate-700">Size:</span>
-                <span>{size || "-"}</span>
+              <div className="flex items-center gap-1 flex-row  whitespace-nowrap">
+                <span className="font-medium text-slate-700"></span>
+                <span>{sku || "-"}</span>
               </div>
 
               {/* Stock */}

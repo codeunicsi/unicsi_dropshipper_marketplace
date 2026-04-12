@@ -97,6 +97,7 @@ export default function BulkOrderPage() {
   const [orderError, setOrderError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [gstNumber, setGstNumber] = useState("");
+  const [tradeName, setTradeName] = useState("");
 
   // ── Admin payment details ────────────────────────────────────────────────
   const adminPaymentDetails = useMemo(() => {
@@ -129,10 +130,17 @@ export default function BulkOrderPage() {
       Number.isFinite(sellingPriceInput) && sellingPriceInput > 0
         ? sellingPriceInput
         : 100;
+
     const supplierPrice = Math.max(1, sellingPrice - DEFAULT_MARGIN);
     const platformMargin = sellingPrice - supplierPrice;
-    const shippingCharge = 120 + quantity * 2;
-    const totalAmount = sellingPrice * quantity + shippingCharge;
+
+    const productTotal = sellingPrice * quantity;
+
+    const gstRate = Number(product?.gst_rate || 0.18); // default 18%
+    const gstAmount = productTotal * gstRate;
+
+    const totalAmount = productTotal + gstAmount;
+
     const supplierPayout = supplierPrice * quantity;
     const platformProfit = platformMargin * quantity;
 
@@ -140,7 +148,9 @@ export default function BulkOrderPage() {
       sellingPrice,
       supplierPrice,
       platformMargin,
-      shippingCharge,
+      productTotal,
+      gstRate,
+      gstAmount,
       totalAmount,
       supplierPayout,
       platformProfit,
@@ -334,6 +344,15 @@ export default function BulkOrderPage() {
                   placeholder="Enter GST number"
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="tradeName">Trade Name</Label>
+                <Input
+                  id="tradeName"
+                  value={tradeName}
+                  onChange={(e) => setTradeName(e.target.value)}
+                  placeholder="Enter Trade Name"
+                />
+              </div>
 
               {!isValidProductId && (
                 <p className="text-xs font-medium text-red-600">
@@ -361,16 +380,19 @@ export default function BulkOrderPage() {
                 Total Amount (Customer Pays)
               </CardTitle>
             </CardHeader>
+
             <CardContent>
               <p className="flex items-center text-2xl font-bold text-cyan-700">
                 <IndianRupee className="w-5 h-5" strokeWidth={3} />
                 {pricing.totalAmount.toLocaleString()}
               </p>
+
               <p className="flex items-center text-sm text-slate-500">
                 Product: <IndianRupee className="w-3 h-3 ml-1" />
-                {(pricing.sellingPrice * quantity).toLocaleString()} + Shipping:
+                {pricing.productTotal.toLocaleString()} + GST (
+                {(pricing.gstRate * 100).toFixed(0)}%):
                 <IndianRupee className="w-3 h-3 ml-1" />
-                {pricing.shippingCharge.toLocaleString()}
+                {pricing.gstAmount.toLocaleString()}
               </p>
             </CardContent>
           </Card>
