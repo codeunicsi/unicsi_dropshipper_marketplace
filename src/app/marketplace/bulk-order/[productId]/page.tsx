@@ -97,7 +97,7 @@ export default function BulkOrderPage() {
   const [orderError, setOrderError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [gstNumber, setGstNumber] = useState("");
-  const [tradeName, setTradeName] = useState("");
+  const [traderName, setTraderName] = useState("");
 
   // ── Admin payment details ────────────────────────────────────────────────
   const adminPaymentDetails = useMemo(() => {
@@ -195,6 +195,7 @@ export default function BulkOrderPage() {
         amount: pricing.totalAmount,
         paymentScreenshot,
         gstNumber,
+        traderName
       });
 
       setIsPaymentModalOpen(false);
@@ -348,8 +349,8 @@ export default function BulkOrderPage() {
                 <Label htmlFor="tradeName">Trade Name</Label>
                 <Input
                   id="tradeName"
-                  value={tradeName}
-                  onChange={(e) => setTradeName(e.target.value)}
+                  value={traderName}
+                  onChange={(e) => setTraderName(e.target.value)}
                   placeholder="Enter Trade Name"
                 />
               </div>

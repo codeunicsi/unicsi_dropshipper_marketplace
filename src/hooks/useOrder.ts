@@ -16,6 +16,7 @@ export interface BulkOrderPayload {
   paymentScreenshot: File;
   notes?: string;
   gstNumber: any;
+  traderName: string;
 }
 
 const toBulkOrderFormData = (payload: BulkOrderPayload) => {
@@ -33,6 +34,7 @@ const toBulkOrderFormData = (payload: BulkOrderPayload) => {
   formData.append("paymentMode", payload.paymentMode);
   formData.append("amount", String(payload.amount));
   formData.append("gstNumber", payload.gstNumber);
+  formData.append("traderName", payload.traderName);
  
   if (payload.notes) {
     formData.append("notes", payload.notes);
