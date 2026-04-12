@@ -91,11 +91,6 @@ export function PartnerHeader() {
               <DropdownMenuItem asChild>
                 <Link href="/marketplace/profile">Profile Setting</Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/marketplace/shopify-store-manager">
-                  Shopify Store Manager
-                </Link>
-              </DropdownMenuItem>
               <DropdownMenuItem>Change Password</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-destructive focus:text-destructive flex items-center gap-2">

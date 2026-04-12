@@ -14,6 +14,7 @@ import {
   RotateCcw,
   DollarSign,
   TrendingUp,
+  Store,
   Settings,
   Users,
   FileText,
@@ -113,7 +114,12 @@ const menuItems = [
     href: "/marketplace/payments",
   },
   {
-    icon: ScrollText,
+    icon: Store,
+    label: "Shopify Store Manager",
+    href: "/marketplace/shopify-store-manager",
+  },
+  {
+    icon: Settings,
     label: "GST Invoices",
     href: "/marketplace/gst-invoices",
   },
@@ -182,7 +188,7 @@ export function PartnerSidebar() {
   };
 
   return (
-    <aside className="w-64 bg-sidebar border-r border-sidebar-border h-screen overflow-y-auto flex flex-col sticky top-0">
+    <aside className="w-72 bg-sidebar border-r border-sidebar-border h-screen overflow-y-auto flex flex-col sticky top-0">
       {/* Logo Section */}
       <div className="p-6 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
