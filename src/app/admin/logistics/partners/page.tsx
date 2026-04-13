@@ -18,14 +18,13 @@ import {
   Plus, 
   Pencil, 
   Loader2, 
-  Copy, 
+  Copy,
   Truck, 
   CheckCircle2, 
   ShieldCheck, 
   Globe, 
   Power,
-  Search,
-  Check
+  Search
 } from 'lucide-react'
 import { useCourierPartners, type CourierPartner, type CourierPartnerPayload, type CoverageType } from '@/hooks/useCourierPartners'
 
@@ -52,17 +51,12 @@ function PartnerForm({
   loading: boolean
 }) {
   const [name, setName] = useState(initial?.name ?? '')
-  const [copied, setCopied] = useState(false)
-  const copyId = () => {
-    if (partnerId) {
-      navigator.clipboard.writeText(partnerId)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }
   const [code, setCode] = useState(initial?.code ?? '')
   const [supportCod, setSupportCod] = useState(initial?.support_cod ?? false)
   const [coverageType, setCoverageType] = useState<CoverageType>(initial?.coverage_type ?? null)
+  const [accessToken, setAccessToken] = useState(initial?.access_token ?? '')
+  const [secretKey, setSecretKey] = useState(initial?.secret_key ?? '')
+  const [pickupAddressId, setPickupAddressId] = useState(initial?.pickup_address_id ?? '')
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,7 +67,15 @@ function PartnerForm({
       return
     }
     try {
-      await onSubmit({ name: name.trim(), code: code.trim().toUpperCase(), support_cod: supportCod, coverage_type: coverageType })
+      await onSubmit({
+        name: name.trim(),
+        code: code.trim().toUpperCase(),
+        support_cod: supportCod,
+        coverage_type: coverageType,
+        access_token: accessToken.trim() || undefined,
+        secret_key: secretKey.trim() || undefined,
+        pickup_address_id: pickupAddressId.trim() || undefined,
+      })
       onCancel()
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Something went wrong')
@@ -81,7 +83,7 @@ function PartnerForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 pt-4">
+    <form onSubmit={handleSubmit} className="space-y-4 pt-4">
       <div className="space-y-2">
         <Label htmlFor="name" className="text-xs uppercase font-bold tracking-wider text-muted-foreground">Partner Name</Label>
         <div className="relative">
@@ -96,23 +98,9 @@ function PartnerForm({
           />
         </div>
       </div>
-      
-      {partnerId && (
-        <div className="space-y-2 p-3 bg-muted/40 rounded-lg border border-dashed">
-          <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Unique Partner ID</Label>
-          <div className="flex gap-2">
-            <code className="flex-1 bg-background px-2 py-1.5 rounded border text-[11px] font-mono flex items-center overflow-hidden whitespace-nowrap">
-              {partnerId}
-            </code>
-            <Button type="button" variant="secondary" size="icon" className="h-8 w-8" onClick={copyId}>
-              {copied ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
-            </Button>
-          </div>
-        </div>
-      )}
 
       <div className="space-y-2">
-        <Label htmlFor="code" className="text-xs uppercase font-bold tracking-wider text-muted-foreground">API Identifer (Code)</Label>
+        <Label htmlFor="code" className="text-xs uppercase font-bold tracking-wider text-muted-foreground">API Identifier (Code)</Label>
         <Input
           id="code"
           value={code}
@@ -139,6 +127,45 @@ function PartnerForm({
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="border rounded-lg p-3 space-y-3 bg-muted/20">
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">iThink Logistics Credentials</p>
+        <div className="space-y-2">
+          <Label htmlFor="access_token" className="text-xs font-semibold">Access Token</Label>
+          <Input
+            id="access_token"
+            type="password"
+            value={accessToken}
+            onChange={(e) => setAccessToken(e.target.value)}
+            placeholder="Enter iThink access token"
+            disabled={loading}
+            autoComplete="new-password"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="secret_key" className="text-xs font-semibold">Secret Key</Label>
+          <Input
+            id="secret_key"
+            type="password"
+            value={secretKey}
+            onChange={(e) => setSecretKey(e.target.value)}
+            placeholder="Enter iThink secret key"
+            disabled={loading}
+            autoComplete="new-password"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="pickup_address_id" className="text-xs font-semibold">Pickup Address ID</Label>
+          <Input
+            id="pickup_address_id"
+            type="text"
+            value={pickupAddressId}
+            onChange={(e) => setPickupAddressId(e.target.value)}
+            placeholder="e.g. 1293"
+            disabled={loading}
+          />
+        </div>
       </div>
 
       <div className="flex items-center space-x-2 rounded-lg border p-4 hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => setSupportCod(!supportCod)}>
@@ -375,7 +402,15 @@ export default function CourierPartnersPage() {
             </DialogDescription>
           </DialogHeader>
           <PartnerForm
-            initial={editing ? { name: editing.name, code: editing.code, support_cod: editing.support_cod, coverage_type: editing.coverage_type } : null}
+            initial={editing ? {
+              name: editing.name,
+              code: editing.code,
+              support_cod: editing.support_cod,
+              coverage_type: editing.coverage_type,
+              access_token: editing.access_token ?? '',
+              secret_key: editing.secret_key ?? '',
+              pickup_address_id: editing.pickup_address_id ?? '',
+            } : null}
             partnerId={editing?.courier_id}
             onSubmit={handleSubmit}
             onCancel={() => setDialogOpen(false)}

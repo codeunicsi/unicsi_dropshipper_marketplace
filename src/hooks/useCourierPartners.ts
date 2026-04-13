@@ -12,6 +12,9 @@ export interface CourierPartner {
   is_active: boolean
   support_cod: boolean
   coverage_type: CoverageType
+  access_token?: string
+  secret_key?: string
+  pickup_address_id?: string
   created_at: string
   updated_at: string
 }
@@ -21,6 +24,9 @@ export interface CourierPartnerPayload {
   code: string
   support_cod?: boolean
   coverage_type?: CoverageType
+  access_token?: string
+  secret_key?: string
+  pickup_address_id?: string
 }
 
 const BASE = 'admin/logistics/partners'
