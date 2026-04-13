@@ -12,7 +12,6 @@ import {
   Truck,
   RotateCcw,
   Info,
-  Hash,
   Boxes,
   Ruler,
   Weight,
@@ -137,6 +136,8 @@ export function ProductInfo({ product }: { product: any }) {
   };
 
   const variant = product.variants?.find((v: any) => v.is_active);
+  const skuValue =
+    variant?.sku ?? product.variants?.[0]?.sku ?? "SKU not available";
   const price = Number(variant?.price ?? product.mrp ?? 0);
   const mrp = Number(product.mrp ?? 0);
   const bulkPrice = Number(product.bulk_price ?? 0);
@@ -151,15 +152,15 @@ export function ProductInfo({ product }: { product: any }) {
     <div className="space-y-4">
       {/* Main price card */}
       <div className="bg-white rounded-xl border p-6 space-y-4">
-        {/* C-Code */}
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <Hash className="w-3.5 h-3.5" />
-          C-Code:
+        {/* SKU */}
+        <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+          <Tag className="w-3.5 h-3.5" />
+          SKU:
           <button
             className="flex items-center gap-1.5 font-semibold text-slate-800 hover:text-black transition-colors group"
-            onClick={() => navigator.clipboard.writeText(product.product_id)}
+            onClick={() => navigator.clipboard.writeText(skuValue)}
           >
-            <span className="font-mono">{product.product_id}</span>
+            <span className="font-mono">{skuValue}</span>
             <CopyIcon className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" />
           </button>
         </div>

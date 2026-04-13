@@ -118,11 +118,11 @@ const menuItems = [
     label: "Shopify Store Manager",
     href: "/marketplace/shopify-store-manager",
   },
-  {
-    icon: Settings,
-    label: "GST Invoices",
-    href: "/marketplace/gst-invoices",
-  },
+  // {
+  //   icon: Settings,
+  //   label: "GST Invoices",
+  //   href: "/marketplace/gst-invoices",
+  // },
   { icon: Headphones, label: "Support", href: "/marketplace/support" },
   {
     icon: HelpCircle,
