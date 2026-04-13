@@ -474,7 +474,6 @@ const CartDrawer = ({
 
           <Button
             className="flex items-center justify-center w-full bg-black font-medium"
-            style={{ border: "2px solid red" }}
             disabled={
               isLoading ||
               isFetchingStore ||
