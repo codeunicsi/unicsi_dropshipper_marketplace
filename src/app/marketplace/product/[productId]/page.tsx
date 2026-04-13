@@ -12,7 +12,6 @@ import {
   Truck,
   RotateCcw,
   Info,
-  Hash,
   Boxes,
   Ruler,
   Weight,
@@ -137,6 +136,8 @@ export function ProductInfo({ product }: { product: any }) {
   };
 
   const variant = product.variants?.find((v: any) => v.is_active);
+  const skuValue =
+    variant?.sku ?? product.variants?.[0]?.sku ?? "SKU not available";
   const price = Number(variant?.price ?? product.mrp ?? 0);
   const mrp = Number(product.mrp ?? 0);
   const bulkPrice = Number(product.bulk_price ?? 0);
@@ -151,15 +152,15 @@ export function ProductInfo({ product }: { product: any }) {
     <div className="space-y-4">
       {/* Main price card */}
       <div className="bg-white rounded-xl border p-6 space-y-4">
-        {/* C-Code */}
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <Hash className="w-3.5 h-3.5" />
-          C-Code:
+        {/* SKU */}
+        <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+          <Tag className="w-3.5 h-3.5" />
+          SKU:
           <button
             className="flex items-center gap-1.5 font-semibold text-slate-800 hover:text-black transition-colors group"
-            onClick={() => navigator.clipboard.writeText(product.product_id)}
+            onClick={() => navigator.clipboard.writeText(skuValue)}
           >
-            <span className="font-mono">{product.product_id}</span>
+            <span className="font-mono">{skuValue}</span>
             <CopyIcon className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" />
           </button>
         </div>
@@ -446,57 +447,57 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {[
-            { label: "Product ID", value: product.product_id, mono: true },
+            // { label: "Product ID", value: product.product_id, mono: true },
             { label: "Brand", value: product.brand },
             { label: "Category", value: product.category?.name },
-            {
-              label: "Lifecycle Status",
-              value: (
-                <Badge
-                  label={product.lifecycle_status}
-                  variant={
-                    product.lifecycle_status === "active"
-                      ? "success"
-                      : "warning"
-                  }
-                />
-              ),
-            },
-            {
-              label: "Approval Status",
-              value: (
-                <Badge
-                  label={product.approval_status}
-                  variant={
-                    product.approval_status === "approved"
-                      ? "success"
-                      : "warning"
-                  }
-                />
-              ),
-            },
-            {
-              label: "Approved At",
-              value: product.approved_at
-                ? new Date(product.approved_at).toLocaleDateString("en-IN", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })
-                : "—",
-            },
+            // {
+            //   label: "Lifecycle Status",
+            //   value: (
+            //     <Badge
+            //       label={product.lifecycle_status}
+            //       variant={
+            //         product.lifecycle_status === "active"
+            //           ? "success"
+            //           : "warning"
+            //       }
+            //     />
+            //   ),
+            // },
+            // {
+            //   label: "Approval Status",
+            //   value: (
+            //     <Badge
+            //       label={product.approval_status}
+            //       variant={
+            //         product.approval_status === "approved"
+            //           ? "success"
+            //           : "warning"
+            //       }
+            //     />
+            //   ),
+            // },
+            // {
+            //   label: "Approved At",
+            //   value: product.approved_at
+            //     ? new Date(product.approved_at).toLocaleDateString("en-IN", {
+            //         day: "numeric",
+            //         month: "short",
+            //         year: "numeric",
+            //       })
+            //     : "—",
+            // },
             {
               label: "Bulk Price Refresh",
               value: `Every ${product.bulk_price_refresh_days} days`,
             },
-            {
-              label: "Created At",
-              value: new Date(product.createdAt).toLocaleDateString("en-IN", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              }),
-            },
+            // {
+            //   label: "Created At",
+            //   value: new Date(product.createdAt).toLocaleDateString("en-IN", {
+            //     day: "numeric",
+            //     month: "short",
+            //     year: "numeric",
+            //   }),
+            // },
           ].map((item, i) => (
             <div key={i} className="bg-slate-50 rounded-lg p-3">
               <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-1">
@@ -515,7 +516,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
       </div>
 
       {/* <AdditionalInfoDropdown /> */}
-      <ProductDetailBanner />
+      {/* <ProductDetailBanner /> */}
     </div>
   );
 }

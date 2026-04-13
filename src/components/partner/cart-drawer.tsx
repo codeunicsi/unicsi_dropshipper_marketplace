@@ -13,6 +13,7 @@
   Store,
   X,
 } from "lucide-react";
+
 import React, { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { usePushToShopify } from "@/hooks/usePushToShopify";
@@ -48,11 +49,11 @@ type ApiStore = {
 
 const CartItem = ({
   name,
-  productId,
+  sku,
   image,
 }: {
   name: string;
-  productId: string;
+  sku: string;
   image: string;
 }) => (
   <div className="flex items-start gap-3 bg-gray-100 rounded-md p-3">
@@ -68,8 +69,8 @@ const CartItem = ({
       <p className="text-sm font-medium text-slate-900 leading-tight">{name}</p>
 
       <div className="flex items-center gap-2 text-xs text-slate-600 pt-1">
-        <span>C-Code:</span>
-        <span className="font-bold text-slate-900">{productId}</span>
+        <span>SKU:</span>
+        <span className="font-bold text-slate-900">{sku}</span>
         <Copy strokeWidth={2.5} className="w-4 h-4 cursor-pointer" />
       </div>
     </div>
@@ -77,7 +78,7 @@ const CartItem = ({
 );
 
 const SectionTitle = ({ icon: Icon, title }: { icon: any; title: string }) => (
-  <div className="flex items-center gap-2 font-semibold text-black/80 border-b px-6 py-4">
+  <div className="flex min-w-0 items-center gap-2 font-semibold text-black/80">
     <Icon className="w-6 h-6" />
     {title}
   </div>
@@ -98,6 +99,7 @@ const CartDrawer = ({
   const [isOrdersOpen, setIsOrdersOpen] = useState(false);
   const [isEarningsOpen, setIsEarningsOpen] = useState(false);
   const [isSpendsOpen, setIsSpendsOpen] = useState(false);
+  const [isChargesOpen, setIsChargesOpen] = useState(false);
   const [defaultStore, setDefaultStore] = useState<ApiStore | null>(null);
   const [isFetchingStore, setIsFetchingStore] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -125,6 +127,19 @@ const CartDrawer = ({
     0,
   );
 
+  const handleSellingPriceUpdate = async (newPrice: number) => {
+    if (!newPrice || newPrice <= 0) return;
+
+    try {
+      await apiClient.post("dropshipper/shopify/mrp-update", {
+        productId: selectedProduct?.id,
+        newMRP: newPrice,
+      });
+    } catch (err) {
+      console.error("Failed to update MRP:", err);
+    }
+  };
+
   const [sellingPrice, setSellingPrice] = useState<number>(cloutPrice);
   const [calcSellingPrice, setCalcSellingPrice] = useState<number>(cloutPrice);
   const [expectedOrders, setExpectedOrders] = useState<number>(100);
@@ -135,6 +150,10 @@ const CartDrawer = ({
   const { pushProductToShopify } = usePushToShopify();
   const productId = selectedProduct?.id ?? "";
   const { data: productData } = useGetProductById(productId);
+  const fetchedProduct = productData?.data;
+  const fetchedActiveVariant =
+    fetchedProduct?.variants?.find((variant: any) => variant?.is_active) ??
+    fetchedProduct?.variants?.[0];
   // console.log("Selected Product ID:", productId);
 
   const parseNumericInput = (value: string): number | null => {
@@ -182,9 +201,6 @@ const CartDrawer = ({
     Number(variantMeta?.shipping_discount ?? 57),
     0,
   );
-  const shippingCharges = Math.round(cloutPrice * 0.45);
-  const productPrice = Math.max(cloutPrice - shippingCharges, 0);
-  const effectiveCloutPrice = Math.max(cloutPrice - shippingDiscount, 0);
   const margin = Math.max(safeSellingPrice - cloutPrice, 0);
   const effectiveEarnings = margin + shippingDiscount;
   const safeCalcSellingPrice = Number.isFinite(calcSellingPrice)
@@ -270,7 +286,8 @@ const CartDrawer = ({
     product?.title ||
     selectedProduct?.name ||
     "Tangerine Vita C Dark Spot Care Cream 100gm Each (Pack of 2)";
-  const productCode = selectedProduct?.id || firstVariant?.sku || "C2463343";
+  const productSku =
+    fetchedActiveVariant?.sku || firstVariant?.sku || "SKU not available";
   const productImage =
     selectedProduct?.image ||
     product?.images?.[0]?.src ||
@@ -282,8 +299,15 @@ const CartDrawer = ({
       return;
     }
 
+    if (!productData?.data) {
+      console.error("Product data is missing.");
+      return;
+    }
+
     console.log("Pushing product to Shopify:");
     console.log("productData", productData);
+    console.log("sellingPrice", sellingPrice);
+    productData.data.dropshipperSellingPrice = sellingPrice;
 
     pushProductToShopify.mutate(
       {
@@ -295,6 +319,8 @@ const CartDrawer = ({
       {
         onSuccess: (data) => {
           console.log("Success:", data);
+
+          handleSellingPriceUpdate(sellingPrice); // 👈 called after push success
 
           setShowSuccess(true);
 
@@ -315,7 +341,7 @@ const CartDrawer = ({
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-black/40" onClick={onClose} />
 
-      <div className="w-120 bg-white shadow-xl animate-slideIn flex flex-col">
+      <div className="w-full max-w-[480px] bg-white shadow-xl animate-slideIn flex flex-col overflow-x-hidden px-4">
         <div className="flex justify-between items-center px-6 py-4 border-b">
           <h2 className="text-2xl font-bold">Push To Shopify</h2>
           <button onClick={onClose}>
@@ -323,14 +349,10 @@ const CartDrawer = ({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
-          <CartItem
-            name={productTitle}
-            productId={productCode}
-            image={productImage}
-          />
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-6">
+          <CartItem name={productTitle} sku={productSku} image={productImage} />
 
-          <div className="flex justify-between items-center">
+          <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-b border-slate-200 pb-4">
             <SectionTitle icon={Store} title="Store" />
             <div className="flex justify-between gap-2">
               <span className="text-sm text-slate-900">
@@ -339,12 +361,12 @@ const CartDrawer = ({
             </div>
           </div>
 
-          <div className="flex justify-between items-center gap-4">
+          <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-b border-slate-200 pb-4">
             <SectionTitle icon={Banknote} title="Pricing" />
             <button
               type="button"
               onClick={() => setIsCalculatorOpen(true)}
-              className="min-w-62 bg-[#e9e3f8] hover:bg-[#e3daf8] transition-colors rounded-md px-3 py-1 flex items-center justify-between"
+              className="w-full bg-[#e9e3f8] hover:bg-[#e3daf8] transition-colors rounded-md px-3 py-1 flex items-center justify-between"
             >
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center">
@@ -358,14 +380,22 @@ const CartDrawer = ({
             </button>
           </div>
 
-          <div className="px-6 space-y-4 text-sm">
-            <div className="flex items-center justify-between gap-3 font-semibold border-b border-dashed pb-3">
-              <div className="flex items-center gap-2">
-                Set Your Selling Price (₹)
-                <HelpCircle className="w-4 h-4" />
+          <div className="grid grid-cols-2 gap-4 py-3">
+            <div>
+              <p className="mb-2 text-sm font-semibold text-slate-700 ml-1">
+                Price
+              </p>
+              <div className="h-10 rounded-md border border-slate-200 bg-slate-100 px-3 flex items-center justify-between">
+                <span className="text-sm text-slate-600">{cloutPrice}</span>
+                <span className="text-sm font-semibold text-slate-700">₹</span>
               </div>
-              <div className="h-11 min-w-26 border border-black/60 rounded-sm px-3 flex items-center gap-2 bg-white">
-                <span className="font-semibold">₹</span>
+            </div>
+
+            <div>
+              <p className="flex gap-1 justify-start items-center mb-2 text-sm font-semibold text-slate-700 ml-1">
+                Set Your Selling Price
+              </p>
+              <div className="h-10 rounded-md border border-slate-200 bg-white px-3 flex items-center justify-between">
                 <input
                   type="number"
                   min={0}
@@ -375,97 +405,71 @@ const CartDrawer = ({
                     const nextValue = Number(e.target.value);
                     setSellingPrice(Number.isNaN(nextValue) ? 0 : nextValue);
                   }}
+                  // onBlur={() => handleSellingPriceUpdate(sellingPrice)}
                   className="w-14 bg-transparent outline-none text-right font-medium"
                 />
+                <span className="text-sm font-semibold text-slate-700">₹</span>
               </div>
             </div>
-
-            <div className="flex justify-between">
-              <span>Price</span>
-              <span className="font-semibold">₹{cloutPrice}</span>
+          </div>
+          <div className="bg-[#ebf8e5] rounded-sm text-sm">
+            <div className="flex justify-between p-3 font-bold text-[#3fb700]">
+              <span>Your Margin</span>
+              <span>₹{margin}</span>
             </div>
-
-            <div className="relative inline-flex group">
-              <p className="text-xs text-gray-600 underline flex items-center gap-1 cursor-default">
-                Including GST, Shipping Charges & Discount
-                <Info className="w-3 h-3" />
-              </p>
-
-              <div className="absolute left-0 top-full mt-3 z-20 hidden group-hover:block group-focus-within:block">
-                <div className="relative bg-[#474747] text-white rounded-md shadow-xl min-w-85 p-4">
-                  <div className="absolute -top-2 left-10 w-4 h-4 bg-[#474747] rotate-45" />
-
-                  <div className="flex items-center justify-between text-sm font-semibold">
-                    <span>Price</span>
-                    <span>₹{cloutPrice}</span>
+          </div>
+          <div className="text-xs bg-gray-100 rounded-sm p-4 text-center">
+            RTO and RVP charges are applicable and vary depending on the product
+            weight.{" "}
+            <button
+              type="button"
+              className="underline font-medium cursor-pointer"
+              onClick={() => setIsChargesOpen((prev) => !prev)}
+            >
+              {isChargesOpen ? "hide charges" : "view charges for this product"}
+            </button>
+            {isChargesOpen && (
+              <div className="mt-3 w-full rounded-xl border border-[#e4e4e7] bg-white p-4 text-left shadow-sm">
+                <div className="max-h-56 overflow-y-auto pr-1">
+                  <div className="grid grid-cols-2 overflow-hidden rounded-md border border-[#ececf1]">
+                    <div className="border-r border-[#ececf1] bg-[#f3f4f8] p-3">
+                      <p className="text-sm font-semibold text-[#3fb700]">
+                        RVP Charges
+                      </p>
+                      <p className="text-xs text-[#71717a]">
+                        (For This Product)
+                      </p>
+                    </div>
+                    <div className="bg-[#f3f4f8] p-3">
+                      <p className="text-sm font-semibold text-[#3fb700]">
+                        RTO Charges
+                      </p>
+                      <p className="text-xs text-[#71717a]">(All Inclusive)</p>
+                    </div>
                   </div>
 
-                  <div className="mt-3 space-y-3 text-xs">
-                    <div className="flex items-start justify-between gap-6">
-                      <div>
-                        <p className="font-semibold">• Product Price</p>
-                        <p className="text-gray-300 text-xs">
-                          (Includes 18% Product GST)
-                        </p>
-                      </div>
-                      <span className="font-semibold">₹{productPrice}</span>
+                  <div className="grid grid-cols-2 border-x border-b border-[#ececf1]">
+                    <div className="border-r border-[#ececf1] p-3 text-xs font-semibold text-[#5b2fd1]">
+                      Please Contact Admin
                     </div>
+                    <div className="p-3 text-sm font-semibold text-[#111827]">
+                      ₹{rtoChargePerOrder}
+                    </div>
+                  </div>
 
-                    <div className="flex items-start justify-between gap-6">
-                      <div>
-                        <p className="font-semibold">• Shipping Charges</p>
-                        <p className="text-gray-300 text-xs">
-                          (Includes 18% Shipping GST)
-                        </p>
-                      </div>
-                      <span className="font-semibold">₹{shippingCharges}</span>
-                    </div>
+                  <div className="pt-4 text-sm text-[#18181b]">
+                    <p className="mb-2 text-sm font-medium">Note:</p>
+                    <ul className="list-disc space-y-1 pl-5 text-xs leading-5">
+                      <li>RTO & RVP will be changed to actual numbers.</li>
+                      <li>
+                        RVP will be changed on orders where supplier is not
+                        found to be at fault.
+                      </li>
+                    </ul>
                   </div>
                 </div>
               </div>
-            </div>
-
-            <div className="text-xs space-y-1">
-              <p className="font-semibold">
-                Effective Price: ₹{effectiveCloutPrice}
-              </p>
-              <p className="text-gray-600">
-                Difference amount will be given as
-              </p>
-              <p className="font-semibold text-gray-500">
-                Shipping Discount: ₹{shippingDiscount}
-              </p>
-            </div>
-
-            <div className="bg-[#ebf8e5] rounded-sm text-xs">
-              <div className="flex justify-between px-3 pt-3 font-bold text-[#3fb700]">
-                <span>Your Margin</span>
-                <span>₹{margin}</span>
-              </div>
-
-              <div className="flex justify-between px-3 py-2">
-                <div className="flex gap-1">
-                  <span className="font-semibold text-black/80">
-                    + Shipping Discount
-                  </span>
-                  <span>(1-59 orders)</span>
-                </div>
-                <span className="font-semibold">₹{shippingDiscount}</span>
-              </div>
-
-              <div className="flex justify-between bg-[#3fb700] text-white font-semibold px-3 py-2 rounded-sm text-sm">
-                <span>Your Effective Earnings</span>
-                <span>₹{effectiveEarnings}</span>
-              </div>
-            </div>
-
-            <div className="text-xs bg-gray-100 rounded-sm p-4 text-center">
-              RTO and RVP charges are applicable and vary depending on the
-              product weight.{" "}
-              <span className="underline font-medium">
-                view charges for this product
-              </span>
-            </div>
+            )}
           </div>
 
           <Button
@@ -609,6 +613,7 @@ const CartDrawer = ({
                           Number.isNaN(nextValue) ? 0 : nextValue,
                         );
                       }}
+                      onBlur={() => handleSellingPriceUpdate(calcSellingPrice)}
                     />
                   </div>
                   <div className="flex items-center justify-between pb-3 border-b border-slate-300">

@@ -14,6 +14,7 @@ import {
   RotateCcw,
   DollarSign,
   TrendingUp,
+  Store,
   Settings,
   Users,
   FileText,
@@ -22,6 +23,8 @@ import {
   GraduationCap,
   MessageSquare,
   HelpCircle,
+  ScrollText,
+  Headphones,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -58,10 +61,10 @@ const menuItems = [
     label: "Manage Products",
     href: "#",
     children: [
-      {
-        label: "Inventory Request",
-        href: "/marketplace/manage-products/inventoryRequest",
-      },
+      // {
+      //   label: "Inventory Request",
+      //   href: "/marketplace/manage-products/inventoryRequest",
+      // },
       {
         label: "Pushed To Shopify",
         href: "/marketplace/manage-products/pushedToShopify",
@@ -111,11 +114,16 @@ const menuItems = [
     href: "/marketplace/payments",
   },
   {
-    icon: Settings,
-    label: "GST Invoices",
-    href: "/marketplace/gst-invoices",
+    icon: Store,
+    label: "Shopify Store Manager",
+    href: "/marketplace/shopify-store-manager",
   },
-  { icon: HelpCircle, label: "Support", href: "/marketplace/support" },
+  // {
+  //   icon: Settings,
+  //   label: "GST Invoices",
+  //   href: "/marketplace/gst-invoices",
+  // },
+  { icon: Headphones, label: "Support", href: "/marketplace/support" },
   {
     icon: HelpCircle,
     label: "FAQs",
@@ -180,7 +188,7 @@ export function PartnerSidebar() {
   };
 
   return (
-    <aside className="w-64 bg-sidebar border-r border-sidebar-border h-screen overflow-y-auto flex flex-col sticky top-0">
+    <aside className="w-72 bg-sidebar border-r border-sidebar-border h-screen overflow-y-auto flex flex-col sticky top-0">
       {/* Logo Section */}
       <div className="p-6 border-b border-sidebar-border">
         <div className="flex items-center gap-3">

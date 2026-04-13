@@ -6,10 +6,10 @@ import {
   Check,
   ChevronDown,
   Dot,
-  Ellipsis,
   RefreshCcw,
 } from "lucide-react";
-
+import { useSyncOrders } from "@/hooks/useSyncOrders";
+import { apiClient } from "@/lib/api-client";
 type PanelTab = "orders" | "webhooks" | "setup";
 
 type OrderRow = {
@@ -19,9 +19,10 @@ type OrderRow = {
   contact: string;
   product: string;
   amount: string;
+  amountValue: number;
   shipping: string;
-  payment: "COD" | "Prepaid";
-  status: "Pending" | "Paid" | "Fulfilled" | "Cancelled";
+  payment: string;
+  status: "Pending" | "Confirmed" | "Paid" | "Fulfilled" | "Cancelled";
 };
 
 type WebhookRow = {
@@ -46,35 +47,11 @@ const tabs: Array<{ value: PanelTab; label: string }> = [
 const orderStatusOptions = [
   "All statuses",
   "Pending",
+  "Confirmed",
   "Paid",
   "Fulfilled",
   "Cancelled",
 ] as const;
-
-const orders: OrderRow[] = [
-  {
-    id: "#1002",
-    date: "7 Apr 2026",
-    customer: "Mohd Niya Haque",
-    contact: "+91 92207 74381",
-    product: "Electric fan green / s / cotton",
-    amount: "Rs 1,559",
-    shipping: "+Rs 379 ship",
-    payment: "COD",
-    status: "Pending",
-  },
-  {
-    id: "#1001",
-    date: "7 Apr 2026",
-    customer: "Asif Khan",
-    contact: "asid@gmail.com",
-    product: "Electric fan green / s / cotton",
-    amount: "Rs 1,559",
-    shipping: "+Rs 379 ship",
-    payment: "COD",
-    status: "Pending",
-  },
-];
 
 const initialWebhooks: WebhookRow[] = [
   {
@@ -140,6 +117,129 @@ const setupSteps: SetupStep[] = [
   },
 ];
 
+const formatInr = (value: number) =>
+  new Intl.NumberFormat("en-IN", {
+    maximumFractionDigits: 0,
+  }).format(value);
+
+const normalizeStatus = (value: unknown): OrderRow["status"] => {
+  const normalized = String(value ?? "")
+    .trim()
+    .toLowerCase();
+
+  if (normalized.includes("fulfill")) return "Fulfilled";
+  if (normalized.includes("cancel")) return "Cancelled";
+  if (normalized.includes("paid")) return "Paid";
+  if (normalized.includes("confirm")) return "Confirmed";
+  return "Pending";
+};
+
+const extractOrderArray = (payload: any): any[] => {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== "object") return [];
+
+  if (Array.isArray(payload.orders)) return payload.orders;
+  if (Array.isArray(payload.rows)) return payload.rows;
+  if (Array.isArray(payload.data)) return payload.data;
+  if (payload.data && Array.isArray(payload.data.orders))
+    return payload.data.orders;
+  if (payload.data && Array.isArray(payload.data.rows))
+    return payload.data.rows;
+  return [];
+};
+
+const normalizeApiOrders = (payload: any): OrderRow[] => {
+  const rows = extractOrderArray(payload);
+
+  return rows.map((row: any, index: number) => {
+    const customerFirst = String(row?.customer?.first_name ?? "").trim();
+    const customerLast = String(row?.customer?.last_name ?? "").trim();
+    const customerName = `${customerFirst} ${customerLast}`.trim();
+    const customer =
+      customerName ||
+      String(row?.customer_name ?? row?.customer?.name ?? "Unknown Customer");
+
+    const contact = String(
+      row?.customer?.phone ??
+        row?.customer?.email ??
+        row?.email ??
+        row?.phone ??
+        "-",
+    );
+
+    const lineItem = Array.isArray(row?.line_items) ? row.line_items[0] : null;
+    const product = String(
+      lineItem?.title ?? row?.product_name ?? row?.product ?? "-",
+    );
+
+    const amountValue = Number(
+      row?.total_price ??
+        row?.amount ??
+        row?.total_amount ??
+        row?.total ??
+        row?.price ??
+        0,
+    );
+
+    const shippingValue = Number(
+      row?.shipping_price ??
+        row?.shipping_charges ??
+        (Array.isArray(row?.shipping_lines)
+          ? row.shipping_lines[0]?.price
+          : 0) ??
+        0,
+    );
+
+    const paymentRaw = String(
+      row?.payment_method ??
+        row?.financial_status ??
+        row?.gateway ??
+        row?.payment ??
+        "COD",
+    );
+    const payment =
+      paymentRaw.toLowerCase().includes("cod") ||
+      paymentRaw.toLowerCase().includes("cash")
+        ? "COD"
+        : "Prepaid";
+
+    const orderNo = String(
+      row?.name ??
+        row?.order_number ??
+        row?.id ??
+        row?.shopify_order_id ??
+        index + 1,
+    );
+    const id = orderNo.startsWith("#") ? orderNo : `#${orderNo}`;
+
+    const dateSource =
+      row?.created_at ?? row?.order_date ?? row?.createdAt ?? row?.date;
+    const formattedDate = dateSource
+      ? new Date(dateSource).toLocaleDateString("en-IN", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })
+      : "-";
+
+    return {
+      id,
+      date: formattedDate,
+      customer,
+      contact,
+      product,
+      amount: `Rs ${formatInr(amountValue)}`,
+      amountValue,
+      shipping:
+        shippingValue > 0 ? `+Rs ${formatInr(shippingValue)} ship` : "-",
+      payment,
+      status: normalizeStatus(
+        row?.status ?? row?.fulfillment_status ?? row?.financial_status,
+      ),
+    } as OrderRow;
+  });
+};
+
 function SummaryCard({
   label,
   value,
@@ -162,17 +262,36 @@ function SummaryCard({
 }
 
 export default function OrdersPage() {
+  const { syncOrders } = useSyncOrders();
   const [activeTab, setActiveTab] = useState<PanelTab>("orders");
   const [search, setSearch] = useState("");
+  const [orderRows, setOrderRows] = useState<OrderRow[]>([]);
+  const [isStoreCheckLoading, setIsStoreCheckLoading] = useState(true);
+  const [isStoreConnected, setIsStoreConnected] = useState(false);
+  const [storeConnectionMessage, setStoreConnectionMessage] = useState(
+    "Shopify store not connected",
+  );
+  const [connectedStoreUrl, setConnectedStoreUrl] = useState("");
   const [selectedStatus, setSelectedStatus] =
     useState<(typeof orderStatusOptions)[number]>("All statuses");
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const statusDropdownRef = useRef<HTMLDivElement | null>(null);
   const [webhookRows, setWebhookRows] = useState<WebhookRow[]>(initialWebhooks);
+  const isDisconnectedSkeleton = !isStoreConnected && !isStoreCheckLoading;
+
+  const handleMarkConfirmed = (orderId: string) => {
+    setOrderRows((previousRows) =>
+      previousRows.map((row) =>
+        row.id === orderId && row.status === "Pending"
+          ? { ...row, status: "Confirmed" }
+          : row,
+      ),
+    );
+  };
 
   const filteredOrders = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return orders.filter((order) => {
+    return orderRows.filter((order) => {
       const matchesSearch =
         !query ||
         order.id.toLowerCase().includes(query) ||
@@ -184,7 +303,28 @@ export default function OrdersPage() {
 
       return matchesSearch && matchesStatus;
     });
-  }, [search, selectedStatus]);
+  }, [search, selectedStatus, orderRows]);
+
+  const summary = useMemo(() => {
+    const totalOrders = orderRows.length;
+    const pendingOrders = orderRows.filter(
+      (row) => row.status === "Pending",
+    ).length;
+    const fulfilledOrders = orderRows.filter(
+      (row) => row.status === "Fulfilled",
+    ).length;
+    const revenue = orderRows.reduce(
+      (sum, row) => sum + (row.amountValue || 0),
+      0,
+    );
+
+    return {
+      totalOrders,
+      pendingOrders,
+      fulfilledOrders,
+      revenue,
+    };
+  }, [orderRows]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -202,6 +342,55 @@ export default function OrdersPage() {
     };
   }, []);
 
+  useEffect(() => {
+    const checkStoreConnection = async () => {
+      setIsStoreCheckLoading(true);
+      try {
+        const response = await apiClient.get(
+          "dropshipper/shopify/access-token",
+        );
+        const stores = Array.isArray(response)
+          ? response
+          : Array.isArray(response?.data)
+            ? response.data
+            : [];
+
+        if (stores.length > 0) {
+          setIsStoreConnected(true);
+          setConnectedStoreUrl(
+            String(stores[0]?.store_url ?? stores[0]?.shop ?? ""),
+          );
+          setStoreConnectionMessage("");
+        } else {
+          setIsStoreConnected(false);
+          setStoreConnectionMessage("Shopify store not connected");
+        }
+      } catch (error) {
+        setIsStoreConnected(false);
+        setStoreConnectionMessage(
+          error instanceof Error && error.message
+            ? error.message
+            : "Shopify store not connected",
+        );
+      } finally {
+        setIsStoreCheckLoading(false);
+      }
+    };
+
+    checkStoreConnection();
+  }, []);
+
+  const handleSyncOrders = async () => {
+    if (!isStoreConnected || isStoreCheckLoading) return;
+    try {
+      const response = await syncOrders.mutateAsync();
+      const normalizedOrders = normalizeApiOrders(response);
+      setOrderRows(normalizedOrders);
+    } catch (error) {
+      console.error("Failed to sync orders", error);
+    }
+  };
+
   return (
     <div className="mx-auto w-full max-w-7xl p-6">
       <section className="rounded-[6px] p-6">
@@ -211,7 +400,7 @@ export default function OrdersPage() {
               Shopify orders
             </h1>
             <p className="text-sm leading-tight text-[#3f3f3f]">
-              qwqs68-0w.myshopify.com
+              {connectedStoreUrl || ""}
             </p>
           </div>
 
@@ -223,10 +412,16 @@ export default function OrdersPage() {
 
             <button
               type="button"
+              onClick={handleSyncOrders}
+              disabled={
+                syncOrders.isPending || !isStoreConnected || isStoreCheckLoading
+              }
               className="inline-flex items-center gap-2 rounded-2xl border border-[#d5d5d0] bg-white px-5 py-3 text-sm font-medium text-[#222]"
             >
-              <RefreshCcw className="h-5 w-5" />
-              Sync now
+              <RefreshCcw
+                className={`h-5 w-5 ${syncOrders.isPending ? "animate-spin" : ""}`}
+              />
+              {syncOrders.isPending ? "Syncing..." : "Sync now"}
             </button>
 
             <button
@@ -238,65 +433,121 @@ export default function OrdersPage() {
           </div>
         </header>
 
+        {syncOrders.isError && (
+          <p className="mt-2 text-xs text-red-600">
+            {(syncOrders.error as Error)?.message || "Failed to sync orders"}
+          </p>
+        )}
+
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <SummaryCard label="Total orders" value="2" />
-          <SummaryCard
-            label="Pending"
-            value="2"
-            valueClassName="text-[#bb7723]"
-          />
-          <SummaryCard
-            label="Fulfilled"
-            value="0"
-            valueClassName="text-[#3d7b24]"
-          />
-          <SummaryCard label="Revenue (INR)" value="Rs 3,118" />
+          {isDisconnectedSkeleton ? (
+            <>
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div
+                  key={`summary-skeleton-${index}`}
+                  className="rounded-xl bg-[#f1f1ed] p-5"
+                >
+                  <div className="h-6 w-28 rounded bg-[#e4e4de] animate-pulse" />
+                  <div className="mt-4 h-10 w-20 rounded bg-[#e4e4de] animate-pulse" />
+                </div>
+              ))}
+            </>
+          ) : (
+            <>
+              <SummaryCard
+                label="Total orders"
+                value={String(summary.totalOrders)}
+              />
+              <SummaryCard
+                label="Pending"
+                value={String(summary.pendingOrders)}
+                valueClassName="text-[#bb7723]"
+              />
+              <SummaryCard
+                label="Fulfilled"
+                value={String(summary.fulfilledOrders)}
+                valueClassName="text-[#3d7b24]"
+              />
+              <SummaryCard
+                label="Revenue (INR)"
+                value={`Rs ${formatInr(summary.revenue)}`}
+              />
+            </>
+          )}
         </div>
 
         <section className="mt-6 rounded-2xl border border-[#d8d8d3] bg-[#f7f7f5] p-5">
           <div className="border-b border-[#dbdbd6] pb-3">
-            <div className="inline-flex overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.value}
-                  type="button"
-                  onClick={() => setActiveTab(tab.value)}
-                  className={`border-r border-[#cbcbc7] px-6 py-3 text-sm font-semibold text-[#202020] last:border-r-0 ${
-                    activeTab === tab.value ? "bg-[#f2f2ed]" : "bg-white"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+            {isDisconnectedSkeleton ? (
+              <div className="inline-flex overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div
+                    key={`tab-skeleton-${index}`}
+                    className="border-r border-[#cbcbc7] px-6 py-3 last:border-r-0"
+                  >
+                    <div className="h-5 w-20 rounded bg-[#e8e8e3] animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="inline-flex overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.value}
+                    type="button"
+                    onClick={() => setActiveTab(tab.value)}
+                    className={`border-r border-[#cbcbc7] px-6 py-3 text-sm font-semibold text-[#202020] last:border-r-0 ${
+                      activeTab === tab.value ? "bg-[#f2f2ed]" : "bg-white"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {activeTab === "orders" && (
             <div className="pt-4">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search by order # or customer..."
-                  className="h-12 w-full max-w-107.5 rounded-xl border border-[#d8d8d3] bg-white px-4 text-sm text-[#313131] outline-none placeholder:text-[#8a8a84]"
-                />
+                {isDisconnectedSkeleton ? (
+                  <div className="h-12 w-full max-w-[430px] rounded-xl border border-[#d8d8d3] bg-white px-4 flex items-center">
+                    <div className="h-5 w-56 rounded bg-[#ecece7] animate-pulse" />
+                  </div>
+                ) : (
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search by order # or customer..."
+                    className="h-12 w-full max-w-[430px] rounded-xl border border-[#d8d8d3] bg-white px-4 text-sm text-[#313131] outline-none placeholder:text-[#8a8a84]"
+                  />
+                )}
 
                 <div className="relative" ref={statusDropdownRef}>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setIsStatusDropdownOpen((previousState) => !previousState)
-                    }
-                    className="inline-flex h-10 min-w-40 items-center justify-between gap-2 rounded-xl border border-[#d8d8d3] bg-white px-4 text-sm text-[#2f2f2f]"
-                  >
-                    {selectedStatus}
-                    <ChevronDown
-                      className={`h-4 w-4 transition-transform ${
-                        isStatusDropdownOpen ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
+                  {isDisconnectedSkeleton ? (
+                    <div className="inline-flex h-10 min-w-40 items-center justify-between gap-2 rounded-xl border border-[#d8d8d3] bg-white px-4">
+                      <div className="h-5 w-20 rounded bg-[#ecece7] animate-pulse" />
+                      <div className="h-4 w-4 rounded bg-[#ecece7] animate-pulse" />
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setIsStatusDropdownOpen(
+                          (previousState) => !previousState,
+                        )
+                      }
+                      className="inline-flex h-10 min-w-40 items-center justify-between gap-2 rounded-xl border border-[#d8d8d3] bg-white px-4 text-sm text-[#2f2f2f]"
+                    >
+                      {selectedStatus}
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${
+                          isStatusDropdownOpen ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+                  )}
 
                   {isStatusDropdownOpen && (
                     <div className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-2xl border border-[#d8d8d3] bg-white shadow-sm">
@@ -310,11 +561,10 @@ export default function OrdersPage() {
                               setSelectedStatus(status);
                               setIsStatusDropdownOpen(false);
                             }}
-                            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-[#2f2f2f] hover:bg-[#f5f5f3]"
+                            className={`flex w-full items-center px-4 py-2.5 text-left text-sm text-[#2f2f2f] hover:bg-[#f5f5f3] ${
+                              isSelected ? "" : ""
+                            }`}
                           >
-                            <span className="inline-flex w-4 justify-center text-base leading-none">
-                              {isSelected ? "✓" : ""}
-                            </span>
                             <span>{status}</span>
                           </button>
                         );
@@ -328,58 +578,141 @@ export default function OrdersPage() {
                 <table className="w-full border-collapse">
                   <thead className="border-b border-[#dfdfda]">
                     <tr className="text-left text-sm font-medium text-[#474742]">
-                      <th className="px-4 py-3">Order</th>
-                      <th className="px-4 py-3">Customer</th>
-                      <th className="px-4 py-3">Product</th>
-                      <th className="px-4 py-3">Amount</th>
-                      <th className="px-4 py-3">Payment</th>
-                      <th className="px-4 py-3">Status</th>
+                      {isDisconnectedSkeleton ? (
+                        <>
+                          {Array.from({ length: 7 }).map((_, index) => (
+                            <th
+                              key={`head-skeleton-${index}`}
+                              className="px-4 py-3"
+                            >
+                              <div className="h-5 w-16 rounded bg-[#ecece7] animate-pulse" />
+                            </th>
+                          ))}
+                        </>
+                      ) : (
+                        <>
+                          <th className="px-4 py-3">Order</th>
+                          <th className="px-4 py-3">Customer</th>
+                          <th className="px-4 py-3">Product</th>
+                          <th className="px-4 py-3">Amount</th>
+                          <th className="px-4 py-3">Payment</th>
+                          <th className="px-4 py-3">Status</th>
+                          <th className="px-4 py-3">Action</th>
+                        </>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredOrders.map((order) => (
-                      <tr
-                        key={order.id}
-                        className="border-b border-[#e8e8e2] last:border-b-0"
-                      >
-                        <td className="px-4 py-4 align-top">
-                          <p className="text-xs leading-tight font-semibold text-[#222]">
-                            {order.id}
-                          </p>
-                          <p className="text-xs text-[#4f4f4a]">{order.date}</p>
-                        </td>
-                        <td className="px-4 py-4 align-top">
-                          <p className="text-xs leading-tight font-medium text-[#222]">
-                            {order.customer}
-                          </p>
-                          <p className="text-xs text-[#4f4f4a]">
-                            {order.contact}
-                          </p>
-                        </td>
-                        <td className="px-4 py-4 align-top text-xs leading-tight text-[#2c2c2c]">
-                          {order.product}
-                        </td>
-                        <td className="px-4 py-4 align-top">
-                          <p className="text-xs leading-tight font-semibold text-[#1f1f1f]">
-                            {order.amount}
-                          </p>
-                          <p className="text-xs text-[#4f4f4a]">
-                            {order.shipping}
-                          </p>
-                        </td>
-                        <td className="px-4 py-4 align-top">
-                          <span className="inline-flex items-center rounded-full bg-[#efe5d3] px-3 py-1 text-xs font-semibold text-[#9b641e]">
-                            <Dot className="h-4 w-4 fill-current" />
-                            {order.payment}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 align-top">
-                          <span className="inline-flex rounded-full bg-[#efe5d3] px-3 py-1 text-xs font-semibold text-[#94621e]">
-                            {order.status}
-                          </span>
+                    {isStoreCheckLoading &&
+                      Array.from({ length: 3 }).map((_, index) => (
+                        <tr
+                          key={`skeleton-${index}`}
+                          className="border-b border-[#e8e8e2] last:border-b-0 animate-pulse"
+                        >
+                          <td className="px-4 py-4">
+                            <div className="h-4 w-20 rounded bg-[#ececec]" />
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="h-4 w-28 rounded bg-[#ececec]" />
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="h-4 w-24 rounded bg-[#ececec]" />
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="h-4 w-20 rounded bg-[#ececec]" />
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="h-6 w-16 rounded-full bg-[#ececec]" />
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="h-6 w-20 rounded-full bg-[#ececec]" />
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="h-7 w-28 rounded-lg bg-[#ececec]" />
+                          </td>
+                        </tr>
+                      ))}
+
+                    {!isStoreCheckLoading && !isStoreConnected && (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="px-4 py-10 text-center text-lg font-semibold text-black/90"
+                        >
+                          {storeConnectionMessage ||
+                            "Shopify store not connected"}
                         </td>
                       </tr>
-                    ))}
+                    )}
+
+                    {!isStoreCheckLoading &&
+                      isStoreConnected &&
+                      filteredOrders.map((order) => (
+                        <tr
+                          key={order.id}
+                          className="border-b border-[#e8e8e2] last:border-b-0"
+                        >
+                          <td className="px-4 py-4 align-top">
+                            <p className="text-xs leading-tight font-semibold text-[#222]">
+                              {order.id}
+                            </p>
+                            <p className="text-xs text-[#4f4f4a]">
+                              {order.date}
+                            </p>
+                          </td>
+                          <td className="px-4 py-4 align-top">
+                            <p className="text-xs leading-tight font-medium text-[#222]">
+                              {order.customer}
+                            </p>
+                            <p className="text-xs text-[#4f4f4a]">
+                              {order.contact}
+                            </p>
+                          </td>
+                          <td className="px-4 py-4 align-top text-xs leading-tight text-[#2c2c2c]">
+                            {order.product}
+                          </td>
+                          <td className="px-4 py-4 align-top">
+                            <p className="text-xs leading-tight font-semibold text-[#1f1f1f]">
+                              {order.amount}
+                            </p>
+                            <p className="text-xs text-[#4f4f4a]">
+                              {order.shipping}
+                            </p>
+                          </td>
+                          <td className="px-4 py-4 align-top">
+                            <span className="inline-flex items-center rounded-full bg-[#efe5d3] px-3 py-1 text-xs font-semibold text-[#9b641e]">
+                              {order.payment}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 align-top">
+                            <span
+                              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                                order.status === "Confirmed"
+                                  ? "bg-[#e2efd6] text-[#3f7c25]"
+                                  : "bg-[#efe5d3] text-[#94621e]"
+                              }`}
+                            >
+                              {order.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 align-top">
+                            <button
+                              type="button"
+                              onClick={() => handleMarkConfirmed(order.id)}
+                              disabled={order.status !== "Pending"}
+                              className={`rounded-lg border px-3 py-1 text-xs font-semibold transition ${
+                                order.status === "Pending"
+                                  ? "bg-linear-to-r from-[#0097b2] to-[#7ed957] text-white hover:bg-[#f9efd9]"
+                                  : "cursor-not-allowed border-[#d8d8d3] bg-[#f4f4f1] text-[#7f7f78]"
+                              }`}
+                            >
+                              {order.status === "Pending"
+                                ? "Mark Confirmed"
+                                : "Confirmed"}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
