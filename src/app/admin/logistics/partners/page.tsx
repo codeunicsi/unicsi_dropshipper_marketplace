@@ -21,48 +21,28 @@ import {
   Copy, 
   Truck, 
   CheckCircle2, 
-  ShieldCheck, 
-  Globe, 
   Power,
   Search,
-  Check
+  KeyRound,
 } from 'lucide-react'
-import { useCourierPartners, type CourierPartner, type CourierPartnerPayload, type CoverageType } from '@/hooks/useCourierPartners'
-
-const COVERAGE_OPTIONS: { value: CoverageType; label: string }[] = [
-  { value: null, label: 'Not Specified' },
-  { value: 'metro', label: 'Metro' },
-  { value: 'regional', label: 'Regional' },
-  { value: 'pan_india', label: 'Pan India' },
-]
-
-const selectClass = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+import { useCourierPartners, type CourierPartner, type CourierPartnerPayload } from '@/hooks/useCourierPartners'
 
 function PartnerForm({
   initial,
-  partnerId,
   onSubmit,
   onCancel,
   loading,
 }: {
   initial: Partial<CourierPartnerPayload> | null
-  partnerId?: string
   onSubmit: (p: CourierPartnerPayload) => Promise<void>
   onCancel: () => void
   loading: boolean
 }) {
   const [name, setName] = useState(initial?.name ?? '')
-  const [copied, setCopied] = useState(false)
-  const copyId = () => {
-    if (partnerId) {
-      navigator.clipboard.writeText(partnerId)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }
   const [code, setCode] = useState(initial?.code ?? '')
-  const [supportCod, setSupportCod] = useState(initial?.support_cod ?? false)
-  const [coverageType, setCoverageType] = useState<CoverageType>(initial?.coverage_type ?? null)
+  const [accessToken, setAccessToken] = useState(initial?.access_token ?? '')
+  const [secretKey, setSecretKey] = useState(initial?.secret_key ?? '')
+  const [pickupAddressId, setPickupAddressId] = useState(initial?.pickup_address_id ?? '')
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,7 +53,13 @@ function PartnerForm({
       return
     }
     try {
-      await onSubmit({ name: name.trim(), code: code.trim().toUpperCase(), support_cod: supportCod, coverage_type: coverageType })
+      await onSubmit({
+        name: name.trim(),
+        code: code.trim().toUpperCase(),
+        access_token: accessToken.trim() || null,
+        secret_key: secretKey.trim() || null,
+        pickup_address_id: pickupAddressId.trim() || null,
+      })
       onCancel()
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Something went wrong')
@@ -81,84 +67,106 @@ function PartnerForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 pt-4">
-      <div className="space-y-2">
-        <Label htmlFor="name" className="text-xs uppercase font-bold tracking-wider text-muted-foreground">Partner Name</Label>
-        <div className="relative">
-          <Truck className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Delhivery"
-            disabled={loading}
-            className="pl-9"
-          />
-        </div>
-      </div>
-      
-      {partnerId && (
-        <div className="space-y-2 p-3 bg-muted/40 rounded-lg border border-dashed">
-          <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Unique Partner ID</Label>
-          <div className="flex gap-2">
-            <code className="flex-1 bg-background px-2 py-1.5 rounded border text-[11px] font-mono flex items-center overflow-hidden whitespace-nowrap">
-              {partnerId}
-            </code>
-            <Button type="button" variant="secondary" size="icon" className="h-8 w-8" onClick={copyId}>
-              {copied ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
-            </Button>
+    <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="name" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Partner name
+          </Label>
+          <div className="relative">
+            <Truck className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Delhivery"
+              disabled={loading}
+              className="h-9 pl-9"
+            />
           </div>
         </div>
-      )}
 
-      <div className="space-y-2">
-        <Label htmlFor="code" className="text-xs uppercase font-bold tracking-wider text-muted-foreground">API Identifer (Code)</Label>
-        <Input
-          id="code"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          placeholder="e.g. DELHIVERY"
-          disabled={!!initial || loading}
-          className={initial ? 'bg-muted font-mono uppercase' : 'font-mono uppercase'}
-        />
-        {initial && <p className="text-[10px] text-muted-foreground italic">Code is immutable once created.</p>}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="coverage" className="text-xs uppercase font-bold tracking-wider text-muted-foreground">Coverage Area</Label>
-        <select
-          id="coverage"
-          value={coverageType ?? ''}
-          onChange={(e) => setCoverageType((e.target.value || null) as CoverageType)}
-          disabled={loading}
-          className={selectClass}
-        >
-          {COVERAGE_OPTIONS.map((o) => (
-            <option key={o.value ?? 'none'} value={o.value ?? ''}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="flex items-center space-x-2 rounded-lg border p-4 hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => setSupportCod(!supportCod)}>
-        <div className="flex-1 space-y-0.5">
-          <Label htmlFor="support_cod" className="text-sm font-semibold cursor-pointer">Cash on Delivery (COD)</Label>
-          <p className="text-xs text-muted-foreground">Does this partner handle cash collections?</p>
+        <div className="space-y-2">
+          <Label htmlFor="code" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            API identifier (code)
+          </Label>
+          <Input
+            id="code"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="e.g. DELHIVERY"
+            disabled={!!initial || loading}
+            className={`h-9 font-mono text-sm uppercase ${initial ? 'bg-muted' : ''}`}
+          />
+          {initial && (
+            <p className="text-xs text-muted-foreground">Code cannot be changed after the partner is created.</p>
+          )}
         </div>
-        <input
-          type="checkbox"
-          id="support_cod"
-          checked={supportCod}
-          onChange={(e) => setSupportCod(e.target.checked)}
-          disabled={loading}
-          className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary accent-primary"
-        />
       </div>
 
-      {submitError && <p className="text-sm font-medium text-destructive text-center py-2 bg-destructive/10 rounded">{submitError}</p>}
+      <div className="rounded-lg border bg-muted/30 p-4 space-y-4">
+        <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <KeyRound className="h-4 w-4 text-primary" />
+          Carrier API credentials
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="accessToken" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Access token
+            </Label>
+            <Input
+              id="accessToken"
+              name="accessToken"
+              type="password"
+              autoComplete="new-password"
+              value={accessToken}
+              onChange={(e) => setAccessToken(e.target.value)}
+              placeholder="••••••••"
+              disabled={loading}
+              className="h-9 font-mono text-sm"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="secretKey" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Secret key
+            </Label>
+            <Input
+              id="secretKey"
+              name="secretKey"
+              type="password"
+              autoComplete="new-password"
+              value={secretKey}
+              onChange={(e) => setSecretKey(e.target.value)}
+              placeholder="••••••••"
+              disabled={loading}
+              className="h-9 font-mono text-sm"
+            />
+          </div>
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="pickupAddressId" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Pickup address ID
+            </Label>
+            <Input
+              id="pickupAddressId"
+              name="pickupAddressId"
+              type="text"
+              value={pickupAddressId}
+              onChange={(e) => setPickupAddressId(e.target.value)}
+              placeholder="e.g. 1293"
+              disabled={loading}
+              className="h-9 max-w-xs font-mono text-sm"
+            />
+          </div>
+        </div>
+      </div>
+
+      {submitError && (
+        <p className="rounded-md bg-destructive/10 px-3 py-2 text-center text-sm font-medium text-destructive">
+          {submitError}
+        </p>
+      )}
       
-      <DialogFooter className="gap-2 pt-2">
+      <DialogFooter className="gap-2 border-t pt-4 sm:justify-end">
         <Button type="button" variant="ghost" onClick={onCancel} disabled={loading}>
           Cancel
         </Button>
@@ -215,7 +223,7 @@ export default function CourierPartnersPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b pb-6 mt-4">
         <div className="space-y-1">
           <h1 className="text-4xl font-extrabold tracking-tight text-foreground">Logistics Partners</h1>
-          <p className="text-muted-foreground text-lg">Manage your courier service integrations and coverage types.</p>
+          <p className="text-muted-foreground text-lg">Manage courier integrations and API credentials.</p>
         </div>
         <Button size="lg" className="shadow-lg shadow-primary/20" onClick={handleAdd}>
           <Plus className="w-5 h-5 mr-2" />
@@ -265,7 +273,7 @@ export default function CourierPartnersPage() {
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <div className="space-y-1">
             <CardTitle>Partner Directory</CardTitle>
-            <CardDescription>Configure operational status and COD availability</CardDescription>
+            <CardDescription>Activate partners and manage credentials from the edit dialog</CardDescription>
           </div>
           <div className="relative w-64 hidden md:block">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -305,27 +313,15 @@ export default function CourierPartnersPage() {
                           <Badge variant="secondary" className="px-1.5 h-5 text-[10px] uppercase font-black">Offline</Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 mt-1.5">
-                        <code className="text-[11px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{p.code}</code>
-                        {p.coverage_type && (
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Globe className="w-3 h-3" />
-                            {p.coverage_type.replace('_', ' ')}
-                          </span>
-                        )}
+                      <div className="mt-1.5">
+                        <code className="rounded bg-muted px-1.5 py-0.5 text-[11px] font-bold text-muted-foreground">
+                          {p.code}
+                        </code>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2 w-full md:w-auto border-t md:border-t-0 pt-4 md:pt-0 justify-end">
-                    {p.support_cod && (
-                      <Badge variant="outline" className="flex items-center gap-1.5 text-xs font-semibold py-1">
-                        <ShieldCheck className="w-3.5 h-3.5 text-green-600" /> COD
-                      </Badge>
-                    )}
-                    
-                    <div className="h-6 w-px bg-border mx-2 hidden md:block" />
-                    
+                  <div className="flex w-full flex-wrap items-center justify-end gap-2 border-t pt-4 md:w-auto md:border-t-0 md:pt-0">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -365,22 +361,34 @@ export default function CourierPartnersPage() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[480px]">
-          <DialogHeader className="border-b pb-4">
-            <DialogTitle className="text-2xl font-black">
-              {editing ? 'Modify Partner' : 'Register New Partner'}
+        <DialogContent className="flex max-h-[min(90vh,640px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+          <DialogHeader className="shrink-0 space-y-1 border-b px-6 py-4 text-left">
+            <DialogTitle className="text-xl font-semibold tracking-tight">
+              {editing ? 'Modify partner' : 'Register new partner'}
             </DialogTitle>
-            <DialogDescription>
-              Configure logistics credentials and regional coverage settings.
+            <DialogDescription className="text-sm leading-relaxed">
+              Set the display name, API code, and carrier credentials used for bookings.
             </DialogDescription>
           </DialogHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
           <PartnerForm
-            initial={editing ? { name: editing.name, code: editing.code, support_cod: editing.support_cod, coverage_type: editing.coverage_type } : null}
-            partnerId={editing?.courier_id}
+            key={editing?.courier_id ?? 'new'}
+            initial={
+              editing
+                ? {
+                    name: editing.name,
+                    code: editing.code,
+                    access_token: editing.access_token ?? '',
+                    secret_key: editing.secret_key ?? '',
+                    pickup_address_id: editing.pickup_address_id ?? '',
+                  }
+                : null
+            }
             onSubmit={handleSubmit}
             onCancel={() => setDialogOpen(false)}
             loading={formLoading}
           />
+          </div>
         </DialogContent>
       </Dialog>
     </div>
