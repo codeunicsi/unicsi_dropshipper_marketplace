@@ -3,6 +3,7 @@ import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
 import { apiClient } from "@/hooks/marketplace/useShopifySecret";
 import {
   Check,
+  Copy,
   ExternalLink,
   ImageOff,
   Info,
@@ -155,6 +156,7 @@ export default function ShopifyStoreManagerPage() {
   const [storeUrl, setStoreUrl] = useState("");
   const [linkError, setLinkError] = useState("");
   const [isLinking, setIsLinking] = useState(false);
+  const [copiedTooltipId, setCopiedTooltipId] = useState<string | null>(null);
 
   // ── credentials modal state ───────────────────────────────────────────────
   const [isCredModalOpen, setIsCredModalOpen] = useState(false);
@@ -387,6 +389,23 @@ export default function ShopifyStoreManagerPage() {
       );
     } finally {
       setIsLinkingStore(false);
+    }
+  };
+
+  const handleCopyTooltipContent = async (
+    tooltipId: string,
+    tooltipContent: string,
+  ) => {
+    try {
+      await navigator.clipboard.writeText(tooltipContent);
+      setCopiedTooltipId(tooltipId);
+      window.setTimeout(() => {
+        setCopiedTooltipId((current) =>
+          current === tooltipId ? null : current,
+        );
+      }, 1500);
+    } catch (error) {
+      console.error("Failed to copy tooltip content:", error);
     }
   };
 
@@ -730,6 +749,33 @@ export default function ShopifyStoreManagerPage() {
                           {step.tooltipLabel}
                         </span>
                         <span className="pointer-events-none invisible absolute left-0 top-full z-20 w-96 max-w-[70vw] rounded-md border border-[#e5e7eb] bg-white px-3 py-4 text-xs leading-5 text-[#374151] opacity-0 shadow-lg transition-all duration-150 group-hover:visible group-hover:pointer-events-auto group-hover:opacity-100">
+                          <span className="mb-2 flex items-center justify-between gap-3">
+                            <span className="font-medium text-[#111827]">
+                              Shopify scopes
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleCopyTooltipContent(
+                                  step.id,
+                                  step.tooltipContent!,
+                                )
+                              }
+                              className="inline-flex items-center gap-1 rounded-md border border-[#d1d5db] bg-white px-2 py-1 text-[11px] font-medium text-[#374151] transition-colors hover:bg-[#f8fafc]"
+                            >
+                              {copiedTooltipId === step.id ? (
+                                <>
+                                  <Check className="size-3.5" />
+                                  Copied
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="size-3.5" />
+                                  Copy
+                                </>
+                              )}
+                            </button>
+                          </span>
                           <span className="block max-h-44 overflow-y-auto pr-1">
                             {step.tooltipContent}
                           </span>
