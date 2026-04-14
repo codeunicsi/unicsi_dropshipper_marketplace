@@ -90,9 +90,9 @@ export default function ProductCard({
           </div>
 
           <div className="flex items-center justify-between">
-            {/* <span className="text-lg font-bold text-slate-900">
+            <span className="text-lg font-bold text-slate-900">
               ₹{price.toLocaleString()}
-            </span> */}
+            </span>
 
             <span
               className={`text-xs px-2 py-1 rounded ${
