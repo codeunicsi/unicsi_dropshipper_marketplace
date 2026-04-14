@@ -698,10 +698,10 @@ export default function ShopifyStoreManagerPage() {
           }}
         >
           <aside
-            className="h-full w-full max-w-140 overflow-y-auto bg-white py-12 shadow-2xl animate-slideIn"
+            className="flex h-full w-full max-w-140 flex-col overflow-hidden bg-white shadow-2xl animate-slideIn"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="px-8 py-6">
+            <div className="flex-1 overflow-y-auto px-8 py-12">
               <div className="mb-8 flex items-center justify-center gap-4">
                 <div className="rounded-md border border-[#e5e7eb] p-4 text-center">
                   <p className="text-sm font-bold leading-none text-[#232323]">
@@ -786,7 +786,7 @@ export default function ShopifyStoreManagerPage() {
                 ))}
               </ul>
             </div>
-            <div className="sticky bottom-0 border-t border-[#ececec] bg-white px-8 py-6 space-y-3">
+            <div className="shrink-0 border-t border-[#ececec] bg-white px-8 py-6 space-y-3">
               <div>
                 <label className="mb-1.5 block text-xs font-semibold text-[#374151]">
                   Shopify Store URL
