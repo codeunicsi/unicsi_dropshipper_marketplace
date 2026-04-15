@@ -460,11 +460,12 @@ export default function ShopifyStoreManagerPage() {
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6">
       {/* ── Page header ── */}
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="text-xl font-bold text-[#111827]">
+      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <h1 className="text-lg md:text-xl font-bold text-[#111827]">
           Shopify Store Manager
         </h1>
-        <div className="flex items-center gap-2">
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <button
             type="button"
             onClick={() => setAutoConfirmOrders((prev) => !prev)}
@@ -524,22 +525,22 @@ export default function ShopifyStoreManagerPage() {
             className="rounded-xs bg-linear-to-r from-[#0097b2] to-[#7ed957] px-8 text-sm text-white hover:bg-black/90"
             onClick={() => setIsLinkStoreDrawerOpen(true)}
           >
-            <Link2 className="size-6" />
+            <Link2 className="size-5" />
             Link New Shopify Store
           </Button>
         </div>
       </div>
 
       {/* ── Stores table ── */}
-      <div className="overflow-hidden border border-[#e3e3e3]">
-        <table className="w-full border-collapse">
+      <div className="w-full overflow-x-auto border border-[#e3e3e3]">
+        <table className="min-w-[900px] w-full border-collapse">
           <thead className="bg-[#f2f2f2] text-left">
             <tr className="text-sm font-semibold text-[#2f3640]">
               <th className="w-16 px-6 py-4">#</th>
-              <th className="w-80 px-6 py-4">Linked On</th>
+              <th className="px-4 py-3 whitespace-nowrap">Linked On</th>
               <th className="w-80 px-6 py-4">Store Platform</th>
               <th className="px-6 py-4">Store Details</th>
-              <th className="w-96 px-6 py-4">Actions</th>
+              <th className="px-4 py-3 whitespace-nowrap">Actions</th>
             </tr>
           </thead>
           <tbody>

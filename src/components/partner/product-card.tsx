@@ -79,7 +79,7 @@ export default function ProductCard({
 
         {/* Info */}
         <div className="space-y-3">
-          <div className="flex justify-between items-start gap-2">
+          <div className="flex  justify-between items-start gap-2">
             <h3 className="text-sm font-semibold text-slate-900 line-clamp-2">
               {name}
             </h3>
@@ -89,7 +89,7 @@ export default function ProductCard({
             </div> */}
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col xl:flex-row items-center justify-between">
             <span className="text-lg font-bold text-slate-900">
               ₹{price.toLocaleString()}
             </span>
@@ -111,7 +111,7 @@ export default function ProductCard({
               <span>2.5k sold</span>
             </div> */}
 
-            <div className="flex items-center gap-20 text-xs text-slate-600 py-2 border-t border-b border-slate-100">
+            <div className="flex flex-col xl:flex-row  justify-between items-center gap-4 xl:gap-20 text-xs text-slate-600 py-2 border-t border-b border-slate-100">
               {/* Size */}
               <div className="flex items-center gap-1 flex-row  whitespace-nowrap">
                 <span className="font-medium text-slate-700"></span>
@@ -119,7 +119,7 @@ export default function ProductCard({
               </div>
 
               {/* Stock */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center  gap-1">
                 <span className="font-medium text-slate-700">Stock:</span>
                 <span
                   className={`font-semibold ${
@@ -135,7 +135,7 @@ export default function ProductCard({
       </div>
 
       {/* Buttons */}
-      <div className="flex gap-1 py-2">
+      <div className="flex flex-col xl:flex-row  gap-1 py-2">
         <Button
           onClick={handlePushToShopify}
           className="flex-1 text-white text-xs bg-amber-500 hover:bg-amber-600 font-semibold py-2 rounded-lg"

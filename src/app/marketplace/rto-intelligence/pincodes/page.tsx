@@ -54,7 +54,7 @@ const RtoPincodePage = () => {
                       </li>
                       <li>
                         Your output should look like this –{" "}
-                        <span className="italic">
+                        <span className="italic wrap-break-word">
                           784514,784148,784529,784145
                         </span>
                       </li>
