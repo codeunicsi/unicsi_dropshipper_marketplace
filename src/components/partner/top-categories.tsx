@@ -85,7 +85,7 @@ export default function TopCategories() {
                 }
                 className="shrink-0 w-36 text-center cursor-pointer group"
               >
-                <div className="bg-white rounded-3xl p-4 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer">
+                <div className="bg-white rounded-3xl p-4 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer h-52 flex flex-col">
                   <div className="overflow-hidden rounded-2xl">
                     <img
                       src={
@@ -99,7 +99,7 @@ export default function TopCategories() {
                       }}
                     />
                   </div>
-                  <p className="mt-4 text-sm font-semibold text-gray-800 group-hover:text-teal-600 transition-colors">
+                  <p className="mt-4 h-12 flex items-center justify-center text-sm font-semibold text-gray-800 group-hover:text-teal-600 transition-colors leading-5 line-clamp-2">
                     {category.name}
                   </p>
                 </div>

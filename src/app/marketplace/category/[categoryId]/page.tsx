@@ -134,7 +134,7 @@ function ProductCard({ product }: { product: Product }) {
         <img
           src={image}
           alt={product.title}
-          className="object-cover group-hover:scale-[1.03] transition-transform duration-300"
+          className="block h-full w-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
         />
         <span
           className={`absolute top-2 right-2 text-[10px] px-2 py-0.5 rounded-full font-semibold ${
