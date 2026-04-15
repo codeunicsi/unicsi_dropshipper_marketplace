@@ -355,7 +355,13 @@ const CartDrawer = ({
           <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-b border-slate-200 pb-4">
             <SectionTitle icon={Store} title="Store" />
             <div className="flex justify-between gap-2">
-              <span className="text-sm text-red-600">
+              <span
+                className={`text-sm ${
+                  !response?.shop && !defaultStore?.store_url
+                    ? "text-red-600"
+                    : "text-black"
+                }`}
+              >
                 {response?.shop || defaultStore?.store_url || "No store linked"}
               </span>
             </div>
