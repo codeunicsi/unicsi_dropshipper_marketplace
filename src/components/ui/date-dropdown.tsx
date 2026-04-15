@@ -18,6 +18,9 @@ type DateDropdownProps = {
   className?: string;
   buttonClassName?: string;
   labelClassName?: string;
+  /** Controlled selected date (undefined = no date) */
+  value?: Date | undefined;
+  onChange?: (date: Date | undefined) => void;
 };
 
 export function DateDropdown({
@@ -25,8 +28,16 @@ export function DateDropdown({
   className,
   buttonClassName,
   labelClassName,
+  value: valueProp,
+  onChange,
 }: DateDropdownProps) {
-  const [date, setDate] = React.useState<Date | undefined>();
+  const [uncontrolled, setUncontrolled] = React.useState<Date | undefined>();
+  const isControlled = typeof onChange === "function";
+  const date = isControlled ? valueProp : uncontrolled;
+  const setDate = (next: Date | undefined) => {
+    if (!isControlled) setUncontrolled(next);
+    onChange?.(next);
+  };
 
   const displayText = date ? format(date, "PPP") : label;
 
@@ -54,7 +65,7 @@ export function DateDropdown({
         <Calendar
           mode="single"
           selected={date}
-          onSelect={setDate}
+          onSelect={(d) => setDate(d)}
           initialFocus
         />
       </PopoverContent>
