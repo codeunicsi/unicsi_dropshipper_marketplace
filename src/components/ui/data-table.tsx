@@ -22,6 +22,8 @@ type DataTableProps<T> = {
   data: T[];
   loading?: boolean;
   emptyMessage?: string;
+  /** Stable row key for list updates (defaults to row index). */
+  rowKey?: (row: T, index: number) => string | number;
 };
 
 export function DataTable<T>({
@@ -29,6 +31,7 @@ export function DataTable<T>({
   data,
   loading = false,
   emptyMessage = "You don’t have any orders to show.",
+  rowKey,
 }: DataTableProps<T>) {
   return (
     <div className="rounded-xs border bg-white">
@@ -67,7 +70,10 @@ export function DataTable<T>({
             </TableRow>
           ) : (
             data.map((row, rowIndex) => (
-              <TableRow key={rowIndex} className="text-xs">
+              <TableRow
+                key={rowKey ? rowKey(row, rowIndex) : rowIndex}
+                className="text-xs"
+              >
                 {columns.map((col, colIndex) => (
                   <TableCell key={colIndex}>
                     {col.cell

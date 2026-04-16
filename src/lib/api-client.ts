@@ -30,8 +30,12 @@ export const apiClient = {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Something went wrong");
+      const error = await response.json().catch(() => ({}));
+      const message =
+        (typeof error.message === "string" && error.message) ||
+        (typeof error.error === "string" && error.error) ||
+        "Something went wrong";
+      throw new Error(message);
     }
 
     return response.json();
