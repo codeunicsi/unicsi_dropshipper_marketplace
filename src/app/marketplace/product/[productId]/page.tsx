@@ -69,8 +69,10 @@ function InfoRow({
   return (
     <div className="flex items-start gap-3 border-b border-slate-100 py-2.5 last:border-0">
       <Icon className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
-      <span className="w-36 shrink-0 text-xs text-slate-500">{label}</span>
-      <span className="break-all text-xs font-medium text-slate-800">
+      <span className="w-24 shrink-0 text-xs text-slate-500 sm:w-36">
+        {label}
+      </span>
+      <span className="min-w-0 break-all text-xs font-medium text-slate-800">
         {value}
       </span>
     </div>
@@ -98,21 +100,21 @@ function ProductInfo({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-4 rounded-xl border bg-white p-6">
-        <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+      <div className="space-y-4 rounded-xl border bg-white p-4 sm:p-6">
+        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-500">
           <Tag className="h-3.5 w-3.5" />
           SKU:
           <button
             className="group flex items-center gap-1.5 font-semibold text-slate-800 transition-colors hover:text-black"
             onClick={() => navigator.clipboard.writeText(skuValue)}
           >
-            <span className="font-mono">{skuValue}</span>
+            <span className="break-all font-mono">{skuValue}</span>
             <CopyIcon className="h-3.5 w-3.5 opacity-50 group-hover:opacity-100" />
           </button>
         </div>
 
         <div className="space-y-1.5">
-          <h1 className="text-lg font-semibold text-slate-900">
+          <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">
             {product.title}
           </h1>
           <div className="flex flex-wrap gap-2">
@@ -132,8 +134,8 @@ function ProductInfo({
         </div>
 
         <div className="space-y-2 rounded-lg bg-slate-50 p-4">
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-slate-900">
+          <div className="flex flex-wrap items-baseline gap-2">
+            <span className="text-2xl font-bold text-slate-900 sm:text-3xl">
               Rs.{price.toLocaleString()}
             </span>
             {mrp > price && (
@@ -148,7 +150,7 @@ function ProductInfo({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-2 pt-1">
+          <div className="grid grid-cols-1 gap-2 pt-1 sm:grid-cols-2">
             <div className="rounded-md border border-slate-200 bg-white p-2.5 text-center">
               <p className="mb-0.5 text-[10px] uppercase tracking-wide text-slate-400">
                 Bulk Price
@@ -165,14 +167,14 @@ function ProductInfo({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 pt-1 text-xs text-slate-500">
+          <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-slate-500">
             <Boxes className="h-3.5 w-3.5" />
             Minimum Order Quantity:
             <span className="font-semibold text-slate-700">{moq} units</span>
           </div>
         </div>
 
-        <div className="flex gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <div
             className={`flex flex-1 items-center gap-2 rounded-lg border p-2.5 text-xs ${
               product.rvp_enabled
@@ -205,7 +207,7 @@ function ProductInfo({
       </div>
 
       {variant && (
-        <div className="space-y-1 rounded-xl border bg-white p-5">
+        <div className="space-y-1 rounded-xl border bg-white p-4 sm:p-5">
           <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-800">
             <Layers className="h-4 w-4" />
             Active Variant - {variant.title}
@@ -296,15 +298,15 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
 
   return (
     <>
-      <div className="mx-auto max-w-6xl space-y-6 p-6">
-        <div className="grid gap-10 md:grid-cols-2">
-          <div className="flex gap-4">
-            <div className="flex flex-col gap-3">
+      <div className="mx-auto max-w-6xl space-y-4 px-3 py-4 sm:space-y-6 sm:px-4 md:px-6">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] lg:items-start lg:gap-10">
+          <div className="flex flex-col-reverse gap-3 sm:gap-4 md:flex-row">
+            <div className="flex gap-3 overflow-x-auto pb-1 md:flex-col md:overflow-visible md:pb-0">
               {mediaUrls.slice(0, 5).map((img: string, i: number) => (
                 <div
                   key={i}
                   onClick={() => setSelectedImage(img)}
-                  className={`relative h-20 w-20 cursor-pointer overflow-hidden rounded border transition-all ${
+                  className={`relative h-16 w-16 shrink-0 cursor-pointer overflow-hidden rounded border transition-all sm:h-20 sm:w-20 ${
                     activeImage === img
                       ? "border-2 border-black"
                       : "border-gray-200 hover:border-gray-400"
@@ -319,7 +321,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
               ))}
             </div>
 
-            <div className="relative h-[420px] flex-1 overflow-hidden rounded bg-slate-100">
+            <div className="relative h-[280px] flex-1 overflow-hidden rounded bg-slate-100 sm:h-[380px] lg:h-[460px]">
               <DownloadMediaDropdown
                 currentMediaUrl={activeImage}
                 allMediaUrls={mediaUrls}
@@ -338,7 +340,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
           />
         </div>
 
-        <div className="rounded-xl border bg-white p-6">
+        <div className="rounded-xl border bg-white p-4 sm:p-6">
           <h2 className="mb-3 flex items-center gap-2 text-base font-semibold">
             <Info className="h-4 w-4 text-slate-400" />
             Product Description
@@ -348,12 +350,12 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
           </p>
         </div>
 
-        <div className="rounded-xl border bg-white p-6">
+        <div className="rounded-xl border bg-white p-4 sm:p-6">
           <h2 className="mb-4 flex items-center gap-2 text-base font-semibold">
             <ShieldCheck className="h-4 w-4 text-slate-400" />
             Product Details
           </h2>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
             {[
               { label: "Brand", value: product.brand },
               { label: "Category", value: product.category?.name },
