@@ -137,7 +137,7 @@ const PaymentsPage = ({
             icon={BadgeIndianRupee}
             label="--Select--"
             className="text-xs font-semibold rounded-sm text-black/80 "
-            labelClassName="text-xs bg-white"
+            labelClassName="text-xs"
             items={[
               {
                 label: "Daily",

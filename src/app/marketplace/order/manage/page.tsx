@@ -7,6 +7,7 @@ import {
   ChevronDown,
   Dot,
   RefreshCcw,
+  Store,
 } from "lucide-react";
 import { useSyncOrders } from "@/hooks/useSyncOrders";
 import { apiClient } from "@/lib/api-client";
@@ -442,7 +443,7 @@ export default function OrdersPage() {
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {isDisconnectedSkeleton ? (
             <>
-              {Array.from({ length: 4 }).map((_, index) => (
+              {/* {Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={`summary-skeleton-${index}`}
                   className="rounded-xl bg-[#f1f1ed] p-5"
@@ -450,7 +451,7 @@ export default function OrdersPage() {
                   <div className="h-6 w-28 rounded bg-[#e4e4de] animate-pulse" />
                   <div className="mt-4 h-10 w-20 rounded bg-[#e4e4de] animate-pulse" />
                 </div>
-              ))}
+              ))} */}
             </>
           ) : (
             <>
@@ -476,7 +477,7 @@ export default function OrdersPage() {
           )}
         </div>
 
-        <section className="mt-6 rounded-2xl border border-[#d8d8d3] bg-[#f7f7f5] p-5">
+        <section className="mt-6 rounded-2xl  bg-[#f7f7f5] p-5">
           <div className="border-b border-[#dbdbd6] pb-3">
             {isDisconnectedSkeleton ? (
               <div className="inline-flex overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
@@ -637,10 +638,18 @@ export default function OrdersPage() {
                       <tr>
                         <td
                           colSpan={7}
-                          className="px-4 py-10 text-center text-lg font-semibold text-black/90"
+                          className="px-4 py-10 text-lg font-medium text-black/90"
                         >
-                          {storeConnectionMessage ||
-                            "Shopify store not connected"}
+                          <div className="flex flex-col items-center justify-center gap-2 text-center">
+                            <Store className="w-12 h-12 text-gray-300" />
+                            <span>
+                              {storeConnectionMessage ||
+                                "Shopify store not connected"}
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              Click "Link New Shopify Store" to get started.
+                            </span>
+                          </div>
                         </td>
                       </tr>
                     )}

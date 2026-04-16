@@ -42,7 +42,7 @@ const menuItems = [
   },
   {
     icon: Package,
-    label: "Manage Ndr",
+    label: "Manage NDR",
     href: "/marketplace/manage-ndr",
   },
   {
