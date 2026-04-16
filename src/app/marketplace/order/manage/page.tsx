@@ -524,8 +524,8 @@ export default function OrdersPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="w-full overflow-x-auto md:w-auto">
-                    <div className="inline-flex min-w-max items-center gap-2 rounded-xl border border-[#d8d8d3] bg-white p-1">
+                  <div className="w-full overflow-x-auto">
+                    <div className="inline-flex w-full min-w-max items-center gap-2 rounded-xl border border-[#d8d8d3] bg-white p-1">
                       {orderStatusOptions.map((status) => {
                         const isSelected = selectedStatus === status;
                         return (
@@ -533,9 +533,9 @@ export default function OrdersPage() {
                             key={status}
                             type="button"
                             onClick={() => setSelectedStatus(status)}
-                            className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                            className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
                               isSelected
-                                ? "bg-[#f2f2ed] text-[#202020]"
+                                ? "bg-linear-to-r from-[#0097b2] to-[#7ed957] text-white"
                                 : "text-[#555] hover:bg-[#f7f7f5]"
                             }`}
                           >
