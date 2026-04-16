@@ -47,11 +47,11 @@ export default function ProductCard({
   };
 
   return (
-    <div className="flex h-full flex-col rounded-lg bg-white p-2 shadow-sm transition-shadow duration-200 hover:shadow-md">
+    <div className="flex h-full flex-col rounded-lg bg-white p-1.5 shadow-sm transition-shadow duration-200 hover:shadow-md sm:p-2">
       <div className="flex-1">
         <div
           onClick={handleRedirect}
-          className="relative mb-3 h-36 w-full cursor-pointer overflow-hidden rounded-md bg-slate-100 sm:h-40"
+          className="relative mb-2 h-40 md:h-24 w-full cursor-pointer overflow-hidden rounded-md bg-slate-100 sm:mb-3 sm:h-40"
         >
           {image ? (
             <img
@@ -71,20 +71,20 @@ export default function ProductCard({
           )}
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-1.5 sm:space-y-3">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="line-clamp-2 text-base font-semibold text-slate-900 sm:text-sm">
+            <h3 className="line-clamp-2 text-[13px] leading-4 font-semibold text-slate-900 sm:text-sm sm:leading-5">
               {name}
             </h3>
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-[2rem] leading-none font-bold text-slate-900 sm:text-lg">
+          <div className="flex items-center justify-between gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+            <span className="text-lg leading-none font-bold text-slate-900 sm:text-lg">
               Rs {price.toLocaleString()}
             </span>
 
             <span
-              className={`inline-flex w-full items-center rounded-xl px-3 py-1.5 text-sm font-medium sm:w-auto sm:text-xs ${
+              className={`inline-flex w-fit items-center rounded-lg px-2 py-1 text-[11px] leading-none font-medium sm:w-auto sm:rounded-xl sm:px-3 sm:py-1.5 sm:text-xs ${
                 inStock
                   ? "bg-green-50 text-green-700"
                   : "bg-red-50 text-red-600"
@@ -94,10 +94,10 @@ export default function ProductCard({
             </span>
           </div>
 
-          <div className="flex flex-col gap-2 border-y border-slate-100 py-4 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between sm:py-3 sm:text-xs">
-            <div className="truncate text-slate-700">{sku || "-"}</div>
+          <div className="flex items-center justify-between gap-2 border-y border-slate-100 py-2 text-[11px] text-slate-600 sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:py-3 sm:text-xs">
+            <div className="min-w-0 truncate text-slate-700">{sku || "-"}</div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 text-[11px] sm:text-xs">
               <span className="font-medium text-slate-700">Stock:</span>
               <span
                 className={`font-semibold ${
@@ -111,21 +111,21 @@ export default function ProductCard({
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 py-3 sm:flex-row sm:gap-1 sm:py-2">
+      <div className="flex items-center gap-1.5 pt-2 sm:flex-row sm:gap-1 sm:py-2">
         <Button
           onClick={handlePushToShopify}
-          className="flex-1 rounded-xl bg-amber-500 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 sm:rounded-lg sm:py-2 sm:text-xs"
+          className="min-h-0 flex-1 rounded-lg bg-amber-500 px-2 py-2 text-[11px] leading-none font-semibold text-white hover:bg-amber-600 sm:rounded-lg sm:py-2 sm:text-xs"
         >
           Push to Shopify
         </Button>
 
         <Button
           onClick={handleBulkOrder}
-          className="flex flex-1 cursor-pointer items-center justify-center rounded-xl border border-amber-900 bg-white py-2.5 text-sm font-semibold text-amber-900 hover:bg-amber-900/10 sm:rounded-lg sm:py-2 sm:text-xs"
+          className="min-h-0 flex flex-1 cursor-pointer items-center justify-center rounded-lg border border-amber-900 bg-white px-2 py-2 text-[11px] leading-none font-semibold text-amber-900 hover:bg-amber-900/10 sm:rounded-lg sm:py-2 sm:text-xs"
         >
           Bulk Order
         </Button>
       </div>
-    </div>
+    </div> 
   );
 }
