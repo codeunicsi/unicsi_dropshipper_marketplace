@@ -56,8 +56,7 @@ type LinkStep = {
   tooltipContent?: string;
 };
 
-const shopifyStoreAdminUrl =
-  "https://admin.shopify.com/store/qwqs68-0w?ui_locales=en-IN";
+const shopifyStoreAdminUrl = "https://admin.shopify.com";
 const appUrl = "https://unicsi.com";
 const redirectUrl =
   "https://apis.unicsi.com/api/v1/dropshipper/shopify/callback";

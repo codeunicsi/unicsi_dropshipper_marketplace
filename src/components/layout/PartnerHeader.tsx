@@ -27,27 +27,25 @@ export function PartnerHeader() {
   return (
     <header className="h-16 bg-background border-b border-border sticky top-0 z-40">
       <div className="h-full flex items-center justify-between px-6 gap-4">
-        {/* Search Bar */}
-        <div className="flex-1 max-w-md">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        {/* Search Bar + Button */}
+        <div className="flex-1 max-w-2xl flex items-center gap-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
-              placeholder="Find the product you're looking for"
-              className="pl-10 bg-input border-border placeholder:text-muted-foreground"
+              placeholder="Find the product you're looking for . . ."
+              className="pl-10 h-10 bg-input border-border placeholder:text-muted-foreground"
             />
           </div>
-        </div>
 
-        {/* Right Section */}
-        <div className="flex items-center gap-4">
-          {/* Search Button */}
           <Button
             variant="default"
-            className="my-button hover:bg-primary/90 text-primary-foreground rounded-full px-6"
+            className="my-button h-9.5 hover:bg-primary/90 text-primary-foreground rounded-full px-6"
           >
             Search
           </Button>
-
+        </div>
+        {/* Right Section */}
+        <div className="flex items-center gap-4">
           {/* Help Icon */}
           <Button variant="ghost" size="icon" className="rounded-full">
             <HelpCircle className="w-5 h-5 text-foreground" />
