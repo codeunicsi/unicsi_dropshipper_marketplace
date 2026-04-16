@@ -465,39 +465,37 @@ export default function OrdersPage() {
 
         <section className="mt-6 rounded-2xl  bg-[#f7f7f5] p-5">
           <div className="border-b border-[#dbdbd6] pb-3">
-            {isDisconnectedSkeleton ? (
-              <div className="inline-flex overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
-                {Array.from({ length: 3 }).map((_, index) => (
-                  <div
-                    key={`tab-skeleton-${index}`}
-                    className="border-r border-[#cbcbc7] px-6 py-3 last:border-r-0"
-                  >
-                    <div className="h-5 w-20 rounded bg-[#e8e8e3] animate-pulse" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="inline-flex overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.value}
-                    type="button"
-                    onClick={() => setActiveTab(tab.value)}
-                    className={`border-r border-[#cbcbc7] px-6 py-3 text-sm font-semibold text-[#202020] last:border-r-0 ${
-                      activeTab === tab.value ? "bg-[#f2f2ed]" : "bg-white"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {isDisconnectedSkeleton ? (
+                <div className="inline-flex overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <div
+                      key={`tab-skeleton-${index}`}
+                      className="border-r border-[#cbcbc7] px-6 py-3 last:border-r-0"
+                    >
+                      <div className="h-5 w-20 rounded bg-[#e8e8e3] animate-pulse" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="inline-flex overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
+                  {tabs.map((tab) => (
+                    <button
+                      key={tab.value}
+                      type="button"
+                      onClick={() => setActiveTab(tab.value)}
+                      className={`border-r border-[#cbcbc7] px-6 py-3 text-sm font-semibold text-[#202020] last:border-r-0 ${
+                        activeTab === tab.value ? "bg-[#f2f2ed]" : "bg-white"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-          {activeTab === "orders" && (
-            <div className="pt-4">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                {isDisconnectedSkeleton ? (
+              {activeTab === "orders" &&
+                (isDisconnectedSkeleton ? (
                   <div className="h-12 w-full max-w-[430px] rounded-xl border border-[#d8d8d3] bg-white px-4 flex items-center">
                     <div className="h-5 w-56 rounded bg-[#ecece7] animate-pulse" />
                   </div>
@@ -509,8 +507,13 @@ export default function OrdersPage() {
                     placeholder="Search by order # or customer..."
                     className="h-12 w-full max-w-[430px] rounded-xl border border-[#d8d8d3] bg-white px-4 text-sm text-[#313131] outline-none placeholder:text-[#8a8a84]"
                   />
-                )}
+                ))}
+            </div>
+          </div>
 
+          {activeTab === "orders" && (
+            <div className="pt-4">
+              <div className="mb-4">
                 {isDisconnectedSkeleton ? (
                   <div className="inline-flex h-10 min-w-72 items-center gap-2 rounded-xl border border-[#d8d8d3] bg-white px-4">
                     {Array.from({ length: 3 }).map((_, index) => (
