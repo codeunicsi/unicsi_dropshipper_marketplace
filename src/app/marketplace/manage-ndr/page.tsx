@@ -125,6 +125,7 @@ export default function ManageNdr() {
       </div>
 
       {/* Tabs */}
+      
       <ActiveTabs tabs={NDR_TABS} active={activeTab} onChange={setActiveTab} />
 
       {/* Table */}
