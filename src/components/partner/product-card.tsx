@@ -1,6 +1,6 @@
 "use client";
 
-import type { MouseEvent } from "react";
+import { type MouseEvent, useEffect, useState } from "react";
 import { Heart, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
@@ -33,6 +33,13 @@ export default function ProductCard({
   sku,
 }: ProductCardProps) {
   const router = useRouter();
+  const fallbackImage =
+    "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop";
+  const [imageSrc, setImageSrc] = useState(image);
+
+  useEffect(() => {
+    setImageSrc(image);
+  }, [image]);
 
   // ✅ Image click → product detail
   const handleRedirect = () => {
@@ -59,15 +66,18 @@ export default function ProductCard({
           onClick={handleRedirect}
           className="relative w-full h-36 mb-3 bg-slate-100 rounded-md overflow-hidden cursor-pointer"
         >
-          {image ? (
-            <img
-              src={image}
+          {imageSrc ? (
+            <Image
+              src={imageSrc}
               alt={name}
-              className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src =
-                  "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop";
-                (e.target as HTMLImageElement).onerror = null;
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+              unoptimized
+              className="!absolute inset-0 !h-full !w-full object-cover hover:scale-105 transition-transform duration-200"
+              onError={() => {
+                if (imageSrc !== fallbackImage) {
+                  setImageSrc(fallbackImage);
+                }
               }}
             />
           ) : (
