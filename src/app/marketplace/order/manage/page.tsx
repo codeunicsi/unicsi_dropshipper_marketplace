@@ -1,14 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  ArrowUpRight,
-  Check,
-  ChevronDown,
-  Dot,
-  RefreshCcw,
-  Store,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowUpRight, Check, RefreshCcw, Store } from "lucide-react";
 import { useSyncOrders } from "@/hooks/useSyncOrders";
 import { apiClient } from "@/lib/api-client";
 type PanelTab = "orders" | "webhooks" | "setup";
@@ -275,8 +268,6 @@ export default function OrdersPage() {
   const [connectedStoreUrl, setConnectedStoreUrl] = useState("");
   const [selectedStatus, setSelectedStatus] =
     useState<(typeof orderStatusOptions)[number]>("All statuses");
-  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
-  const statusDropdownRef = useRef<HTMLDivElement | null>(null);
   const [webhookRows, setWebhookRows] = useState<WebhookRow[]>(initialWebhooks);
   const isDisconnectedSkeleton = !isStoreConnected && !isStoreCheckLoading;
 
@@ -327,21 +318,16 @@ export default function OrdersPage() {
     };
   }, [orderRows]);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        statusDropdownRef.current &&
-        !statusDropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsStatusDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
+  const statusCounts = useMemo(() => {
+    return {
+      "All statuses": orderRows.length,
+      Pending: orderRows.filter((row) => row.status === "Pending").length,
+      Confirmed: orderRows.filter((row) => row.status === "Confirmed").length,
+      Paid: orderRows.filter((row) => row.status === "Paid").length,
+      Fulfilled: orderRows.filter((row) => row.status === "Fulfilled").length,
+      Cancelled: orderRows.filter((row) => row.status === "Cancelled").length,
+    } as Record<(typeof orderStatusOptions)[number], number>;
+  }, [orderRows]);
 
   useEffect(() => {
     const checkStoreConnection = async () => {
@@ -525,54 +511,47 @@ export default function OrdersPage() {
                   />
                 )}
 
-                <div className="relative" ref={statusDropdownRef}>
-                  {isDisconnectedSkeleton ? (
-                    <div className="inline-flex h-10 min-w-40 items-center justify-between gap-2 rounded-xl border border-[#d8d8d3] bg-white px-4">
-                      <div className="h-5 w-20 rounded bg-[#ecece7] animate-pulse" />
-                      <div className="h-4 w-4 rounded bg-[#ecece7] animate-pulse" />
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setIsStatusDropdownOpen(
-                          (previousState) => !previousState,
-                        )
-                      }
-                      className="inline-flex h-10 min-w-40 items-center justify-between gap-2 rounded-xl border border-[#d8d8d3] bg-white px-4 text-sm text-[#2f2f2f]"
-                    >
-                      {selectedStatus}
-                      <ChevronDown
-                        className={`h-4 w-4 transition-transform ${
-                          isStatusDropdownOpen ? "rotate-180" : ""
-                        }`}
+                {isDisconnectedSkeleton ? (
+                  <div className="inline-flex h-10 min-w-72 items-center gap-2 rounded-xl border border-[#d8d8d3] bg-white px-4">
+                    {Array.from({ length: 3 }).map((_, index) => (
+                      <div
+                        key={`status-tab-skeleton-${index}`}
+                        className="h-6 w-20 rounded-full bg-[#ecece7] animate-pulse"
                       />
-                    </button>
-                  )}
-
-                  {isStatusDropdownOpen && (
-                    <div className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-2xl border border-[#d8d8d3] bg-white shadow-sm">
+                    ))}
+                  </div>
+                ) : (
+                  <div className="w-full overflow-x-auto md:w-auto">
+                    <div className="inline-flex min-w-max items-center gap-2 rounded-xl border border-[#d8d8d3] bg-white p-1">
                       {orderStatusOptions.map((status) => {
                         const isSelected = selectedStatus === status;
                         return (
                           <button
                             key={status}
                             type="button"
-                            onClick={() => {
-                              setSelectedStatus(status);
-                              setIsStatusDropdownOpen(false);
-                            }}
-                            className={`flex w-full items-center px-4 py-2.5 text-left text-sm text-[#2f2f2f] hover:bg-[#f5f5f3] ${
-                              isSelected ? "" : ""
+                            onClick={() => setSelectedStatus(status)}
+                            className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                              isSelected
+                                ? "bg-[#f2f2ed] text-[#202020]"
+                                : "text-[#555] hover:bg-[#f7f7f5]"
                             }`}
                           >
                             <span>{status}</span>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[11px] leading-none ${
+                                isSelected
+                                  ? "bg-white text-[#2f2f2f]"
+                                  : "bg-[#efefe9] text-[#666]"
+                              }`}
+                            >
+                              {statusCounts[status]}
+                            </span>
                           </button>
                         );
                       })}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
 
               <div className="overflow-hidden rounded-xl border border-[#dcdcd7] bg-white">
