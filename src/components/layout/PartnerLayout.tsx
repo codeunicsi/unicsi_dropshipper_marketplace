@@ -34,7 +34,7 @@ export function PartnerLayout({ children }: { children: React.ReactNode }) {
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto">
-          <div className="p-6 pb-20 lg:pb-6">{children}</div>{" "}
+          <div className="p-2 sm:p-6 md:pb-20 lg:pb-6">{children}</div>{" "}
           {/* 👈 added pb-20 lg:pb-6 */}
         </main>
       </div>
