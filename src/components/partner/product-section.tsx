@@ -110,7 +110,7 @@ function ProductsBlock({
   })();
 
   return (
-    <div className={`${bgColor} rounded-2xl border border-slate-200 p-8 mb-8`}>
+    <div className={`${bgColor} rounded-2xl border border-slate-200 md:p-8 md:mb-8`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-slate-900">{title}</h2>
@@ -235,7 +235,7 @@ export default function ProductsSection({
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4">
+    <div className="w-full max-w-6xl md:mx-auto md:px-4">
       {/* Category Section */}
       {categoryId && (
         <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-8">

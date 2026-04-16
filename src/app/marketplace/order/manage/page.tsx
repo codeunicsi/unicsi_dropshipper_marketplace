@@ -249,14 +249,36 @@ function SummaryCard({
   valueClassName?: string;
 }) {
   return (
-    <div className="rounded-xl bg-[#f1f1ed] p-5">
-      <p className="text-base font-medium text-[#444]">{label}</p>
+    <div className="rounded-xl bg-[#f1f1ed] p-4 sm:p-5">
+      <p className="text-sm font-medium text-[#444] sm:text-base">{label}</p>
       <p
-        className={`mt-2 text-4xl leading-none font-semibold ${valueClassName}`}
+        className={`mt-2 text-3xl leading-none font-semibold sm:text-4xl ${valueClassName}`}
       >
         {value}
       </p>
     </div>
+  );
+}
+
+function OrderStatusBadge({ status }: { status: OrderRow["status"] }) {
+  return (
+    <span
+      className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+        status === "Confirmed"
+          ? "bg-[#e2efd6] text-[#3f7c25]"
+          : "bg-[#efe5d3] text-[#94621e]"
+      }`}
+    >
+      {status}
+    </span>
+  );
+}
+
+function PaymentBadge({ payment }: { payment: string }) {
+  return (
+    <span className="inline-flex items-center rounded-full bg-[#efe5d3] px-3 py-1 text-xs font-semibold text-[#9b641e]">
+      {payment}
+    </span>
   );
 }
 
@@ -392,7 +414,7 @@ export default function OrdersPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:p-6">
-      <section className="rounded-[6px] p-4 sm:p-6">
+      <section className="rounded-[6px] sm:p-6">
         <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 className="text-2xl leading-tight font-semibold text-[#1f1f1f]">
@@ -475,10 +497,40 @@ export default function OrdersPage() {
           )}
         </div>
 
-        <section className="mt-6 rounded-2xl border border-[#d8d8d3] bg-[#f7f7f5] p-5">
+        <section className="mt-6 rounded-2xl border border-[#d8d8d3] bg-[#f7f7f5] p-4 sm:p-5">
           <div className="border-b border-[#dbdbd6] pb-3">
             {isDisconnectedSkeleton ? (
-              <div className="-mx-1 overflow-x-auto pb-1">
+              <div className="grid grid-cols-1 gap-2 sm:hidden">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div
+                    key={`tab-skeleton-mobile-${index}`}
+                    className="rounded-2xl border border-[#cbcbc7] bg-white px-6 py-3"
+                  >
+                    <div className="h-5 w-20 rounded bg-[#e8e8e3] animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-2 sm:hidden">
+                {tabs.map((tab) => (
+                  <button
+                    key={`${tab.value}-mobile`}
+                    type="button"
+                    onClick={() => setActiveTab(tab.value)}
+                    className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold text-[#202020] ${
+                      activeTab === tab.value
+                        ? "border-[#cbcbc7] bg-[#f2f2ed]"
+                        : "border-[#cbcbc7] bg-white"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {isDisconnectedSkeleton ? (
+              <div className="hidden -mx-1 overflow-x-auto pb-1 sm:block">
                 <div className="inline-flex min-w-max overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
                   {Array.from({ length: 3 }).map((_, index) => (
                     <div
@@ -491,7 +543,7 @@ export default function OrdersPage() {
                 </div>
               </div>
             ) : (
-              <div className="-mx-1 overflow-x-auto pb-1">
+              <div className="hidden -mx-1 overflow-x-auto pb-1 sm:block">
                 <div className="inline-flex min-w-max overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
                   {tabs.map((tab) => (
                     <button
@@ -577,8 +629,112 @@ export default function OrdersPage() {
                 </div>
               </div>
 
+              <div className="space-y-3 md:hidden">
+                {isStoreCheckLoading &&
+                  Array.from({ length: 3 }).map((_, index) => (
+                    <div
+                      key={`mobile-order-skeleton-${index}`}
+                      className="rounded-xl border border-[#dcdcd7] bg-white p-4 animate-pulse"
+                    >
+                      <div className="h-4 w-24 rounded bg-[#ececec]" />
+                      <div className="mt-2 h-4 w-32 rounded bg-[#ececec]" />
+                      <div className="mt-4 h-16 rounded bg-[#ececec]" />
+                    </div>
+                  ))}
+
+                {!isStoreCheckLoading && !isStoreConnected && (
+                  <div className="rounded-xl border border-[#dcdcd7] bg-white px-4 py-10 text-center text-base font-semibold text-black/90">
+                    {storeConnectionMessage || "Shopify store not connected"}
+                  </div>
+                )}
+
+                {!isStoreCheckLoading &&
+                  isStoreConnected &&
+                  filteredOrders.map((order) => (
+                    <div
+                      key={`${order.id}-mobile`}
+                      className="rounded-xl border border-[#dcdcd7] bg-white p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-[#222]">
+                            {order.id}
+                          </p>
+                          <p className="text-xs text-[#4f4f4a]">{order.date}</p>
+                        </div>
+                        <OrderStatusBadge status={order.status} />
+                      </div>
+
+                      <div className="mt-4 space-y-3 text-sm">
+                        <div>
+                          <p className="font-medium text-[#222]">
+                            {order.customer}
+                          </p>
+                          <p className="text-xs text-[#4f4f4a]">
+                            {order.contact}
+                          </p>
+                        </div>
+
+                        <div className="rounded-lg bg-[#f7f7f5] p-3">
+                          <p className="text-xs font-medium uppercase tracking-wide text-[#6b6b66]">
+                            Product
+                          </p>
+                          <p className="mt-1 text-sm text-[#2c2c2c]">
+                            {order.product}
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="rounded-lg border border-[#ecece7] p-3">
+                            <p className="text-xs font-medium uppercase tracking-wide text-[#6b6b66]">
+                              Amount
+                            </p>
+                            <p className="mt-1 text-sm font-semibold text-[#1f1f1f]">
+                              {order.amount}
+                            </p>
+                            <p className="text-xs text-[#4f4f4a]">
+                              {order.shipping}
+                            </p>
+                          </div>
+                          <div className="rounded-lg border border-[#ecece7] p-3">
+                            <p className="text-xs font-medium uppercase tracking-wide text-[#6b6b66]">
+                              Payment
+                            </p>
+                            <div className="mt-2">
+                              <PaymentBadge payment={order.payment} />
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleMarkConfirmed(order.id)}
+                          disabled={order.status !== "Pending"}
+                          className={`w-full rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${
+                            order.status === "Pending"
+                              ? "bg-linear-to-r from-[#0097b2] to-[#7ed957] text-white hover:bg-[#f9efd9]"
+                              : "cursor-not-allowed border-[#d8d8d3] bg-[#f4f4f1] text-[#7f7f78]"
+                          }`}
+                        >
+                          {order.status === "Pending"
+                            ? "Mark Confirmed"
+                            : "Confirmed"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+
+              {!isStoreCheckLoading &&
+                isStoreConnected &&
+                filteredOrders.length === 0 && (
+                  <div className="rounded-xl border border-[#dcdcd7] bg-white px-4 py-10 text-center text-sm text-[#5a5a55] md:hidden">
+                    No orders match your search or status filter.
+                  </div>
+                )}
+
               <div className="overflow-x-auto rounded-xl border border-[#dcdcd7] bg-white">
-                <table className="min-w-[780px] w-full border-collapse">
+                <table className="w-full min-w-[780px] border-collapse">
                   <thead className="border-b border-[#dfdfda]">
                     <tr className="text-left text-sm font-medium text-[#474742]">
                       {isDisconnectedSkeleton ? (
@@ -683,20 +839,10 @@ export default function OrdersPage() {
                             </p>
                           </td>
                           <td className="px-4 py-4 align-top">
-                            <span className="inline-flex items-center rounded-full bg-[#efe5d3] px-3 py-1 text-xs font-semibold text-[#9b641e]">
-                              {order.payment}
-                            </span>
+                            <PaymentBadge payment={order.payment} />
                           </td>
                           <td className="px-4 py-4 align-top">
-                            <span
-                              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                                order.status === "Confirmed"
-                                  ? "bg-[#e2efd6] text-[#3f7c25]"
-                                  : "bg-[#efe5d3] text-[#94621e]"
-                              }`}
-                            >
-                              {order.status}
-                            </span>
+                            <OrderStatusBadge status={order.status} />
                           </td>
                           <td className="px-4 py-4 align-top">
                             <button
@@ -737,21 +883,23 @@ export default function OrdersPage() {
                 </button>
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-[#ddddda] bg-white">
-                <div className="min-w-[640px]">
+              <div className="rounded-xl border border-[#ddddda] bg-white">
+                <div>
                   {webhookRows.map((row) => (
                     <div
                       key={row.topic}
-                      className="flex items-center justify-between gap-4 border-b border-[#e7e7e2] px-4 py-3 last:border-b-0"
+                      className="flex flex-col gap-4 border-b border-[#e7e7e2] px-4 py-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:py-3"
                     >
                       <div className="min-w-0 flex-1">
                         <p className="text-sm leading-tight font-semibold text-[#1f1f1f]">
                           {row.topic}
                         </p>
-                        <p className="text-xs text-[#4e4e49]">{row.endpoint}</p>
+                        <p className="mt-1 break-all text-xs text-[#4e4e49]">
+                          {row.endpoint}
+                        </p>
                       </div>
 
-                      <div className="flex shrink-0 items-center gap-3">
+                      <div className="flex items-center justify-between gap-3 sm:shrink-0 sm:justify-end">
                         <span
                           className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap ${
                             row.registered
@@ -802,8 +950,8 @@ export default function OrdersPage() {
           )}
 
           {activeTab === "setup" && (
-            <div className="overflow-x-auto pt-4">
-              <div className="min-w-[640px] space-y-3">
+            <div className="pt-4">
+              <div className="space-y-3">
                 {setupSteps.map((step) => (
                   <div
                     key={step.id}
@@ -827,13 +975,13 @@ export default function OrdersPage() {
                         {step.cta && (
                           <button
                             type="button"
-                            className="mt-3 inline-flex h-10 items-center gap-1 rounded-xl border border-[#d1d1cc] bg-white px-4 text-xs font-semibold text-[#262626]"
+                            className="mt-3 inline-flex h-10 w-full items-center justify-center gap-1 rounded-xl border border-[#d1d1cc] bg-white px-4 text-xs font-semibold text-[#262626] sm:w-auto"
                           >
                             {step.cta}
                             <ArrowUpRight className="h-4 w-4" />
                           </button>
                         )}
-                      </div>
+                      </div> 
                     </div>
                   </div>
                 ))}
