@@ -3,6 +3,7 @@
 import React from "react";
 import { PartnerSidebar } from "./PartnerSidebar";
 import { PartnerHeader } from "./PartnerHeader";
+import { BottomNav } from "./BottomNav"; // 👈 import BottomNav
 import { useUser } from "@/hooks/useAuth";
 import { UnicsiLoader } from "../partner/unicsi-loader";
 
@@ -19,7 +20,6 @@ export function PartnerLayout({ children }: { children: React.ReactNode }) {
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
       />
-
       {/* Overlay (mobile only) */}
       {isMobileOpen && (
         <div
@@ -27,7 +27,6 @@ export function PartnerLayout({ children }: { children: React.ReactNode }) {
           onClick={() => setIsMobileOpen(false)}
         />
       )}
-
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
@@ -35,9 +34,13 @@ export function PartnerLayout({ children }: { children: React.ReactNode }) {
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto">
-          <div className="p-6">{children}</div>
+          <div className="p-6 pb-20 lg:pb-6">{children}</div>{" "}
+          {/* 👈 added pb-20 lg:pb-6 */}
         </main>
       </div>
+      {/* Bottom Nav (mobile only) */}
+      <BottomNav onMenuClick={() => setIsMobileOpen(true)} />{" "}
+      {/* 👈 add this */}
     </div>
   );
 }

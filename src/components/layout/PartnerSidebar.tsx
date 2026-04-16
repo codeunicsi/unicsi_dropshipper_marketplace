@@ -128,7 +128,7 @@ const menuItems = [
     icon: HelpCircle,
     label: "FAQs",
     href: "/marketplace/faqs",
-    openInNewTab: true,
+    openInNewTab: false,
   },
   // { icon: BarChart3, label: 'Value Added Services', href: '/marketplace/value-added-services' },
   // { icon: HelpCircle, label: 'Clout Training', href: '/marketplace/clout-training' },
@@ -222,7 +222,12 @@ export function PartnerSidebar({
             <p className="font-bold text-sidebar-foreground">UNICSI</p>
           </div>
           <div className="lg:hidden shadow-2xl bg-gray-200">
-            <button className="text-green-600" onClick={() => setIsMobileOpen(false)}>✕</button>
+            <button
+              className="text-green-600"
+              onClick={() => setIsMobileOpen(false)}
+            >
+              ✕
+            </button>
           </div>
         </div>
       </div>

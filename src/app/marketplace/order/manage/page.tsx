@@ -5,7 +5,6 @@ import {
   ArrowUpRight,
   Check,
   ChevronDown,
-  Dot,
   RefreshCcw,
 } from "lucide-react";
 import { useSyncOrders } from "@/hooks/useSyncOrders";
@@ -392,9 +391,9 @@ export default function OrdersPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-7xl p-6">
-      <section className="rounded-[6px] p-6">
-        <header className="flex flex-wrap items-start justify-between gap-4">
+    <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:p-6">
+      <section className="rounded-[6px] p-4 sm:p-6">
+        <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 className="text-2xl leading-tight font-semibold text-[#1f1f1f]">
               Shopify orders
@@ -404,7 +403,7 @@ export default function OrdersPage() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
             <div className="inline-flex items-center gap-1 rounded-full bg-[#deeed1] px-3 py-1 text-sm font-medium text-[#3f7c25]">
               <div className="h-3 w-3 rounded-full bg-green-600"></div>
               Webhook live
@@ -416,7 +415,7 @@ export default function OrdersPage() {
               disabled={
                 syncOrders.isPending || !isStoreConnected || isStoreCheckLoading
               }
-              className="inline-flex items-center gap-2 rounded-2xl border border-[#d5d5d0] bg-white px-5 py-3 text-sm font-medium text-[#222]"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[#d5d5d0] bg-white px-5 py-3 text-sm font-medium text-[#222] sm:w-auto"
             >
               <RefreshCcw
                 className={`h-5 w-5 ${syncOrders.isPending ? "animate-spin" : ""}`}
@@ -426,7 +425,7 @@ export default function OrdersPage() {
 
             <button
               type="button"
-              className="rounded-2xl border border-[#d5d5d0] bg-white px-5 py-3 text-sm font-semibold text-[#222]"
+              className="w-full rounded-2xl border border-[#d5d5d0] bg-white px-5 py-3 text-sm font-semibold text-[#222] sm:w-auto"
             >
               Manage webhooks
             </button>
@@ -479,37 +478,41 @@ export default function OrdersPage() {
         <section className="mt-6 rounded-2xl border border-[#d8d8d3] bg-[#f7f7f5] p-5">
           <div className="border-b border-[#dbdbd6] pb-3">
             {isDisconnectedSkeleton ? (
-              <div className="inline-flex overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
-                {Array.from({ length: 3 }).map((_, index) => (
-                  <div
-                    key={`tab-skeleton-${index}`}
-                    className="border-r border-[#cbcbc7] px-6 py-3 last:border-r-0"
-                  >
-                    <div className="h-5 w-20 rounded bg-[#e8e8e3] animate-pulse" />
-                  </div>
-                ))}
+              <div className="-mx-1 overflow-x-auto pb-1">
+                <div className="inline-flex min-w-max overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <div
+                      key={`tab-skeleton-${index}`}
+                      className="border-r border-[#cbcbc7] px-6 py-3 last:border-r-0"
+                    >
+                      <div className="h-5 w-20 rounded bg-[#e8e8e3] animate-pulse" />
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : (
-              <div className="inline-flex overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.value}
-                    type="button"
-                    onClick={() => setActiveTab(tab.value)}
-                    className={`border-r border-[#cbcbc7] px-6 py-3 text-sm font-semibold text-[#202020] last:border-r-0 ${
-                      activeTab === tab.value ? "bg-[#f2f2ed]" : "bg-white"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+              <div className="-mx-1 overflow-x-auto pb-1">
+                <div className="inline-flex min-w-max overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
+                  {tabs.map((tab) => (
+                    <button
+                      key={tab.value}
+                      type="button"
+                      onClick={() => setActiveTab(tab.value)}
+                      className={`border-r border-[#cbcbc7] px-6 py-3 text-sm font-semibold whitespace-nowrap text-[#202020] last:border-r-0 ${
+                        activeTab === tab.value ? "bg-[#f2f2ed]" : "bg-white"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
 
           {activeTab === "orders" && (
             <div className="pt-4">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 {isDisconnectedSkeleton ? (
                   <div className="h-12 w-full max-w-[430px] rounded-xl border border-[#d8d8d3] bg-white px-4 flex items-center">
                     <div className="h-5 w-56 rounded bg-[#ecece7] animate-pulse" />
@@ -524,9 +527,9 @@ export default function OrdersPage() {
                   />
                 )}
 
-                <div className="relative" ref={statusDropdownRef}>
+                <div className="relative w-full sm:w-auto" ref={statusDropdownRef}>
                   {isDisconnectedSkeleton ? (
-                    <div className="inline-flex h-10 min-w-40 items-center justify-between gap-2 rounded-xl border border-[#d8d8d3] bg-white px-4">
+                    <div className="inline-flex h-10 w-full min-w-40 items-center justify-between gap-2 rounded-xl border border-[#d8d8d3] bg-white px-4 sm:w-auto">
                       <div className="h-5 w-20 rounded bg-[#ecece7] animate-pulse" />
                       <div className="h-4 w-4 rounded bg-[#ecece7] animate-pulse" />
                     </div>
@@ -538,7 +541,7 @@ export default function OrdersPage() {
                           (previousState) => !previousState,
                         )
                       }
-                      className="inline-flex h-10 min-w-40 items-center justify-between gap-2 rounded-xl border border-[#d8d8d3] bg-white px-4 text-sm text-[#2f2f2f]"
+                      className="inline-flex h-10 w-full min-w-40 items-center justify-between gap-2 rounded-xl border border-[#d8d8d3] bg-white px-4 text-sm text-[#2f2f2f] sm:w-auto"
                     >
                       {selectedStatus}
                       <ChevronDown
@@ -550,7 +553,7 @@ export default function OrdersPage() {
                   )}
 
                   {isStatusDropdownOpen && (
-                    <div className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-2xl border border-[#d8d8d3] bg-white shadow-sm">
+                    <div className="absolute right-0 z-20 mt-2 w-full overflow-hidden rounded-2xl border border-[#d8d8d3] bg-white shadow-sm sm:w-44">
                       {orderStatusOptions.map((status) => {
                         const isSelected = selectedStatus === status;
                         return (
@@ -574,8 +577,8 @@ export default function OrdersPage() {
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-xl border border-[#dcdcd7] bg-white">
-                <table className="w-full border-collapse">
+              <div className="overflow-x-auto rounded-xl border border-[#dcdcd7] bg-white">
+                <table className="min-w-[780px] w-full border-collapse">
                   <thead className="border-b border-[#dfdfda]">
                     <tr className="text-left text-sm font-medium text-[#474742]">
                       {isDisconnectedSkeleton ? (
@@ -721,116 +724,120 @@ export default function OrdersPage() {
 
           {activeTab === "webhooks" && (
             <div className="pt-4">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <p className="text-sm font-medium text-[#30302c]">
                   Auto-sync triggers registered on your Shopify store
                 </p>
                 <button
                   type="button"
-                  className="inline-flex h-10 items-center gap-1 rounded-xl border border-[#d7d7d2] bg-white px-4 text-sm font-semibold text-[#222]"
+                  className="inline-flex h-10 w-full items-center justify-center gap-1 rounded-xl border border-[#d7d7d2] bg-white px-4 text-sm font-semibold text-[#222] sm:w-auto"
                 >
                   + Add topic
                   <ArrowUpRight className="h-4 w-4" />
                 </button>
               </div>
 
-              <div className="rounded-xl border border-[#ddddda] bg-white">
-                {webhookRows.map((row) => (
-                  <div
-                    key={row.topic}
-                    className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e7e7e2] px-4 py-3 last:border-b-0"
-                  >
-                    <div>
-                      <p className="text-sm leading-tight font-semibold text-[#1f1f1f]">
-                        {row.topic}
-                      </p>
-                      <p className="text-xs text-[#4e4e49]">{row.endpoint}</p>
-                    </div>
+              <div className="overflow-x-auto rounded-xl border border-[#ddddda] bg-white">
+                <div className="min-w-[640px]">
+                  {webhookRows.map((row) => (
+                    <div
+                      key={row.topic}
+                      className="flex items-center justify-between gap-4 border-b border-[#e7e7e2] px-4 py-3 last:border-b-0"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm leading-tight font-semibold text-[#1f1f1f]">
+                          {row.topic}
+                        </p>
+                        <p className="text-xs text-[#4e4e49]">{row.endpoint}</p>
+                      </div>
 
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                          row.registered
-                            ? "bg-[#e2efd6] text-[#3f7c25]"
-                            : "bg-[#f0efeb] text-[#75756f]"
-                        }`}
-                      >
-                        <div
-                          className={`w-2 h-2 rounded-full m-1 ${
-                            row.registered ? "bg-[#3f7c25]" : "bg-[#75756f]"
-                          }`}
-                        ></div>
-                        {row.registered ? "Registered" : "Not registered"}
-                      </span>
-
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={row.registered}
-                        aria-label={`Toggle ${row.topic}`}
-                        onClick={() => {
-                          setWebhookRows((prev) =>
-                            prev.map((item) =>
-                              item.topic === row.topic
-                                ? { ...item, registered: !item.registered }
-                                : item,
-                            ),
-                          );
-                        }}
-                        className={`relative h-7 w-12 rounded-full border transition-colors ${
-                          row.registered
-                            ? "border-[#9fcb86] bg-[#dceecd]"
-                            : "border-[#c9c9c4] bg-[#f8f8f6]"
-                        }`}
-                      >
+                      <div className="flex shrink-0 items-center gap-3">
                         <span
-                          className={`absolute top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-white shadow-sm transition-all ${
-                            row.registered ? "left-6" : "left-1"
+                          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap ${
+                            row.registered
+                              ? "bg-[#e2efd6] text-[#3f7c25]"
+                              : "bg-[#f0efeb] text-[#75756f]"
                           }`}
-                        />
-                      </button>
+                        >
+                          <div
+                            className={`m-1 h-2 w-2 rounded-full ${
+                              row.registered ? "bg-[#3f7c25]" : "bg-[#75756f]"
+                            }`}
+                          ></div>
+                          {row.registered ? "Registered" : "Not registered"}
+                        </span>
+
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={row.registered}
+                          aria-label={`Toggle ${row.topic}`}
+                          onClick={() => {
+                            setWebhookRows((prev) =>
+                              prev.map((item) =>
+                                item.topic === row.topic
+                                  ? { ...item, registered: !item.registered }
+                                  : item,
+                              ),
+                            );
+                          }}
+                          className={`relative h-7 w-12 rounded-full border transition-colors ${
+                            row.registered
+                              ? "border-[#9fcb86] bg-[#dceecd]"
+                              : "border-[#c9c9c4] bg-[#f8f8f6]"
+                          }`}
+                        >
+                          <span
+                            className={`absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-white shadow-sm transition-all ${
+                              row.registered ? "left-6" : "left-1"
+                            }`}
+                          />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           )}
 
           {activeTab === "setup" && (
-            <div className="space-y-3 pt-4">
-              {setupSteps.map((step) => (
-                <div
-                  key={step.id}
-                  className="rounded-xl border border-[#e2e2dc] bg-[#f2f2ee] p-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1 flex h-7 w-7 items-center justify-center rounded-full bg-[#e2efd6] text-sm font-bold text-[#3f7c25]">
-                      {step.id === "5" ? (
-                        step.id
-                      ) : (
-                        <Check className="h-4 w-4" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm leading-tight font-semibold text-[#222]">
-                        {step.title}
-                      </p>
-                      <p className="mt-1 text-sm leading-tight text-[#444]">
-                        {step.description}
-                      </p>
-                      {step.cta && (
-                        <button
-                          type="button"
-                          className="mt-3 inline-flex h-10 items-center gap-1 rounded-xl border border-[#d1d1cc] bg-white px-4 text-xs font-semibold text-[#262626]"
-                        >
-                          {step.cta}
-                          <ArrowUpRight className="h-4 w-4" />
-                        </button>
-                      )}
+            <div className="overflow-x-auto pt-4">
+              <div className="min-w-[640px] space-y-3">
+                {setupSteps.map((step) => (
+                  <div
+                    key={step.id}
+                    className="rounded-xl border border-[#e2e2dc] bg-[#f2f2ee] p-4"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#e2efd6] text-sm font-bold text-[#3f7c25]">
+                        {step.id === "5" ? (
+                          step.id
+                        ) : (
+                          <Check className="h-4 w-4" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm leading-tight font-semibold text-[#222]">
+                          {step.title}
+                        </p>
+                        <p className="mt-1 text-sm leading-tight text-[#444]">
+                          {step.description}
+                        </p>
+                        {step.cta && (
+                          <button
+                            type="button"
+                            className="mt-3 inline-flex h-10 items-center gap-1 rounded-xl border border-[#d1d1cc] bg-white px-4 text-xs font-semibold text-[#262626]"
+                          >
+                            {step.cta}
+                            <ArrowUpRight className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </section>
