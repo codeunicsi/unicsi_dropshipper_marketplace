@@ -2,6 +2,7 @@
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
 import { apiClient } from "@/hooks/marketplace/useShopifySecret";
 import {
+  ArrowUpRight,
   Check,
   Copy,
   ExternalLink,
@@ -780,6 +781,18 @@ export default function ShopifyStoreManagerPage() {
                           </span>
                         </span>
                       </span>
+                    )}
+                    {step.id === "release" && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsLinkStoreDrawerOpen(false);
+                          void openCredentialsModal();
+                        }}
+                        className="ml-2 text-[#2563eb] underline underline-offset-2 hover:text-[#1d4ed8]"
+                      >
+                        click here
+                      </button>
                     )}
                   </li>
                 ))}
