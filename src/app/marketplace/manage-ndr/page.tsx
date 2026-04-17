@@ -125,7 +125,32 @@ export default function ManageNdr() {
       </div>
 
       {/* Tabs */}
-      <ActiveTabs tabs={NDR_TABS} active={activeTab} onChange={setActiveTab} />
+      <div className="sm:hidden">
+        <div className="grid grid-cols-2 gap-2">
+          {NDR_TABS.map((tab) => {
+            const isActive = activeTab === tab.value;
+
+            return (
+              <button
+                key={`${tab.value}-mobile`}
+                type="button"
+                onClick={() => setActiveTab(tab.value)}
+                className={`rounded-xl border px-3 py-3 text-sm font-semibold text-left transition-colors ${
+                  isActive
+                    ? "border-black bg-black text-white"
+                    : "border-black/10 bg-[#f8f8f8] text-black"
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="hidden sm:block">
+        <ActiveTabs tabs={NDR_TABS} active={activeTab} onChange={setActiveTab} />
+      </div>
 
       {/* Table */}
       <DataTable

@@ -355,7 +355,13 @@ const CartDrawer = ({
           <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-b border-slate-200 pb-4">
             <SectionTitle icon={Store} title="Store" />
             <div className="flex justify-between gap-2">
-              <span className="text-sm text-slate-900">
+              <span
+                className={`text-sm ${
+                  !response?.shop && !defaultStore?.store_url
+                    ? "text-red-600"
+                    : "text-black"
+                }`}
+              >
                 {response?.shop || defaultStore?.store_url || "No store linked"}
               </span>
             </div>
@@ -380,22 +386,20 @@ const CartDrawer = ({
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 py-3">
-            <div>
-              <p className="mb-2 text-sm font-semibold text-slate-700 ml-1">
-                Price
-              </p>
-              <div className="h-10 rounded-md border border-slate-200 bg-slate-100 px-3 flex items-center justify-between">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-3">
+            <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-sm font-semibold text-slate-700">Price</p>
+              <div className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2">
                 <span className="text-sm text-slate-600">{cloutPrice}</span>
                 <span className="text-sm font-semibold text-slate-700">₹</span>
               </div>
             </div>
 
-            <div>
-              <p className="flex gap-1 justify-start items-center mb-2 text-sm font-semibold text-slate-700 ml-1">
+            <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-sm font-semibold text-slate-700">
                 Set Your Selling Price
               </p>
-              <div className="h-10 rounded-md border border-slate-200 bg-white px-3 flex items-center justify-between">
+              <div className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2">
                 <input
                   type="number"
                   min={0}
@@ -405,10 +409,11 @@ const CartDrawer = ({
                     const nextValue = Number(e.target.value);
                     setSellingPrice(Number.isNaN(nextValue) ? 0 : nextValue);
                   }}
-                  // onBlur={() => handleSellingPriceUpdate(sellingPrice)}
-                  className="w-14 bg-transparent outline-none text-right font-medium"
+                  className="w-full bg-transparent outline-none text-right font-medium"
                 />
-                <span className="text-sm font-semibold text-slate-700">₹</span>
+                <span className="text-sm font-semibold text-slate-700 ml-3">
+                  ₹
+                </span>
               </div>
             </div>
           </div>

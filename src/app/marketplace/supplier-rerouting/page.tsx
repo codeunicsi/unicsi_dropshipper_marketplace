@@ -145,7 +145,7 @@ export const SupplierReRoutingHowItWorks = () => {
       </h2>
 
       {/* Steps */}
-      <div className="flex items-start justify-between gap-6">
+      <div className="flex flex-col md:flex-row items-start justify-between gap-6 ">
         {steps.map((step, index) => {
           const Icon = step.icon;
 

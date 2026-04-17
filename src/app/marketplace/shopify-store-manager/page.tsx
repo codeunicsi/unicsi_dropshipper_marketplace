@@ -2,7 +2,9 @@
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
 import { apiClient } from "@/hooks/marketplace/useShopifySecret";
 import {
+  ArrowUpRight,
   Check,
+  Copy,
   ExternalLink,
   ImageOff,
   Info,
@@ -55,8 +57,7 @@ type LinkStep = {
   tooltipContent?: string;
 };
 
-const shopifyStoreAdminUrl =
-  "https://admin.shopify.com/store/qwqs68-0w?ui_locales=en-IN";
+const shopifyStoreAdminUrl = "https://admin.shopify.com";
 const appUrl = "https://unicsi.com";
 const redirectUrl =
   "https://apis.unicsi.com/api/v1/dropshipper/shopify/callback";
@@ -155,6 +156,7 @@ export default function ShopifyStoreManagerPage() {
   const [storeUrl, setStoreUrl] = useState("");
   const [linkError, setLinkError] = useState("");
   const [isLinking, setIsLinking] = useState(false);
+  const [copiedTooltipId, setCopiedTooltipId] = useState<string | null>(null);
 
   // ── credentials modal state ───────────────────────────────────────────────
   const [isCredModalOpen, setIsCredModalOpen] = useState(false);
@@ -390,6 +392,23 @@ export default function ShopifyStoreManagerPage() {
     }
   };
 
+  const handleCopyTooltipContent = async (
+    tooltipId: string,
+    tooltipContent: string,
+  ) => {
+    try {
+      await navigator.clipboard.writeText(tooltipContent);
+      setCopiedTooltipId(tooltipId);
+      window.setTimeout(() => {
+        setCopiedTooltipId((current) =>
+          current === tooltipId ? null : current,
+        );
+      }, 1500);
+    } catch (error) {
+      console.error("Failed to copy tooltip content:", error);
+    }
+  };
+
   // ── credentials modal helpers ─────────────────────────────────────────────
   const openCredentialsModal = async () => {
     setIsCredModalOpen(true);
@@ -441,11 +460,12 @@ export default function ShopifyStoreManagerPage() {
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6">
       {/* ── Page header ── */}
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="text-xl font-bold text-[#111827]">
+      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <h1 className="text-lg md:text-xl font-bold text-[#111827]">
           Shopify Store Manager
         </h1>
-        <div className="flex items-center gap-2">
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <button
             type="button"
             onClick={() => setAutoConfirmOrders((prev) => !prev)}
@@ -505,22 +525,22 @@ export default function ShopifyStoreManagerPage() {
             className="rounded-xs bg-linear-to-r from-[#0097b2] to-[#7ed957] px-8 text-sm text-white hover:bg-black/90"
             onClick={() => setIsLinkStoreDrawerOpen(true)}
           >
-            <Link2 className="size-6" />
+            <Link2 className="size-5" />
             Link New Shopify Store
           </Button>
         </div>
       </div>
 
       {/* ── Stores table ── */}
-      <div className="overflow-hidden border border-[#e3e3e3]">
-        <table className="w-full border-collapse">
+      <div className="w-full overflow-x-auto border border-[#e3e3e3]">
+        <table className="min-w-[900px] w-full border-collapse">
           <thead className="bg-[#f2f2f2] text-left">
             <tr className="text-sm font-semibold text-[#2f3640]">
               <th className="w-16 px-6 py-4">#</th>
-              <th className="w-80 px-6 py-4">Linked On</th>
+              <th className="px-4 py-3 whitespace-nowrap">Linked On</th>
               <th className="w-80 px-6 py-4">Store Platform</th>
               <th className="px-6 py-4">Store Details</th>
-              <th className="w-96 px-6 py-4">Actions</th>
+              <th className="px-4 py-3 whitespace-nowrap">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -679,10 +699,10 @@ export default function ShopifyStoreManagerPage() {
           }}
         >
           <aside
-            className="h-full w-full max-w-140 overflow-y-auto bg-white py-12 shadow-2xl animate-slideIn"
+            className="flex h-full w-full max-w-140 flex-col overflow-hidden bg-white shadow-2xl animate-slideIn"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="px-8 py-6">
+            <div className="flex-1 overflow-y-auto px-8 py-12">
               <div className="mb-8 flex items-center justify-center gap-4">
                 <div className="rounded-md border border-[#e5e7eb] p-4 text-center">
                   <p className="text-sm font-bold leading-none text-[#232323]">
@@ -730,17 +750,56 @@ export default function ShopifyStoreManagerPage() {
                           {step.tooltipLabel}
                         </span>
                         <span className="pointer-events-none invisible absolute left-0 top-full z-20 w-96 max-w-[70vw] rounded-md border border-[#e5e7eb] bg-white px-3 py-4 text-xs leading-5 text-[#374151] opacity-0 shadow-lg transition-all duration-150 group-hover:visible group-hover:pointer-events-auto group-hover:opacity-100">
+                          <span className="mb-2 flex items-center justify-between gap-3">
+                            <span className="font-medium text-[#111827]">
+                              Shopify scopes
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleCopyTooltipContent(
+                                  step.id,
+                                  step.tooltipContent!,
+                                )
+                              }
+                              className="inline-flex items-center gap-1 rounded-md border border-[#d1d5db] bg-white px-2 py-1 text-[11px] font-medium text-[#374151] transition-colors hover:bg-[#f8fafc]"
+                            >
+                              {copiedTooltipId === step.id ? (
+                                <>
+                                  <Check className="size-3.5" />
+                                  Copied
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="size-3.5" />
+                                  Copy
+                                </>
+                              )}
+                            </button>
+                          </span>
                           <span className="block max-h-44 overflow-y-auto pr-1">
                             {step.tooltipContent}
                           </span>
                         </span>
                       </span>
                     )}
+                    {step.id === "release" && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsLinkStoreDrawerOpen(false);
+                          void openCredentialsModal();
+                        }}
+                        className="ml-2 text-[#2563eb] underline underline-offset-2 hover:text-[#1d4ed8]"
+                      >
+                        click here
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>
             </div>
-            <div className="sticky bottom-0 border-t border-[#ececec] bg-white px-8 py-6 space-y-3">
+            <div className="shrink-0 border-t border-[#ececec] bg-white px-8 py-6 space-y-3">
               <div>
                 <label className="mb-1.5 block text-xs font-semibold text-[#374151]">
                   Shopify Store URL

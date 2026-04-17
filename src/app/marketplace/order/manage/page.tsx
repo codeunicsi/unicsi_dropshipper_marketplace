@@ -1,13 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  ArrowUpRight,
-  Check,
-  ChevronDown,
-  Dot,
-  RefreshCcw,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowUpRight, Check, RefreshCcw, Store } from "lucide-react";
 import { useSyncOrders } from "@/hooks/useSyncOrders";
 import { apiClient } from "@/lib/api-client";
 type PanelTab = "orders" | "webhooks" | "setup";
@@ -250,14 +244,36 @@ function SummaryCard({
   valueClassName?: string;
 }) {
   return (
-    <div className="rounded-xl bg-[#f1f1ed] p-5">
-      <p className="text-base font-medium text-[#444]">{label}</p>
+    <div className="rounded-xl bg-[#f1f1ed] p-4 sm:p-5">
+      <p className="text-sm font-medium text-[#444] sm:text-base">{label}</p>
       <p
-        className={`mt-2 text-4xl leading-none font-semibold ${valueClassName}`}
+        className={`mt-2 text-3xl leading-none font-semibold sm:text-4xl ${valueClassName}`}
       >
         {value}
       </p>
     </div>
+  );
+}
+
+function OrderStatusBadge({ status }: { status: OrderRow["status"] }) {
+  return (
+    <span
+      className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+        status === "Confirmed"
+          ? "bg-[#e2efd6] text-[#3f7c25]"
+          : "bg-[#efe5d3] text-[#94621e]"
+      }`}
+    >
+      {status}
+    </span>
+  );
+}
+
+function PaymentBadge({ payment }: { payment: string }) {
+  return (
+    <span className="inline-flex items-center rounded-full bg-[#efe5d3] px-3 py-1 text-xs font-semibold text-[#9b641e]">
+      {payment}
+    </span>
   );
 }
 
@@ -274,8 +290,6 @@ export default function OrdersPage() {
   const [connectedStoreUrl, setConnectedStoreUrl] = useState("");
   const [selectedStatus, setSelectedStatus] =
     useState<(typeof orderStatusOptions)[number]>("All statuses");
-  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
-  const statusDropdownRef = useRef<HTMLDivElement | null>(null);
   const [webhookRows, setWebhookRows] = useState<WebhookRow[]>(initialWebhooks);
   const isDisconnectedSkeleton = !isStoreConnected && !isStoreCheckLoading;
 
@@ -326,21 +340,16 @@ export default function OrdersPage() {
     };
   }, [orderRows]);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        statusDropdownRef.current &&
-        !statusDropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsStatusDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
+  const statusCounts = useMemo(() => {
+    return {
+      "All statuses": orderRows.length,
+      Pending: orderRows.filter((row) => row.status === "Pending").length,
+      Confirmed: orderRows.filter((row) => row.status === "Confirmed").length,
+      Paid: orderRows.filter((row) => row.status === "Paid").length,
+      Fulfilled: orderRows.filter((row) => row.status === "Fulfilled").length,
+      Cancelled: orderRows.filter((row) => row.status === "Cancelled").length,
+    } as Record<(typeof orderStatusOptions)[number], number>;
+  }, [orderRows]);
 
   useEffect(() => {
     const checkStoreConnection = async () => {
@@ -392,9 +401,9 @@ export default function OrdersPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-7xl p-6">
-      <section className="rounded-[6px] p-6">
-        <header className="flex flex-wrap items-start justify-between gap-4">
+    <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:p-6">
+      <section className="rounded-[6px] sm:p-6">
+        <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 className="text-2xl leading-tight font-semibold text-[#1f1f1f]">
               Shopify orders
@@ -404,7 +413,7 @@ export default function OrdersPage() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
             <div className="inline-flex items-center gap-1 rounded-full bg-[#deeed1] px-3 py-1 text-sm font-medium text-[#3f7c25]">
               <div className="h-3 w-3 rounded-full bg-green-600"></div>
               Webhook live
@@ -416,7 +425,7 @@ export default function OrdersPage() {
               disabled={
                 syncOrders.isPending || !isStoreConnected || isStoreCheckLoading
               }
-              className="inline-flex items-center gap-2 rounded-2xl border border-[#d5d5d0] bg-white px-5 py-3 text-sm font-medium text-[#222]"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[#d5d5d0] bg-white px-5 py-3 text-sm font-medium text-[#222] sm:w-auto"
             >
               <RefreshCcw
                 className={`h-5 w-5 ${syncOrders.isPending ? "animate-spin" : ""}`}
@@ -426,7 +435,7 @@ export default function OrdersPage() {
 
             <button
               type="button"
-              className="rounded-2xl border border-[#d5d5d0] bg-white px-5 py-3 text-sm font-semibold text-[#222]"
+              className="w-full rounded-2xl border border-[#d5d5d0] bg-white px-5 py-3 text-sm font-semibold text-[#222] sm:w-auto"
             >
               Manage webhooks
             </button>
@@ -439,10 +448,10 @@ export default function OrdersPage() {
           </p>
         )}
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-6 grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
           {isDisconnectedSkeleton ? (
             <>
-              {Array.from({ length: 4 }).map((_, index) => (
+              {/* {Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={`summary-skeleton-${index}`}
                   className="rounded-xl bg-[#f1f1ed] p-5"
@@ -450,7 +459,7 @@ export default function OrdersPage() {
                   <div className="h-6 w-28 rounded bg-[#e4e4de] animate-pulse" />
                   <div className="mt-4 h-10 w-20 rounded bg-[#e4e4de] animate-pulse" />
                 </div>
-              ))}
+              ))} */}
             </>
           ) : (
             <>
@@ -476,41 +485,39 @@ export default function OrdersPage() {
           )}
         </div>
 
-        <section className="mt-6 rounded-2xl border border-[#d8d8d3] bg-[#f7f7f5] p-5">
+        <section className="mt-6 rounded-2xl  bg-[#f7f7f5] p-5">
           <div className="border-b border-[#dbdbd6] pb-3">
-            {isDisconnectedSkeleton ? (
-              <div className="inline-flex overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
-                {Array.from({ length: 3 }).map((_, index) => (
-                  <div
-                    key={`tab-skeleton-${index}`}
-                    className="border-r border-[#cbcbc7] px-6 py-3 last:border-r-0"
-                  >
-                    <div className="h-5 w-20 rounded bg-[#e8e8e3] animate-pulse" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="inline-flex overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.value}
-                    type="button"
-                    onClick={() => setActiveTab(tab.value)}
-                    className={`border-r border-[#cbcbc7] px-6 py-3 text-sm font-semibold text-[#202020] last:border-r-0 ${
-                      activeTab === tab.value ? "bg-[#f2f2ed]" : "bg-white"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {isDisconnectedSkeleton ? (
+                <div className="flex overflow-x-auto rounded-2xl border border-[#cbcbc7] bg-white">
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <div
+                      key={`tab-skeleton-${index}`}
+                      className="flex-shrink-0 border-r border-[#cbcbc7] px-4 py-3 last:border-r-0 sm:px-6"
+                    >
+                      <div className="h-5 w-16 rounded bg-[#e8e8e3] animate-pulse" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex overflow-x-auto rounded-2xl border border-[#cbcbc7] bg-white">
+                  {tabs.map((tab) => (
+                    <button
+                      key={tab.value}
+                      type="button"
+                      onClick={() => setActiveTab(tab.value)}
+                      className={`flex-shrink-0 border-r border-[#cbcbc7] px-4 py-3 text-sm font-semibold text-[#202020] last:border-r-0 sm:px-6 ${
+                        activeTab === tab.value ? "bg-[#f2f2ed]" : "bg-white"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-          {activeTab === "orders" && (
-            <div className="pt-4">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                {isDisconnectedSkeleton ? (
+              {activeTab === "orders" &&
+                (isDisconnectedSkeleton ? (
                   <div className="h-12 w-full max-w-[430px] rounded-xl border border-[#d8d8d3] bg-white px-4 flex items-center">
                     <div className="h-5 w-56 rounded bg-[#ecece7] animate-pulse" />
                   </div>
@@ -522,60 +529,162 @@ export default function OrdersPage() {
                     placeholder="Search by order # or customer..."
                     className="h-12 w-full max-w-[430px] rounded-xl border border-[#d8d8d3] bg-white px-4 text-sm text-[#313131] outline-none placeholder:text-[#8a8a84]"
                   />
-                )}
+                ))}
+            </div>
+          </div>
 
-                <div className="relative" ref={statusDropdownRef}>
-                  {isDisconnectedSkeleton ? (
-                    <div className="inline-flex h-10 min-w-40 items-center justify-between gap-2 rounded-xl border border-[#d8d8d3] bg-white px-4">
-                      <div className="h-5 w-20 rounded bg-[#ecece7] animate-pulse" />
-                      <div className="h-4 w-4 rounded bg-[#ecece7] animate-pulse" />
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setIsStatusDropdownOpen(
-                          (previousState) => !previousState,
-                        )
-                      }
-                      className="inline-flex h-10 min-w-40 items-center justify-between gap-2 rounded-xl border border-[#d8d8d3] bg-white px-4 text-sm text-[#2f2f2f]"
-                    >
-                      {selectedStatus}
-                      <ChevronDown
-                        className={`h-4 w-4 transition-transform ${
-                          isStatusDropdownOpen ? "rotate-180" : ""
-                        }`}
+          {activeTab === "orders" && (
+            <div className="pt-4">
+              <div className="mb-4">
+                {isDisconnectedSkeleton ? (
+                  <div className="inline-flex h-10 min-w-72 items-center gap-2 rounded-xl border border-[#d8d8d3] bg-white px-4">
+                    {Array.from({ length: 3 }).map((_, index) => (
+                      <div
+                        key={`status-tab-skeleton-${index}`}
+                        className="h-6 w-20 rounded-full bg-[#ecece7] animate-pulse"
                       />
-                    </button>
-                  )}
-
-                  {isStatusDropdownOpen && (
-                    <div className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-2xl border border-[#d8d8d3] bg-white shadow-sm">
+                    ))}
+                  </div>
+                ) : (
+                  <div className="w-full overflow-x-auto">
+                    <div className="inline-flex w-full min-w-max items-center gap-2 rounded-xl border border-[#d8d8d3] bg-white p-1">
                       {orderStatusOptions.map((status) => {
                         const isSelected = selectedStatus === status;
                         return (
                           <button
                             key={status}
                             type="button"
-                            onClick={() => {
-                              setSelectedStatus(status);
-                              setIsStatusDropdownOpen(false);
-                            }}
-                            className={`flex w-full items-center px-4 py-2.5 text-left text-sm text-[#2f2f2f] hover:bg-[#f5f5f3] ${
-                              isSelected ? "" : ""
+                            onClick={() => setSelectedStatus(status)}
+                            className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
+                              isSelected
+                                ? "bg-linear-to-r from-[#0097b2] to-[#7ed957] text-white"
+                                : "text-[#555] hover:bg-[#f7f7f5]"
                             }`}
                           >
                             <span>{status}</span>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[11px] leading-none ${
+                                isSelected
+                                  ? "bg-white text-[#2f2f2f]"
+                                  : "bg-[#efefe9] text-[#666]"
+                              }`}
+                            >
+                              {statusCounts[status]}
+                            </span>
                           </button>
                         );
                       })}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
 
-              <div className="overflow-hidden rounded-xl border border-[#dcdcd7] bg-white">
-                <table className="w-full border-collapse">
+              <div className="space-y-3 md:hidden">
+                {isStoreCheckLoading &&
+                  Array.from({ length: 3 }).map((_, index) => (
+                    <div
+                      key={`mobile-order-skeleton-${index}`}
+                      className="rounded-xl border border-[#dcdcd7] bg-white p-4 animate-pulse"
+                    >
+                      <div className="h-4 w-24 rounded bg-[#ececec]" />
+                      <div className="mt-2 h-4 w-32 rounded bg-[#ececec]" />
+                      <div className="mt-4 h-16 rounded bg-[#ececec]" />
+                    </div>
+                  ))}
+
+                {!isStoreCheckLoading && !isStoreConnected && (
+                  <div className="rounded-xl border border-[#dcdcd7] bg-white px-4 py-10 text-center text-base font-semibold text-black/90">
+                    {storeConnectionMessage || "Shopify store not connected"}
+                  </div>
+                )}
+
+                {!isStoreCheckLoading &&
+                  isStoreConnected &&
+                  filteredOrders.map((order) => (
+                    <div
+                      key={`${order.id}-mobile`}
+                      className="rounded-xl border border-[#dcdcd7] bg-white p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-[#222]">
+                            {order.id}
+                          </p>
+                          <p className="text-xs text-[#4f4f4a]">{order.date}</p>
+                        </div>
+                        <OrderStatusBadge status={order.status} />
+                      </div>
+
+                      <div className="mt-4 space-y-3 text-sm">
+                        <div>
+                          <p className="font-medium text-[#222]">
+                            {order.customer}
+                          </p>
+                          <p className="text-xs text-[#4f4f4a]">
+                            {order.contact}
+                          </p>
+                        </div>
+
+                        <div className="rounded-lg bg-[#f7f7f5] p-3">
+                          <p className="text-xs font-medium uppercase tracking-wide text-[#6b6b66]">
+                            Product
+                          </p>
+                          <p className="mt-1 text-sm text-[#2c2c2c]">
+                            {order.product}
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="rounded-lg border border-[#ecece7] p-3">
+                            <p className="text-xs font-medium uppercase tracking-wide text-[#6b6b66]">
+                              Amount
+                            </p>
+                            <p className="mt-1 text-sm font-semibold text-[#1f1f1f]">
+                              {order.amount}
+                            </p>
+                            <p className="text-xs text-[#4f4f4a]">
+                              {order.shipping}
+                            </p>
+                          </div>
+                          <div className="rounded-lg border border-[#ecece7] p-3">
+                            <p className="text-xs font-medium uppercase tracking-wide text-[#6b6b66]">
+                              Payment
+                            </p>
+                            <div className="mt-2">
+                              <PaymentBadge payment={order.payment} />
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleMarkConfirmed(order.id)}
+                          disabled={order.status !== "Pending"}
+                          className={`w-full rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${
+                            order.status === "Pending"
+                              ? "bg-linear-to-r from-[#0097b2] to-[#7ed957] text-white hover:bg-[#f9efd9]"
+                              : "cursor-not-allowed border-[#d8d8d3] bg-[#f4f4f1] text-[#7f7f78]"
+                          }`}
+                        >
+                          {order.status === "Pending"
+                            ? "Mark Confirmed"
+                            : "Confirmed"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+
+              {!isStoreCheckLoading &&
+                isStoreConnected &&
+                filteredOrders.length === 0 && (
+                  <div className="rounded-xl border border-[#dcdcd7] bg-white px-4 py-10 text-center text-sm text-[#5a5a55] md:hidden">
+                    No orders match your search or status filter.
+                  </div>
+                )}
+
+              <div className="hidden md:block overflow-x-auto rounded-xl border border-[#dcdcd7] bg-white">
+                <table className="w-full min-w-[780px] border-collapse">
                   <thead className="border-b border-[#dfdfda]">
                     <tr className="text-left text-sm font-medium text-[#474742]">
                       {isDisconnectedSkeleton ? (
@@ -637,10 +746,18 @@ export default function OrdersPage() {
                       <tr>
                         <td
                           colSpan={7}
-                          className="px-4 py-10 text-center text-lg font-semibold text-black/90"
+                          className="px-4 py-10 text-lg font-medium text-black/90"
                         >
-                          {storeConnectionMessage ||
-                            "Shopify store not connected"}
+                          <div className="flex flex-col items-center justify-center gap-2 text-center">
+                            <Store className="w-12 h-12 text-gray-300" />
+                            <span>
+                              {storeConnectionMessage ||
+                                "Shopify store not connected"}
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              Click "Link New Shopify Store" to get started.
+                            </span>
+                          </div>
                         </td>
                       </tr>
                     )}
@@ -680,20 +797,10 @@ export default function OrdersPage() {
                             </p>
                           </td>
                           <td className="px-4 py-4 align-top">
-                            <span className="inline-flex items-center rounded-full bg-[#efe5d3] px-3 py-1 text-xs font-semibold text-[#9b641e]">
-                              {order.payment}
-                            </span>
+                            <PaymentBadge payment={order.payment} />
                           </td>
                           <td className="px-4 py-4 align-top">
-                            <span
-                              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                                order.status === "Confirmed"
-                                  ? "bg-[#e2efd6] text-[#3f7c25]"
-                                  : "bg-[#efe5d3] text-[#94621e]"
-                              }`}
-                            >
-                              {order.status}
-                            </span>
+                            <OrderStatusBadge status={order.status} />
                           </td>
                           <td className="px-4 py-4 align-top">
                             <button
@@ -721,13 +828,13 @@ export default function OrdersPage() {
 
           {activeTab === "webhooks" && (
             <div className="pt-4">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <p className="text-sm font-medium text-[#30302c]">
                   Auto-sync triggers registered on your Shopify store
                 </p>
                 <button
                   type="button"
-                  className="inline-flex h-10 items-center gap-1 rounded-xl border border-[#d7d7d2] bg-white px-4 text-sm font-semibold text-[#222]"
+                  className="inline-flex h-10 w-full items-center justify-center gap-1 rounded-xl border border-[#d7d7d2] bg-white px-4 text-sm font-semibold text-[#222] sm:w-auto"
                 >
                   + Add topic
                   <ArrowUpRight className="h-4 w-4" />
@@ -735,102 +842,108 @@ export default function OrdersPage() {
               </div>
 
               <div className="rounded-xl border border-[#ddddda] bg-white">
-                {webhookRows.map((row) => (
-                  <div
-                    key={row.topic}
-                    className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e7e7e2] px-4 py-3 last:border-b-0"
-                  >
-                    <div>
-                      <p className="text-sm leading-tight font-semibold text-[#1f1f1f]">
-                        {row.topic}
-                      </p>
-                      <p className="text-xs text-[#4e4e49]">{row.endpoint}</p>
-                    </div>
+                <div>
+                  {webhookRows.map((row) => (
+                    <div
+                      key={row.topic}
+                      className="flex flex-col gap-4 border-b border-[#e7e7e2] px-4 py-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:py-3"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm leading-tight font-semibold text-[#1f1f1f]">
+                          {row.topic}
+                        </p>
+                        <p className="mt-1 break-all text-xs text-[#4e4e49]">
+                          {row.endpoint}
+                        </p>
+                      </div>
 
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                          row.registered
-                            ? "bg-[#e2efd6] text-[#3f7c25]"
-                            : "bg-[#f0efeb] text-[#75756f]"
-                        }`}
-                      >
-                        <div
-                          className={`w-2 h-2 rounded-full m-1 ${
-                            row.registered ? "bg-[#3f7c25]" : "bg-[#75756f]"
-                          }`}
-                        ></div>
-                        {row.registered ? "Registered" : "Not registered"}
-                      </span>
-
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={row.registered}
-                        aria-label={`Toggle ${row.topic}`}
-                        onClick={() => {
-                          setWebhookRows((prev) =>
-                            prev.map((item) =>
-                              item.topic === row.topic
-                                ? { ...item, registered: !item.registered }
-                                : item,
-                            ),
-                          );
-                        }}
-                        className={`relative h-7 w-12 rounded-full border transition-colors ${
-                          row.registered
-                            ? "border-[#9fcb86] bg-[#dceecd]"
-                            : "border-[#c9c9c4] bg-[#f8f8f6]"
-                        }`}
-                      >
+                      <div className="flex items-center justify-between gap-3 sm:shrink-0 sm:justify-end">
                         <span
-                          className={`absolute top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-white shadow-sm transition-all ${
-                            row.registered ? "left-6" : "left-1"
+                          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap ${
+                            row.registered
+                              ? "bg-[#e2efd6] text-[#3f7c25]"
+                              : "bg-[#f0efeb] text-[#75756f]"
                           }`}
-                        />
-                      </button>
+                        >
+                          <div
+                            className={`m-1 h-2 w-2 rounded-full ${
+                              row.registered ? "bg-[#3f7c25]" : "bg-[#75756f]"
+                            }`}
+                          ></div>
+                          {row.registered ? "Registered" : "Not registered"}
+                        </span>
+
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={row.registered}
+                          aria-label={`Toggle ${row.topic}`}
+                          onClick={() => {
+                            setWebhookRows((prev) =>
+                              prev.map((item) =>
+                                item.topic === row.topic
+                                  ? { ...item, registered: !item.registered }
+                                  : item,
+                              ),
+                            );
+                          }}
+                          className={`relative h-7 w-12 rounded-full border transition-colors ${
+                            row.registered
+                              ? "border-[#9fcb86] bg-[#dceecd]"
+                              : "border-[#c9c9c4] bg-[#f8f8f6]"
+                          }`}
+                        >
+                          <span
+                            className={`absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-white shadow-sm transition-all ${
+                              row.registered ? "left-6" : "left-1"
+                            }`}
+                          />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           )}
 
           {activeTab === "setup" && (
-            <div className="space-y-3 pt-4">
-              {setupSteps.map((step) => (
-                <div
-                  key={step.id}
-                  className="rounded-xl border border-[#e2e2dc] bg-[#f2f2ee] p-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1 flex h-7 w-7 items-center justify-center rounded-full bg-[#e2efd6] text-sm font-bold text-[#3f7c25]">
-                      {step.id === "5" ? (
-                        step.id
-                      ) : (
-                        <Check className="h-4 w-4" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm leading-tight font-semibold text-[#222]">
-                        {step.title}
-                      </p>
-                      <p className="mt-1 text-sm leading-tight text-[#444]">
-                        {step.description}
-                      </p>
-                      {step.cta && (
-                        <button
-                          type="button"
-                          className="mt-3 inline-flex h-10 items-center gap-1 rounded-xl border border-[#d1d1cc] bg-white px-4 text-xs font-semibold text-[#262626]"
-                        >
-                          {step.cta}
-                          <ArrowUpRight className="h-4 w-4" />
-                        </button>
-                      )}
+            <div className="pt-4">
+              <div className="space-y-3">
+                {setupSteps.map((step) => (
+                  <div
+                    key={step.id}
+                    className="rounded-xl border border-[#e2e2dc] bg-[#f2f2ee] p-4"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#e2efd6] text-sm font-bold text-[#3f7c25]">
+                        {step.id === "5" ? (
+                          step.id
+                        ) : (
+                          <Check className="h-4 w-4" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm leading-tight font-semibold text-[#222]">
+                          {step.title}
+                        </p>
+                        <p className="mt-1 text-sm leading-tight text-[#444]">
+                          {step.description}
+                        </p>
+                        {step.cta && (
+                          <button
+                            type="button"
+                            className="mt-3 inline-flex h-10 w-full items-center justify-center gap-1 rounded-xl border border-[#d1d1cc] bg-white px-4 text-xs font-semibold text-[#262626] sm:w-auto"
+                          >
+                            {step.cta}
+                            <ArrowUpRight className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </section>

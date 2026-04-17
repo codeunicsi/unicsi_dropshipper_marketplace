@@ -42,7 +42,7 @@ const menuItems = [
   },
   {
     icon: Package,
-    label: "Manage Ndr",
+    label: "Manage NDR",
     href: "/marketplace/manage-ndr",
   },
   {
@@ -128,7 +128,7 @@ const menuItems = [
     icon: HelpCircle,
     label: "FAQs",
     href: "/marketplace/faqs",
-    openInNewTab: true,
+    openInNewTab: false,
   },
   // { icon: BarChart3, label: 'Value Added Services', href: '/marketplace/value-added-services' },
   // { icon: HelpCircle, label: 'Clout Training', href: '/marketplace/clout-training' },
@@ -143,11 +143,21 @@ interface MenuItem {
   openInNewTab?: boolean;
 }
 
-export function PartnerSidebar() {
+export function PartnerSidebar({
+  isMobileOpen,
+  setIsMobileOpen,
+}: {
+  isMobileOpen: boolean;
+  setIsMobileOpen: (val: boolean) => void;
+}) {
   const pathname = usePathname();
   const [expandedItems, setExpandedItems] = React.useState<Set<string>>(
     new Set(),
   );
+
+  useEffect(() => {
+    setIsMobileOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     const newExpanded = new Set<string>();
@@ -188,8 +198,19 @@ export function PartnerSidebar() {
   };
 
   return (
-    <aside className="w-72 bg-sidebar border-r border-sidebar-border h-screen overflow-y-auto flex flex-col sticky top-0">
+    <aside
+      className={cn(
+        "fixed lg:static top-0 left-0 z-400 h-screen w-48  md:w-72 bg-sidebar border-r border-sidebar-border flex flex-col transition-transform duration-300",
+
+        // Desktop
+        "lg:translate-x-0",
+
+        // Mobile
+        isMobileOpen ? "translate-x-0" : "-translate-x-full",
+      )}
+    >
       {/* Logo Section */}
+
       <div className="p-6 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full my-button text-primary-foreground flex items-center justify-center">
@@ -199,6 +220,14 @@ export function PartnerSidebar() {
           </div>
           <div>
             <p className="font-bold text-sidebar-foreground">UNICSI</p>
+          </div>
+          <div className="lg:hidden shadow-2xl bg-gray-200">
+            <button
+              className="text-green-600"
+              onClick={() => setIsMobileOpen(false)}
+            >
+              ✕
+            </button>
           </div>
         </div>
       </div>
