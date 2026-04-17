@@ -1,12 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  ArrowUpRight,
-  Check,
-  ChevronDown,
-  RefreshCcw,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowUpRight, Check, RefreshCcw, Store } from "lucide-react";
 import { useSyncOrders } from "@/hooks/useSyncOrders";
 import { apiClient } from "@/lib/api-client";
 type PanelTab = "orders" | "webhooks" | "setup";
@@ -295,8 +290,6 @@ export default function OrdersPage() {
   const [connectedStoreUrl, setConnectedStoreUrl] = useState("");
   const [selectedStatus, setSelectedStatus] =
     useState<(typeof orderStatusOptions)[number]>("All statuses");
-  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
-  const statusDropdownRef = useRef<HTMLDivElement | null>(null);
   const [webhookRows, setWebhookRows] = useState<WebhookRow[]>(initialWebhooks);
   const isDisconnectedSkeleton = !isStoreConnected && !isStoreCheckLoading;
 
@@ -347,21 +340,16 @@ export default function OrdersPage() {
     };
   }, [orderRows]);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        statusDropdownRef.current &&
-        !statusDropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsStatusDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
+  const statusCounts = useMemo(() => {
+    return {
+      "All statuses": orderRows.length,
+      Pending: orderRows.filter((row) => row.status === "Pending").length,
+      Confirmed: orderRows.filter((row) => row.status === "Confirmed").length,
+      Paid: orderRows.filter((row) => row.status === "Paid").length,
+      Fulfilled: orderRows.filter((row) => row.status === "Fulfilled").length,
+      Cancelled: orderRows.filter((row) => row.status === "Cancelled").length,
+    } as Record<(typeof orderStatusOptions)[number], number>;
+  }, [orderRows]);
 
   useEffect(() => {
     const checkStoreConnection = async () => {
@@ -463,7 +451,7 @@ export default function OrdersPage() {
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {isDisconnectedSkeleton ? (
             <>
-              {Array.from({ length: 4 }).map((_, index) => (
+              {/* {Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={`summary-skeleton-${index}`}
                   className="rounded-xl bg-[#f1f1ed] p-5"
@@ -471,7 +459,7 @@ export default function OrdersPage() {
                   <div className="h-6 w-28 rounded bg-[#e4e4de] animate-pulse" />
                   <div className="mt-4 h-10 w-20 rounded bg-[#e4e4de] animate-pulse" />
                 </div>
-              ))}
+              ))} */}
             </>
           ) : (
             <>
@@ -497,41 +485,11 @@ export default function OrdersPage() {
           )}
         </div>
 
-        <section className="mt-6 rounded-2xl border border-[#d8d8d3] bg-[#f7f7f5] p-4 sm:p-5">
+        <section className="mt-6 rounded-2xl  bg-[#f7f7f5] p-5">
           <div className="border-b border-[#dbdbd6] pb-3">
-            {isDisconnectedSkeleton ? (
-              <div className="grid grid-cols-1 gap-2 sm:hidden">
-                {Array.from({ length: 3 }).map((_, index) => (
-                  <div
-                    key={`tab-skeleton-mobile-${index}`}
-                    className="rounded-2xl border border-[#cbcbc7] bg-white px-6 py-3"
-                  >
-                    <div className="h-5 w-20 rounded bg-[#e8e8e3] animate-pulse" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-2 sm:hidden">
-                {tabs.map((tab) => (
-                  <button
-                    key={`${tab.value}-mobile`}
-                    type="button"
-                    onClick={() => setActiveTab(tab.value)}
-                    className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold text-[#202020] ${
-                      activeTab === tab.value
-                        ? "border-[#cbcbc7] bg-[#f2f2ed]"
-                        : "border-[#cbcbc7] bg-white"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {isDisconnectedSkeleton ? (
-              <div className="hidden -mx-1 overflow-x-auto pb-1 sm:block">
-                <div className="inline-flex min-w-max overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {isDisconnectedSkeleton ? (
+                <div className="inline-flex overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
                   {Array.from({ length: 3 }).map((_, index) => (
                     <div
                       key={`tab-skeleton-${index}`}
@@ -541,16 +499,14 @@ export default function OrdersPage() {
                     </div>
                   ))}
                 </div>
-              </div>
-            ) : (
-              <div className="hidden -mx-1 overflow-x-auto pb-1 sm:block">
-                <div className="inline-flex min-w-max overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
+              ) : (
+                <div className="inline-flex overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
                   {tabs.map((tab) => (
                     <button
                       key={tab.value}
                       type="button"
                       onClick={() => setActiveTab(tab.value)}
-                      className={`border-r border-[#cbcbc7] px-6 py-3 text-sm font-semibold whitespace-nowrap text-[#202020] last:border-r-0 ${
+                      className={`border-r border-[#cbcbc7] px-6 py-3 text-sm font-semibold text-[#202020] last:border-r-0 ${
                         activeTab === tab.value ? "bg-[#f2f2ed]" : "bg-white"
                       }`}
                     >
@@ -558,14 +514,10 @@ export default function OrdersPage() {
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
-          </div>
+              )}
 
-          {activeTab === "orders" && (
-            <div className="pt-4">
-              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                {isDisconnectedSkeleton ? (
+              {activeTab === "orders" &&
+                (isDisconnectedSkeleton ? (
                   <div className="h-12 w-full max-w-[430px] rounded-xl border border-[#d8d8d3] bg-white px-4 flex items-center">
                     <div className="h-5 w-56 rounded bg-[#ecece7] animate-pulse" />
                   </div>
@@ -577,56 +529,54 @@ export default function OrdersPage() {
                     placeholder="Search by order # or customer..."
                     className="h-12 w-full max-w-[430px] rounded-xl border border-[#d8d8d3] bg-white px-4 text-sm text-[#313131] outline-none placeholder:text-[#8a8a84]"
                   />
-                )}
+                ))}
+            </div>
+          </div>
 
-                <div className="relative w-full sm:w-auto" ref={statusDropdownRef}>
-                  {isDisconnectedSkeleton ? (
-                    <div className="inline-flex h-10 w-full min-w-40 items-center justify-between gap-2 rounded-xl border border-[#d8d8d3] bg-white px-4 sm:w-auto">
-                      <div className="h-5 w-20 rounded bg-[#ecece7] animate-pulse" />
-                      <div className="h-4 w-4 rounded bg-[#ecece7] animate-pulse" />
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setIsStatusDropdownOpen(
-                          (previousState) => !previousState,
-                        )
-                      }
-                      className="inline-flex h-10 w-full min-w-40 items-center justify-between gap-2 rounded-xl border border-[#d8d8d3] bg-white px-4 text-sm text-[#2f2f2f] sm:w-auto"
-                    >
-                      {selectedStatus}
-                      <ChevronDown
-                        className={`h-4 w-4 transition-transform ${
-                          isStatusDropdownOpen ? "rotate-180" : ""
-                        }`}
+          {activeTab === "orders" && (
+            <div className="pt-4">
+              <div className="mb-4">
+                {isDisconnectedSkeleton ? (
+                  <div className="inline-flex h-10 min-w-72 items-center gap-2 rounded-xl border border-[#d8d8d3] bg-white px-4">
+                    {Array.from({ length: 3 }).map((_, index) => (
+                      <div
+                        key={`status-tab-skeleton-${index}`}
+                        className="h-6 w-20 rounded-full bg-[#ecece7] animate-pulse"
                       />
-                    </button>
-                  )}
-
-                  {isStatusDropdownOpen && (
-                    <div className="absolute right-0 z-20 mt-2 w-full overflow-hidden rounded-2xl border border-[#d8d8d3] bg-white shadow-sm sm:w-44">
+                    ))}
+                  </div>
+                ) : (
+                  <div className="w-full overflow-x-auto">
+                    <div className="inline-flex w-full min-w-max items-center gap-2 rounded-xl border border-[#d8d8d3] bg-white p-1">
                       {orderStatusOptions.map((status) => {
                         const isSelected = selectedStatus === status;
                         return (
                           <button
                             key={status}
                             type="button"
-                            onClick={() => {
-                              setSelectedStatus(status);
-                              setIsStatusDropdownOpen(false);
-                            }}
-                            className={`flex w-full items-center px-4 py-2.5 text-left text-sm text-[#2f2f2f] hover:bg-[#f5f5f3] ${
-                              isSelected ? "" : ""
+                            onClick={() => setSelectedStatus(status)}
+                            className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
+                              isSelected
+                                ? "bg-linear-to-r from-[#0097b2] to-[#7ed957] text-white"
+                                : "text-[#555] hover:bg-[#f7f7f5]"
                             }`}
                           >
                             <span>{status}</span>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[11px] leading-none ${
+                                isSelected
+                                  ? "bg-white text-[#2f2f2f]"
+                                  : "bg-[#efefe9] text-[#666]"
+                              }`}
+                            >
+                              {statusCounts[status]}
+                            </span>
                           </button>
                         );
                       })}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-3 md:hidden">
@@ -796,10 +746,18 @@ export default function OrdersPage() {
                       <tr>
                         <td
                           colSpan={7}
-                          className="px-4 py-10 text-center text-lg font-semibold text-black/90"
+                          className="px-4 py-10 text-lg font-medium text-black/90"
                         >
-                          {storeConnectionMessage ||
-                            "Shopify store not connected"}
+                          <div className="flex flex-col items-center justify-center gap-2 text-center">
+                            <Store className="w-12 h-12 text-gray-300" />
+                            <span>
+                              {storeConnectionMessage ||
+                                "Shopify store not connected"}
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              Click "Link New Shopify Store" to get started.
+                            </span>
+                          </div>
                         </td>
                       </tr>
                     )}

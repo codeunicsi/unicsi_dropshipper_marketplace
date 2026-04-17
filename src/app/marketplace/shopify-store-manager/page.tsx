@@ -2,6 +2,7 @@
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
 import { apiClient } from "@/hooks/marketplace/useShopifySecret";
 import {
+  ArrowUpRight,
   Check,
   Copy,
   ExternalLink,
@@ -56,8 +57,7 @@ type LinkStep = {
   tooltipContent?: string;
 };
 
-const shopifyStoreAdminUrl =
-  "https://admin.shopify.com/store/qwqs68-0w?ui_locales=en-IN";
+const shopifyStoreAdminUrl = "https://admin.shopify.com";
 const appUrl = "https://unicsi.com";
 const redirectUrl =
   "https://apis.unicsi.com/api/v1/dropshipper/shopify/callback";
@@ -782,6 +782,18 @@ export default function ShopifyStoreManagerPage() {
                           </span>
                         </span>
                       </span>
+                    )}
+                    {step.id === "release" && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsLinkStoreDrawerOpen(false);
+                          void openCredentialsModal();
+                        }}
+                        className="ml-2 text-[#2563eb] underline underline-offset-2 hover:text-[#1d4ed8]"
+                      >
+                        click here
+                      </button>
                     )}
                   </li>
                 ))}
