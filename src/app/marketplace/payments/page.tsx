@@ -93,86 +93,89 @@ const PaymentsPage = ({
   };
   return (
     <>
-      <div className="flex justify-between">
+      {/* HEADER */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        {/* Left */}
         <div>
-          <p className="text-base text-gray-500">Payments /</p>
-          <h1 className="text-2xl text-black font-bold py-1">
+          <p className="text-sm text-gray-500">Payments /</p>
+          <h1 className="text-xl sm:text-2xl font-bold py-1">
             Payment History
           </h1>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="w-60 h-24 flex gap-2 bg-purple-100 rounded-sm">
-            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center mx-3 my-2">
-              <IndianRupeeIcon className="w-5 h-5" />
+
+        {/* Right Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full lg:w-auto">
+          {/* Card 1 */}
+          <div className="flex items-center gap-3 bg-purple-100 p-3 rounded-sm w-full">
+            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
+              <IndianRupeeIcon className="w-4 h-4" />
             </div>
-            <span className="text-lg font-bold text-purple-600 my-3">
-              ₹0
-              <p className="text-xs text-black/90 my-1">
-                Total payment till date
-              </p>
-            </span>
+            <div>
+              <p className="text-base font-bold text-purple-600">₹0</p>
+              <p className="text-xs text-black/80">Total payment till date</p>
+            </div>
           </div>
-          <div className="w-60 h-24 bg-red-100 rounded-sm flex">
-            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center mx-3 my-2">
-              <IndianRupeeIcon className="w-5 h-5 text-red-600" />
+
+          {/* Card 2 */}
+          <div className="flex items-center gap-3 bg-red-100 p-3 rounded-sm w-full">
+            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
+              <IndianRupeeIcon className="w-4 h-4 text-red-600" />
             </div>
-            <span className="text-lg font-bold text-red-600 my-3">
-              ₹0
-              <p className="text-xs text-black/90 my-1">Current outstanding</p>
-              <p className="text-xs text-black/90 font-medium my-1">
-                (As of Today)
-              </p>
-            </span>
+            <div>
+              <p className="text-base font-bold text-red-600">₹0</p>
+              <p className="text-xs text-black/80">Current outstanding</p>
+              <p className="text-xs text-black/80">(As of Today)</p>
+            </div>
           </div>
         </div>
       </div>
-      <div className="flex gap-3 my-6">
-        <div>
+
+      {/* FILTERS */}
+      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-4 my-6">
+        {/* Date */}
+        <div className="w-full sm:w-auto">
           <label className="text-xs">Payment Date</label>
           <DateDropdown label="--Select--" />
         </div>
-        <div>
+
+        {/* Cycle */}
+        <div className="w-full sm:w-auto">
           <label className="text-xs">Payment Cycle</label>
           <IconDropdown
             icon={BadgeIndianRupee}
             label="--Select--"
-            className="text-xs font-semibold rounded-sm text-black/80 "
-            labelClassName="text-xs"
+            className="text-xs font-semibold rounded-sm text-black/80"
+            labelClassName="text-xs bg-white"
             items={[
-              {
-                label: "Daily",
-                onClick: () => console.log("Option 1 clicked"),
-              },
-              {
-                label: "Weekly",
-                onClick: () => console.log("Option 2 clicked"),
-              },
+              { label: "Daily", onClick: () => {} },
+              { label: "Weekly", onClick: () => {} },
             ]}
           />
         </div>
-        <div>
+
+        {/* Search */}
+        <div className="w-full sm:flex-1">
           <label className="text-xs">Search By Transaction ID</label>
-          <div className="flex items-center w-2/3 h-8 border-y bg-white">
-            {" "}
-            {/* Input */}
+          <div className="flex items-center w-full h-9 bg-white border">
             <input
               type="text"
               value={query}
               placeholder={placeholder}
               onChange={(e) => setQuery(e.target.value)}
-              className="flex-1 h-8 px-3 text-xs outline-none border"
+              className="flex-1 h-full px-3 text-xs outline-none"
             />
-            {/* Search Button */}
             <button
               onClick={handleSearch}
-              className="h-8 px-2 bg-black text-white flex items-center rounded-xs rounded-r-sm justify-center hover:bg-black/80 transition"
+              className="h-full px-3 bg-black text-white flex items-center justify-center hover:bg-black/80"
             >
               <Search className="w-4 h-4" />
             </button>
           </div>
         </div>
       </div>
-      <div className="my-6">
+
+      {/* TABLE */}
+      <div className="my-6 overflow-x-auto">
         <DataTable
           columns={columns}
           data={payments}

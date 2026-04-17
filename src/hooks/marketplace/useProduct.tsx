@@ -49,6 +49,7 @@ export interface Product {
   category?: Category;
   dropshipperSellingPrice: number;
   gst_rate?:string;
+  mrp:string
 }
 
 export interface ProductVariant {

@@ -17,7 +17,7 @@ type ActiveTabsProps = {
 export function ActiveTabs({ tabs, active, onChange }: ActiveTabsProps) {
   return (
     <div className="border-b">
-      <div className="flex gap-8">
+      <div className="flex  gap-8">
         {tabs.map((tab) => {
           const isActive = active === tab.value;
 

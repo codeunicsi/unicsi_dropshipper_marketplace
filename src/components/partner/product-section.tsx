@@ -110,23 +110,27 @@ function ProductsBlock({
   })();
 
   return (
-    <div className={`${bgColor} rounded-2xl border border-slate-200 p-8 mb-8`}>
+    <div
+      className={`${bgColor} mb-6 rounded-2xl border border-slate-200 p-3 sm:p-4 md:mb-8 md:p-8`}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-slate-900">{title}</h2>
+      <div className="mb-4 flex items-center justify-between gap-3 sm:mb-6">
+        <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
+          {title}
+        </h2>
 
         <div className="flex gap-2">
           <button
             onClick={() => handleScroll("left")}
-            className="p-2 hover:bg-slate-100 rounded-full"
+            className="rounded-full p-2 hover:bg-slate-100"
           >
-            <ChevronLeft className="w-5 h-5 text-slate-600" />
+            <ChevronLeft className="h-5 w-5 text-slate-600" />
           </button>
           <button
             onClick={() => handleScroll("right")}
-            className="p-2 hover:bg-slate-100 rounded-full"
+            className="rounded-full p-2 hover:bg-slate-100"
           >
-            <ChevronRight className="w-5 h-5 text-slate-600" />
+            <ChevronRight className="h-5 w-5 text-slate-600" />
           </button>
         </div>
       </div>
@@ -153,7 +157,7 @@ function ProductsBlock({
       {/* Products */}
       <div
         ref={scrollRef}
-        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+        className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4"
       >
         {products.map((product) => {
           return (
@@ -235,11 +239,13 @@ export default function ProductsSection({
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4">
+    <div className="w-full max-w-6xl px-0 md:mx-auto md:px-4">
       {/* Category Section */}
       {categoryId && (
-        <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-8">
-          <h2 className="text-2xl font-bold mb-6">Products in this category</h2>
+        <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 md:mb-8 md:p-8">
+          <h2 className="mb-4 text-xl font-bold sm:mb-6 sm:text-2xl">
+            Products in this category
+          </h2>
 
           {categoryLoading ? (
             <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
@@ -249,7 +255,7 @@ export default function ProductsSection({
               <p>No products found</p>
             </div>
           ) : (
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
               {categoryProducts.map((p) => (
                 <ProductCard
                   key={p.product_id}
