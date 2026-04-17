@@ -349,7 +349,7 @@ const CartDrawer = ({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-6">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-28 space-y-6">
           <CartItem name={productTitle} sku={productSku} image={productImage} />
 
           <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-b border-slate-200 pb-4">
