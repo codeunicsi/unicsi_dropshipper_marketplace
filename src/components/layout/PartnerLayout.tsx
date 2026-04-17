@@ -33,9 +33,8 @@ export function PartnerLayout({ children }: { children: React.ReactNode }) {
         <PartnerHeader onMenuClick={() => setIsMobileOpen(true)} />
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-2 sm:p-6 md:pb-20 lg:pb-6">{children}</div>{" "}
-          {/* 👈 added pb-20 lg:pb-6 */}
+        <main className="flex-1 overflow-y-auto pb-24 lg:pb-6">
+          <div className="p-2 sm:p-6">{children}</div>
         </main>
       </div>
       {/* Bottom Nav (mobile only) */}
