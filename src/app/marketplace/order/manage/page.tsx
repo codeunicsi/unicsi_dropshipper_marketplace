@@ -448,7 +448,7 @@ export default function OrdersPage() {
           </p>
         )}
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-6 grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
           {isDisconnectedSkeleton ? (
             <>
               {/* {Array.from({ length: 4 }).map((_, index) => (
@@ -489,24 +489,24 @@ export default function OrdersPage() {
           <div className="border-b border-[#dbdbd6] pb-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               {isDisconnectedSkeleton ? (
-                <div className="inline-flex overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
+                <div className="flex overflow-x-auto rounded-2xl border border-[#cbcbc7] bg-white">
                   {Array.from({ length: 3 }).map((_, index) => (
                     <div
                       key={`tab-skeleton-${index}`}
-                      className="border-r border-[#cbcbc7] px-6 py-3 last:border-r-0"
+                      className="flex-shrink-0 border-r border-[#cbcbc7] px-4 py-3 last:border-r-0 sm:px-6"
                     >
-                      <div className="h-5 w-20 rounded bg-[#e8e8e3] animate-pulse" />
+                      <div className="h-5 w-16 rounded bg-[#e8e8e3] animate-pulse" />
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="inline-flex overflow-hidden rounded-2xl border border-[#cbcbc7] bg-white">
+                <div className="flex overflow-x-auto rounded-2xl border border-[#cbcbc7] bg-white">
                   {tabs.map((tab) => (
                     <button
                       key={tab.value}
                       type="button"
                       onClick={() => setActiveTab(tab.value)}
-                      className={`border-r border-[#cbcbc7] px-6 py-3 text-sm font-semibold text-[#202020] last:border-r-0 ${
+                      className={`flex-shrink-0 border-r border-[#cbcbc7] px-4 py-3 text-sm font-semibold text-[#202020] last:border-r-0 sm:px-6 ${
                         activeTab === tab.value ? "bg-[#f2f2ed]" : "bg-white"
                       }`}
                     >
@@ -683,7 +683,7 @@ export default function OrdersPage() {
                   </div>
                 )}
 
-              <div className="overflow-x-auto rounded-xl border border-[#dcdcd7] bg-white">
+              <div className="hidden md:block overflow-x-auto rounded-xl border border-[#dcdcd7] bg-white">
                 <table className="w-full min-w-[780px] border-collapse">
                   <thead className="border-b border-[#dfdfda]">
                     <tr className="text-left text-sm font-medium text-[#474742]">
@@ -939,7 +939,7 @@ export default function OrdersPage() {
                             <ArrowUpRight className="h-4 w-4" />
                           </button>
                         )}
-                      </div> 
+                      </div>
                     </div>
                   </div>
                 ))}
