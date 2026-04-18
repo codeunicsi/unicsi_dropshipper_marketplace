@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, Check, RefreshCcw, Store } from "lucide-react";
 import { useSyncOrders } from "@/hooks/useSyncOrders";
+import { useCreateShopifyWebhooks } from "@/hooks/useCreateShopifyWebhooks";
+import { useUnregisterShopifyWebhooks } from "@/hooks/useUnregisterShopifyWebhooks";
 import { apiClient } from "@/lib/api-client";
 type PanelTab = "orders" | "webhooks" | "setup";
 
@@ -279,6 +281,8 @@ function PaymentBadge({ payment }: { payment: string }) {
 
 export default function OrdersPage() {
   const { syncOrders } = useSyncOrders();
+  const { createShopifyWebhooks } = useCreateShopifyWebhooks();
+  const { unregisterShopifyWebhooks } = useUnregisterShopifyWebhooks();
   const [activeTab, setActiveTab] = useState<PanelTab>("orders");
   const [search, setSearch] = useState("");
   const [orderRows, setOrderRows] = useState<OrderRow[]>([]);
@@ -400,6 +404,27 @@ export default function OrdersPage() {
     }
   };
 
+  const handleCreateWebhooks = async () => {
+    try {
+      await createShopifyWebhooks.mutateAsync({
+        shop_id: 1,
+      });
+    } catch (error) {
+      console.error("Failed to create Shopify webhooks", error);
+    }
+  };
+
+  const handleUnregisterWebhooks = async () => {
+    try {
+      await unregisterShopifyWebhooks.mutateAsync({
+        shop: "qwqs68-0w.myshopify.com",
+        access_token: "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",
+      });
+    } catch (error) {
+      console.error("Failed to unregister Shopify webhooks", error);
+    }
+  };
+
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:p-6">
       <section className="rounded-[6px] sm:p-6">
@@ -425,7 +450,7 @@ export default function OrdersPage() {
               disabled={
                 syncOrders.isPending || !isStoreConnected || isStoreCheckLoading
               }
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[#d5d5d0] bg-white px-5 py-3 text-sm font-medium text-[#222] sm:w-auto"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[#d5d5d0] bg-white px-5 py-3 text-sm font-medium text-[#222] sm:w-auto cursor-pointer"
             >
               <RefreshCcw
                 className={`h-5 w-5 ${syncOrders.isPending ? "animate-spin" : ""}`}
@@ -435,9 +460,17 @@ export default function OrdersPage() {
 
             <button
               type="button"
-              className="w-full rounded-2xl border border-[#d5d5d0] bg-white px-5 py-3 text-sm font-semibold text-[#222] sm:w-auto"
+              onClick={handleCreateWebhooks}
+              disabled={
+                createShopifyWebhooks.isPending ||
+                !isStoreConnected ||
+                isStoreCheckLoading
+              }
+              className="w-full rounded-2xl border border-[#d5d5d0] bg-white px-5 py-3 text-sm font-medium text-[#222] disabled:opacity-60 sm:w-auto cursor-pointer"
             >
-              Manage webhooks
+              {createShopifyWebhooks.isPending
+                ? "Creating webhooks..."
+                : "Manage webhooks"}
             </button>
           </div>
         </header>
@@ -445,6 +478,18 @@ export default function OrdersPage() {
         {syncOrders.isError && (
           <p className="mt-2 text-xs text-red-600">
             {(syncOrders.error as Error)?.message || "Failed to sync orders"}
+          </p>
+        )}
+        {createShopifyWebhooks.isError && (
+          <p className="mt-2 text-xs text-red-600">
+            {(createShopifyWebhooks.error as Error)?.message ||
+              "Failed to create webhooks"}
+          </p>
+        )}
+        {unregisterShopifyWebhooks.isError && (
+          <p className="mt-2 text-xs text-red-600">
+            {(unregisterShopifyWebhooks.error as Error)?.message ||
+              "Failed to unregister webhooks"}
           </p>
         )}
 
@@ -834,9 +879,13 @@ export default function OrdersPage() {
                 </p>
                 <button
                   type="button"
+                  onClick={handleUnregisterWebhooks}
+                  disabled={unregisterShopifyWebhooks.isPending}
                   className="inline-flex h-10 w-full items-center justify-center gap-1 rounded-xl border border-[#d7d7d2] bg-white px-4 text-sm font-semibold text-[#222] sm:w-auto"
                 >
-                  + Add topic
+                  {unregisterShopifyWebhooks.isPending
+                    ? "Unregistering..."
+                    : "+ Add topic"}
                   <ArrowUpRight className="h-4 w-4" />
                 </button>
               </div>
