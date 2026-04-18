@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpRight, Check, RefreshCcw, Store } from "lucide-react";
+import { ArrowUpRight, Check, Power, RefreshCcw, Store } from "lucide-react";
 import { useSyncOrders } from "@/hooks/useSyncOrders";
 import { useCreateShopifyWebhooks } from "@/hooks/useCreateShopifyWebhooks";
 import { useUnregisterShopifyWebhooks } from "@/hooks/useUnregisterShopifyWebhooks";
@@ -296,6 +296,8 @@ export default function OrdersPage() {
     useState<(typeof orderStatusOptions)[number]>("All statuses");
   const [webhookRows, setWebhookRows] = useState<WebhookRow[]>(initialWebhooks);
   const isDisconnectedSkeleton = !isStoreConnected && !isStoreCheckLoading;
+  const allWebhooksEnabled =
+    webhookRows.length > 0 && webhookRows.every((row) => row.registered);
 
   const handleMarkConfirmed = (orderId: string) => {
     setOrderRows((previousRows) =>
@@ -422,6 +424,34 @@ export default function OrdersPage() {
       });
     } catch (error) {
       console.error("Failed to unregister Shopify webhooks", error);
+    }
+  };
+
+  const handleToggleAllWebhooks = async () => {
+    if (allWebhooksEnabled) {
+      try {
+        await unregisterShopifyWebhooks.mutateAsync({
+          shop: "qwqs68-0w.myshopify.com",
+          access_token: "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",
+        });
+        setWebhookRows((prev) =>
+          prev.map((row) => ({ ...row, registered: false })),
+        );
+      } catch (error) {
+        console.error("Failed to disable all webhooks", error);
+      }
+      return;
+    }
+
+    try {
+      await createShopifyWebhooks.mutateAsync({
+        shop_id: 1,
+      });
+      setWebhookRows((prev) =>
+        prev.map((row) => ({ ...row, registered: true })),
+      );
+    } catch (error) {
+      console.error("Failed to enable all webhooks", error);
     }
   };
 
@@ -877,17 +907,53 @@ export default function OrdersPage() {
                 <p className="text-sm font-medium text-[#30302c]">
                   Auto-sync triggers registered on your Shopify store
                 </p>
-                <button
-                  type="button"
-                  onClick={handleUnregisterWebhooks}
-                  disabled={unregisterShopifyWebhooks.isPending}
-                  className="inline-flex h-10 w-full items-center justify-center gap-1 rounded-xl border border-[#d7d7d2] bg-white px-4 text-sm font-semibold text-[#222] sm:w-auto"
-                >
-                  {unregisterShopifyWebhooks.isPending
-                    ? "Unregistering..."
-                    : "+ Add topic"}
-                  <ArrowUpRight className="h-4 w-4" />
-                </button>
+                <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+                  <button
+                    type="button"
+                    onClick={handleToggleAllWebhooks}
+                    disabled={
+                      createShopifyWebhooks.isPending ||
+                      unregisterShopifyWebhooks.isPending ||
+                      !isStoreConnected ||
+                      isStoreCheckLoading
+                    }
+                    className="inline-flex h-10 items-center justify-between gap-3 rounded-xl border border-[#d7d7d2] bg-white px-3 py-2 text-left disabled:opacity-60 sm:w-[290px]"
+                  >
+                    <span className="inline-flex items-center gap-3">
+                      <span className="inline-flex h-7.5 w-7.5 items-center justify-center rounded-lg bg-[#dceecd] text-[#3f7c25]">
+                        <Power className="h-4 w-4 " />
+                      </span>
+                      <span>
+                        <span className="block text-sm font-semibold text-[#1f2937]">
+                          Enable All Webhooks
+                        </span>
+                      </span>
+                    </span>
+                    <span
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        allWebhooksEnabled ? "bg-[#3f7c25]" : "bg-[#d1d5db]"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                          allWebhooksEnabled ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleUnregisterWebhooks}
+                    disabled={unregisterShopifyWebhooks.isPending}
+                    className="inline-flex h-10 w-full items-center justify-center gap-1 rounded-xl border border-[#d7d7d2] bg-white px-4 text-sm font-semibold text-[#222] sm:w-auto"
+                  >
+                    {unregisterShopifyWebhooks.isPending
+                      ? "Unregistering..."
+                      : "+ Add topic"}
+                    <ArrowUpRight className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
 
               <div className="rounded-xl border border-[#ddddda] bg-white">
