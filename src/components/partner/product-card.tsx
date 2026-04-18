@@ -49,7 +49,7 @@ export default function ProductCard({
   };
 
   return (
-    <div className="flex h-full flex-col rounded-lg bg-white p-2 shadow-sm transition-shadow duration-200 hover:shadow-md sm:p-2.5">
+    <div className="group flex h-full transform-gpu flex-col rounded-lg bg-white p-2 shadow-sm transition-all duration-300 ease-out hover:-translate-y-5 hover:scale-105 hover:shadow-xl focus-within:-translate-y-5 focus-within:shadow-xl sm:p-2.5">
       <div className="flex-1">
         <div
           onClick={handleRedirect}
@@ -59,7 +59,7 @@ export default function ProductCard({
             <img
               src={image}
               alt={name}
-              className="h-full w-full object-fill transition-transform duration-200 hover:scale-105"
+              className="h-full w-full object-fill transition-transform duration-300 ease-out group-hover:scale-105"
               onError={(e) => {
                 (e.target as HTMLImageElement).src =
                   "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop";
@@ -115,25 +115,26 @@ export default function ProductCard({
               </span>
             </div>
           </div>
-
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:gap-1 sm:py-2">
-        <Button
-          onClick={handlePushToShopify}
-          className="min-h-0 flex-1 rounded-lg bg-amber-500 px-2 py-2 text-[11px] leading-none font-semibold text-white hover:bg-amber-600 sm:rounded-lg sm:py-2 sm:text-xs"
-        >
-          Push to Shopify
-        </Button>
+      <div className="h-[88px] pt-2 sm:h-[52px]">
+        <div className="flex h-full flex-col gap-2 opacity-0 translate-y-2 pointer-events-none transition-all duration-300 ease-out group-hover:translate-y-0 group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 group-focus-within:pointer-events-auto sm:flex-row sm:gap-1">
+          <Button
+            onClick={handlePushToShopify}
+            className="min-h-0 flex-1 rounded-lg bg-amber-500 px-2 py-2 text-[11px] leading-none font-semibold text-white hover:bg-amber-600 sm:rounded-lg sm:py-2 sm:text-xs"
+          >
+            Push to Shopify
+          </Button>
 
-        <Button
-          onClick={handleBulkOrder}
-          className="min-h-0 flex flex-1 cursor-pointer items-center justify-center rounded-lg border border-amber-900 bg-white px-2 py-2 text-[11px] leading-none font-semibold text-amber-900 hover:bg-amber-900/10 sm:rounded-lg sm:py-2 sm:text-xs"
-        >
-          Bulk Order
-        </Button>
+          <Button
+            onClick={handleBulkOrder}
+            className="min-h-0 flex flex-1 cursor-pointer items-center justify-center rounded-lg border border-amber-900 bg-white px-2 py-2 text-[11px] leading-none font-semibold text-amber-900 hover:bg-amber-900/10 sm:rounded-lg sm:py-2 sm:text-xs"
+          >
+            Bulk Order
+          </Button>
+        </div>
       </div>
-    </div> 
+    </div>
   );
 }
