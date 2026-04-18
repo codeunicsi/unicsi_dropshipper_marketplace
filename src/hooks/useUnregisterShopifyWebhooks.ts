@@ -3,7 +3,26 @@
 import { useMutation } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 
-const UNREGISTER_WEBHOOKS_ENDPOINT = "dropshipper/shopify/webhooks/unregister";
+const REGISTER_WEBHOOKS_ENDPOINT = "dropshipper/shopify/webhook/register";
+
+type RegisterShopifyWebhooksPayload = {
+  shop: string;
+  access_token: string;
+};
+
+export const useRegisterShopifyWebhooks = () => {
+  const registerShopifyWebhooks = useMutation({
+    mutationFn: async (payload: RegisterShopifyWebhooksPayload) =>
+      apiClient.post(REGISTER_WEBHOOKS_ENDPOINT, payload),
+  });
+
+  return {
+    registerShopifyWebhooks,
+  };
+};
+
+
+const UNREGISTER_WEBHOOKS_ENDPOINT = "dropshipper/shopify/webhook/unregister";
 
 type UnregisterShopifyWebhooksPayload = {
   shop: string;
@@ -20,4 +39,3 @@ export const useUnregisterShopifyWebhooks = () => {
     unregisterShopifyWebhooks,
   };
 };
-
