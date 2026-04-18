@@ -49,7 +49,7 @@ export default function ProductCard({
   };
 
   return (
-    <div className="flex h-full flex-col rounded-lg bg-white p-2 shadow-sm transition-shadow duration-200 hover:shadow-md sm:p-2.5">
+    <div className="group flex h-full transform-gpu flex-col rounded-lg bg-white p-2 shadow-sm transition-all duration-300 ease-out hover:-translate-y-4 hover:shadow-xl focus-within:-translate-y-4 focus-within:shadow-xl sm:p-2.5">
       <div className="flex-1">
         <div
           onClick={handleRedirect}
@@ -59,7 +59,7 @@ export default function ProductCard({
             <img
               src={image}
               alt={name}
-              className="h-full w-full object-fill transition-transform duration-200 hover:scale-105"
+              className="h-full w-full object-fill transition-transform duration-300 ease-out group-hover:scale-105"
               onError={(e) => {
                 (e.target as HTMLImageElement).src =
                   "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop";
@@ -115,7 +115,6 @@ export default function ProductCard({
               </span>
             </div>
           </div>
-
         </div>
       </div>
 
@@ -134,6 +133,6 @@ export default function ProductCard({
           Bulk Order
         </Button>
       </div>
-    </div> 
+    </div>
   );
 }
