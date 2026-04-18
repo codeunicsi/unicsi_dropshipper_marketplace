@@ -16,7 +16,7 @@ import Navbar from "@/components/landing/Navbar";
 export default function Home() {
   console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen min-w-0 bg-white overflow-x-clip">
       <Navbar />
       <Hero />
       <CTASection />
