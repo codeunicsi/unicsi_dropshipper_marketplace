@@ -1,14 +1,16 @@
 "use client";
 
-import type { MouseEvent } from "react";
+import { type MouseEvent, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ProductCardProps {
   id: string;
   name: string;
   price: number;
   image: string;
+  images?: string[];
   rating?: number;
   reviews?: number;
   inStock?: boolean;
@@ -24,14 +26,30 @@ export default function ProductCard({
   name,
   price,
   image,
+  images,
   inStock = true,
   onPushToShopify,
   stock,
   sku,
 }: ProductCardProps) {
   const router = useRouter();
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const stockCount = stock ?? 0;
   const isOutOfStock = stockCount <= 0 || !inStock;
+  const fallbackImage =
+    "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop";
+
+  const imageList = useMemo(() => {
+    const merged = [...(images ?? []), image];
+    const cleaned = merged
+      .map((url) => (url ?? "").trim())
+      .filter((url) => url.length > 0);
+    return cleaned.length > 0 ? cleaned : [fallbackImage];
+  }, [image, images]);
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [id, imageList.length]);
 
   const handleRedirect = () => {
     if (!id) return;
@@ -48,6 +66,20 @@ export default function ProductCard({
     router.push(`/marketplace/bulk-order/${id}`);
   };
 
+  const handlePreviousImage = (e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    if (imageList.length <= 1) return;
+    setActiveImageIndex((prev) =>
+      prev === 0 ? imageList.length - 1 : prev - 1,
+    );
+  };
+
+  const handleNextImage = (e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    if (imageList.length <= 1) return;
+    setActiveImageIndex((prev) => (prev + 1) % imageList.length);
+  };
+
   return (
     <div className="group flex h-full transform-gpu flex-col rounded-lg bg-white p-2 shadow-sm transition-all duration-300 ease-out hover:-translate-y-5 hover:scale-105 hover:shadow-xl focus-within:-translate-y-5 focus-within:shadow-xl sm:p-2.5">
       <div className="flex-1">
@@ -55,14 +87,13 @@ export default function ProductCard({
           onClick={handleRedirect}
           className="relative mb-2 h-40 w-full cursor-pointer overflow-hidden rounded-md bg-slate-100 sm:mb-3 sm:h-44 lg:h-40"
         >
-          {image ? (
+          {imageList[activeImageIndex] ? (
             <img
-              src={image}
+              src={imageList[activeImageIndex]}
               alt={name}
               className="h-full w-full object-fill transition-transform duration-300 ease-out group-hover:scale-105"
               onError={(e) => {
-                (e.target as HTMLImageElement).src =
-                  "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop";
+                (e.target as HTMLImageElement).src = fallbackImage;
                 (e.target as HTMLImageElement).onerror = null;
               }}
             />
@@ -70,6 +101,27 @@ export default function ProductCard({
             <div className="flex h-full w-full items-center justify-center text-xs text-slate-400">
               No image
             </div>
+          )}
+
+          {imageList.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={handlePreviousImage}
+                aria-label="Previous image"
+                className="absolute left-2 top-1/2 z-10 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={handleNextImage}
+                aria-label="Next image"
+                className="absolute right-2 top-1/2 z-10 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </>
           )}
         </div>
 
