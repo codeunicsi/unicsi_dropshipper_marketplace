@@ -146,7 +146,7 @@ function getTextClasses(position: string) {
       return {
         outerFlex: "justify-start",
         innerText: "text-left",
-        padding: "pl-20 sm:pl-24 md:pl-28 lg:pl-36",
+        padding: "pl-3 sm:pl-10 md:pl-20 lg:pl-28 xl:pl-36",
       };
     case "center":
       return {
@@ -158,7 +158,7 @@ function getTextClasses(position: string) {
       return {
         outerFlex: "justify-end",
         innerText: "text-right",
-        padding: "pr-6 sm:pr-10 md:pr-16 lg:pr-24",
+        padding: "pr-3 sm:pr-8 md:pr-16 lg:pr-24",
       };
   }
 }
@@ -241,10 +241,10 @@ const Hero = () => {
   );
 
   return (
-    <div className="relative w-full overflow-hidden">
+    <div className="relative w-full min-w-0 overflow-x-clip overflow-y-visible">
       <div
         ref={heroRef}
-        className="relative w-full h-[97vh] sm:h-[80vh] md:h-[930px] mx-auto overflow-hidden"
+        className="relative w-full min-w-0 h-[97vh] sm:h-[80vh] md:h-[930px] mx-auto overflow-hidden"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
       >
@@ -274,17 +274,17 @@ const Hero = () => {
             exit={{ opacity: 0, y: -12, filter: "blur(4px)" }}
             transition={{ duration: 0.55, ease: easeOut, delay: 0.15 }}
             className={`absolute inset-0 z-40 flex items-center pointer-events-none md:-mt-20 
-  max-lg:!justify-center max-lg:!px-5 max-lg:!pl-5 max-lg:!pr-5 max-lg:!items-start max-lg:!pt-30
+  max-lg:!justify-center max-lg:!px-4 max-lg:!pl-4 max-lg:!pr-4 max-lg:!items-start max-lg:!pt-24
   ${textStyle.outerFlex} ${textStyle.padding}`}
           >
             <div
-              className={`max-w-xl w-full max-lg:!text-center ${textStyle.innerText}`}
+              className={`max-w-xl w-full min-w-0 max-lg:max-w-[min(100%,36rem)] max-lg:!text-center ${textStyle.innerText}`}
             >
               {/* Regular heading lines */}
               {headingLines.map((text, i) => (
                 <h1
                   key={i}
-                  className={`${currentSlide.line1Class} max-lg:whitespace-normal ${wrapClass} text-white mb-1 sm:mb-2 leading-tight tracking-wide min-h-[1.2em]`}
+                  className={`${currentSlide.line1Class} max-lg:whitespace-normal max-lg:break-words ${wrapClass} text-white mb-1 sm:mb-2 leading-tight tracking-wide min-h-[1.2em]`}
                 >
                   {text}
                   <Cursor show={!typewriterDone && typingLineIndex === i} />
@@ -293,7 +293,7 @@ const Hero = () => {
 
               {/* "WITH UNICSI" line — typewritten for all slides */}
               <h1
-                className={`${currentSlide.line2Class} max-lg:whitespace-normal ${wrapClass} text-white mb-4 sm:mb-6 md:mb-8 leading-tight tracking-wide min-h-[1.2em]`}
+                className={`${currentSlide.line2Class} max-lg:whitespace-normal max-lg:break-words ${wrapClass} text-white mb-4 sm:mb-6 md:mb-8 leading-tight tracking-wide min-h-[1.2em]`}
               >
                 {unicsiLine}
                 <Cursor
@@ -328,7 +328,7 @@ const Hero = () => {
 
         {/* ── NAV DOTS ── */}
         <div
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-3 lg:gap-4 bg-white py-3 lg:py-5 px-[7px] lg:px-[10px] shadow-lg"
+          className="absolute left-0 top-1/2 z-50 flex -translate-y-1/2 flex-col items-center gap-2 bg-white py-2.5 px-1 shadow-lg max-lg:top-[42%] max-lg:gap-1.5 max-lg:py-2 lg:gap-4 lg:py-5 lg:px-[10px]"
           style={{ borderRadius: "0 1rem 1rem 0" }}
         >
           {SLIDES.map((_, i) => {
