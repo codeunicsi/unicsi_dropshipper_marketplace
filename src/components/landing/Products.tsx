@@ -111,8 +111,9 @@ const Products = ({ isInView }: PopularProductsProps) => {
 
   return (
     <div
-      className="relative w-full max-w-7xl mx-auto mt-[-300px] sm:mt-12 md:mt-[-300px] lg:mt-[-300px] 
-  px-4 sm:px-6 md:px-10 py-12 overflow-hidden bg-black/40 lg:bg-transparent"
+      className="relative w-full max-w-7xl mx-auto min-w-0
+      mt-6 sm:mt-12 md:mt-[-200px] lg:mt-[-260px] xl:mt-[-300px]
+      px-3 sm:px-6 md:px-10 py-8 sm:py-12 overflow-x-clip overflow-y-visible bg-black/40 lg:bg-transparent"
     >
       {/* Background Image using Next.js Image */}
       <Image
@@ -124,24 +125,30 @@ const Products = ({ isInView }: PopularProductsProps) => {
       />
 
       {/* Content Wrapper */}
-      <div className="relative z-10 pointer-events-auto">
-        {/* Header Search */}
-        <div className="relative z-40 pb-6 sm:pb-8 md:pb-8 flex">
-          <div className="w-full max-w-2xl md:max-w-[60%] bg-white backdrop-blur-md rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-5 flex flex-row items-center gap-3 sm:gap-4 shadow-2xl border border-white/30">
-            <SearchIcon
-              className="ml-2 sm:ml-3 mr-2 sm:mr-4 flex-shrink-0 text-black"
-              size={18}
-            />
-
-            <input
-              type="text"
-              placeholder="Find the product you're looking for"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 bg-transparent outline-none text-gray-800 placeholder-black text-sm sm:text-base md:text-lg w-full"
-            />
-
-            <button className="my-button cursor-pointer text-white px-4 sm:px-6 md:px-10 py-2 sm:py-3 rounded-full font-bold text-sm sm:text-base md:text-lg whitespace-nowrap cursor-pointer">
+      <div className="relative z-10 pointer-events-auto w-full min-w-0">
+        {/* Header Search — stack on narrow screens so row never overflows */}
+        <div className="relative z-40 pb-6 sm:pb-8 md:pb-8 w-full min-w-0 flex">
+          <div
+            className="w-full min-w-0 max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-[60%] bg-white backdrop-blur-md rounded-xl sm:rounded-2xl p-2.5 sm:p-4 md:p-5
+            flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3 md:gap-4 shadow-2xl border border-white/30"
+          >
+            <div className="flex min-w-0 w-full items-center gap-2 sm:gap-3 sm:flex-1 sm:min-w-0">
+              <SearchIcon
+                className="ml-1 sm:ml-2 shrink-0 text-black"
+                size={18}
+              />
+              <input
+                type="text"
+                placeholder="Find the product you're looking for"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="min-w-0 flex-1 bg-transparent outline-none text-gray-800 placeholder:text-gray-500 text-sm sm:text-base md:text-lg"
+              />
+            </div>
+            <button
+              type="button"
+              className="my-button shrink-0 text-white px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 rounded-full font-bold text-sm sm:text-base md:text-lg whitespace-nowrap w-full sm:w-auto cursor-pointer"
+            >
               <span>Search</span>
             </button>
           </div>
@@ -152,7 +159,7 @@ const Products = ({ isInView }: PopularProductsProps) => {
           initial={{ opacity: 0, x: -30 }}
           animate={isInView ? { opacity: 1, x: 0 } : {}}
           transition={{ duration: 0.7 }}
-          className="text-xl sm:text-3xl md:text-4xl font-normal text-white mb-8"
+          className="text-xl sm:text-3xl md:text-4xl font-normal text-white mb-6 sm:mb-8 pr-1 break-words"
         >
           Popular Products
         </motion.h2>
@@ -237,7 +244,7 @@ const Products = ({ isInView }: PopularProductsProps) => {
         </div>
 
         {/* Bottom Controls Section */}
-        <div className="flex justify-between items-center mt-10">
+        <div className="flex flex-wrap justify-between items-center gap-4 mt-8 sm:mt-10">
           {/* Left Side Arrows */}
           <div className="flex gap-3">
             <button

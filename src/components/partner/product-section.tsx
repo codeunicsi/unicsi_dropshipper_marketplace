@@ -25,6 +25,7 @@ type UIProduct = {
   name: string;
   price: number;
   image: string;
+  images?: string[];
   weightGrams?: number;
   stock?: any;
   color?: string;
@@ -38,12 +39,16 @@ const transformProducts = (products: Product[]): UIProduct[] => {
   return products.map((product) => {
     const firstVariant = product.variants?.[0]; // ✅ FIRST VARIANT
     const image = product.images?.[0];
+    const allImages = (product.images ?? [])
+      .map((img) => String(img?.image_url ?? "").trim())
+      .filter((url) => !!url);
 
     return {
       id: product.product_id,
       name: product.title,
       price: Number(firstVariant?.price ?? 0),
       image: image?.image_url || "/placeholder.png",
+      images: allImages,
       weightGrams: Number(firstVariant?.weight_grams ?? 0),
       stock: firstVariant?.inventory_quantity ?? 0, // ✅ FIXED
       color: firstVariant?.option1 ?? "",
@@ -263,6 +268,9 @@ export default function ProductsSection({
                   name={p.title}
                   price={Number(p.variants?.[0]?.variant_price ?? 0)}
                   image={p.images?.[0]?.image_url ?? ""}
+                  images={(p.images ?? [])
+                    .map((img) => String(img?.image_url ?? "").trim())
+                    .filter((url) => !!url)}
                   onPushToShopify={() => {}}
                 />
               ))}

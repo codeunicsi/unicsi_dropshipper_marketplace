@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpRight, Check, RefreshCcw, Store } from "lucide-react";
+import { ArrowUpRight, Check, Power, RefreshCcw, Store } from "lucide-react";
 import { useSyncOrders } from "@/hooks/useSyncOrders";
+// import { useRegisterShopifyWebhooks } from "@/hooks/useRegisterShopifyWebhooks";
+import { useUnregisterShopifyWebhooks,useRegisterShopifyWebhooks } from "@/hooks/useUnregisterShopifyWebhooks";
 import { apiClient } from "@/lib/api-client";
+
 type PanelTab = "orders" | "webhooks" | "setup";
 
 type OrderRow = {
@@ -112,15 +115,12 @@ const setupSteps: SetupStep[] = [
 ];
 
 const formatInr = (value: number) =>
-  new Intl.NumberFormat("en-IN", {
-    maximumFractionDigits: 0,
-  }).format(value);
+  new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(value);
 
 const normalizeStatus = (value: unknown): OrderRow["status"] => {
   const normalized = String(value ?? "")
     .trim()
     .toLowerCase();
-
   if (normalized.includes("fulfill")) return "Fulfilled";
   if (normalized.includes("cancel")) return "Cancelled";
   if (normalized.includes("paid")) return "Paid";
@@ -131,7 +131,6 @@ const normalizeStatus = (value: unknown): OrderRow["status"] => {
 const extractOrderArray = (payload: any): any[] => {
   if (Array.isArray(payload)) return payload;
   if (!payload || typeof payload !== "object") return [];
-
   if (Array.isArray(payload.orders)) return payload.orders;
   if (Array.isArray(payload.rows)) return payload.rows;
   if (Array.isArray(payload.data)) return payload.data;
@@ -144,7 +143,6 @@ const extractOrderArray = (payload: any): any[] => {
 
 const normalizeApiOrders = (payload: any): OrderRow[] => {
   const rows = extractOrderArray(payload);
-
   return rows.map((row: any, index: number) => {
     const customerFirst = String(row?.customer?.first_name ?? "").trim();
     const customerLast = String(row?.customer?.last_name ?? "").trim();
@@ -152,7 +150,6 @@ const normalizeApiOrders = (payload: any): OrderRow[] => {
     const customer =
       customerName ||
       String(row?.customer_name ?? row?.customer?.name ?? "Unknown Customer");
-
     const contact = String(
       row?.customer?.phone ??
         row?.customer?.email ??
@@ -160,12 +157,10 @@ const normalizeApiOrders = (payload: any): OrderRow[] => {
         row?.phone ??
         "-",
     );
-
     const lineItem = Array.isArray(row?.line_items) ? row.line_items[0] : null;
     const product = String(
       lineItem?.title ?? row?.product_name ?? row?.product ?? "-",
     );
-
     const amountValue = Number(
       row?.total_price ??
         row?.amount ??
@@ -174,7 +169,6 @@ const normalizeApiOrders = (payload: any): OrderRow[] => {
         row?.price ??
         0,
     );
-
     const shippingValue = Number(
       row?.shipping_price ??
         row?.shipping_charges ??
@@ -183,7 +177,6 @@ const normalizeApiOrders = (payload: any): OrderRow[] => {
           : 0) ??
         0,
     );
-
     const paymentRaw = String(
       row?.payment_method ??
         row?.financial_status ??
@@ -196,7 +189,6 @@ const normalizeApiOrders = (payload: any): OrderRow[] => {
       paymentRaw.toLowerCase().includes("cash")
         ? "COD"
         : "Prepaid";
-
     const orderNo = String(
       row?.name ??
         row?.order_number ??
@@ -205,7 +197,6 @@ const normalizeApiOrders = (payload: any): OrderRow[] => {
         index + 1,
     );
     const id = orderNo.startsWith("#") ? orderNo : `#${orderNo}`;
-
     const dateSource =
       row?.created_at ?? row?.order_date ?? row?.createdAt ?? row?.date;
     const formattedDate = dateSource
@@ -215,7 +206,6 @@ const normalizeApiOrders = (payload: any): OrderRow[] => {
           year: "numeric",
         })
       : "-";
-
     return {
       id,
       date: formattedDate,
@@ -279,6 +269,9 @@ function PaymentBadge({ payment }: { payment: string }) {
 
 export default function OrdersPage() {
   const { syncOrders } = useSyncOrders();
+  const { registerShopifyWebhooks } = useRegisterShopifyWebhooks();
+  const { unregisterShopifyWebhooks } = useUnregisterShopifyWebhooks();
+
   const [activeTab, setActiveTab] = useState<PanelTab>("orders");
   const [search, setSearch] = useState("");
   const [orderRows, setOrderRows] = useState<OrderRow[]>([]);
@@ -288,69 +281,18 @@ export default function OrdersPage() {
     "Shopify store not connected",
   );
   const [connectedStoreUrl, setConnectedStoreUrl] = useState("");
+  // ── NEW: store the access_token fetched from the API ──────────────────────
+  const [storeAccessToken, setStoreAccessToken] = useState("");
+  // ─────────────────────────────────────────────────────────────────────────
   const [selectedStatus, setSelectedStatus] =
     useState<(typeof orderStatusOptions)[number]>("All statuses");
   const [webhookRows, setWebhookRows] = useState<WebhookRow[]>(initialWebhooks);
+
   const isDisconnectedSkeleton = !isStoreConnected && !isStoreCheckLoading;
+  const allWebhooksEnabled =
+    webhookRows.length > 0 && webhookRows.every((row) => row.registered);
 
-  const handleMarkConfirmed = (orderId: string) => {
-    setOrderRows((previousRows) =>
-      previousRows.map((row) =>
-        row.id === orderId && row.status === "Pending"
-          ? { ...row, status: "Confirmed" }
-          : row,
-      ),
-    );
-  };
-
-  const filteredOrders = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return orderRows.filter((order) => {
-      const matchesSearch =
-        !query ||
-        order.id.toLowerCase().includes(query) ||
-        order.customer.toLowerCase().includes(query) ||
-        order.contact.toLowerCase().includes(query);
-
-      const matchesStatus =
-        selectedStatus === "All statuses" || order.status === selectedStatus;
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [search, selectedStatus, orderRows]);
-
-  const summary = useMemo(() => {
-    const totalOrders = orderRows.length;
-    const pendingOrders = orderRows.filter(
-      (row) => row.status === "Pending",
-    ).length;
-    const fulfilledOrders = orderRows.filter(
-      (row) => row.status === "Fulfilled",
-    ).length;
-    const revenue = orderRows.reduce(
-      (sum, row) => sum + (row.amountValue || 0),
-      0,
-    );
-
-    return {
-      totalOrders,
-      pendingOrders,
-      fulfilledOrders,
-      revenue,
-    };
-  }, [orderRows]);
-
-  const statusCounts = useMemo(() => {
-    return {
-      "All statuses": orderRows.length,
-      Pending: orderRows.filter((row) => row.status === "Pending").length,
-      Confirmed: orderRows.filter((row) => row.status === "Confirmed").length,
-      Paid: orderRows.filter((row) => row.status === "Paid").length,
-      Fulfilled: orderRows.filter((row) => row.status === "Fulfilled").length,
-      Cancelled: orderRows.filter((row) => row.status === "Cancelled").length,
-    } as Record<(typeof orderStatusOptions)[number], number>;
-  }, [orderRows]);
-
+  // ── Fetch store connection + save access_token ────────────────────────────
   useEffect(() => {
     const checkStoreConnection = async () => {
       setIsStoreCheckLoading(true);
@@ -365,10 +307,10 @@ export default function OrdersPage() {
             : [];
 
         if (stores.length > 0) {
+          const store = stores[0];
           setIsStoreConnected(true);
-          setConnectedStoreUrl(
-            String(stores[0]?.store_url ?? stores[0]?.shop ?? ""),
-          );
+          setConnectedStoreUrl(String(store?.store_url ?? store?.shop ?? ""));
+          setStoreAccessToken(String(store?.access_token ?? ""));
           setStoreConnectionMessage("");
         } else {
           setIsStoreConnected(false);
@@ -389,14 +331,104 @@ export default function OrdersPage() {
     checkStoreConnection();
   }, []);
 
+  const handleMarkConfirmed = (orderId: string) => {
+    setOrderRows((prev) =>
+      prev.map((row) =>
+        row.id === orderId && row.status === "Pending"
+          ? { ...row, status: "Confirmed" }
+          : row,
+      ),
+    );
+  };
+
+  const filteredOrders = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return orderRows.filter((order) => {
+      const matchesSearch =
+        !query ||
+        order.id.toLowerCase().includes(query) ||
+        order.customer.toLowerCase().includes(query) ||
+        order.contact.toLowerCase().includes(query);
+      const matchesStatus =
+        selectedStatus === "All statuses" || order.status === selectedStatus;
+      return matchesSearch && matchesStatus;
+    });
+  }, [search, selectedStatus, orderRows]);
+
+  const summary = useMemo(() => {
+    const totalOrders = orderRows.length;
+    const pendingOrders = orderRows.filter(
+      (r) => r.status === "Pending",
+    ).length;
+    const fulfilledOrders = orderRows.filter(
+      (r) => r.status === "Fulfilled",
+    ).length;
+    const revenue = orderRows.reduce((sum, r) => sum + (r.amountValue || 0), 0);
+    return { totalOrders, pendingOrders, fulfilledOrders, revenue };
+  }, [orderRows]);
+
+  const statusCounts = useMemo(
+    () =>
+      ({
+        "All statuses": orderRows.length,
+        Pending: orderRows.filter((r) => r.status === "Pending").length,
+        Confirmed: orderRows.filter((r) => r.status === "Confirmed").length,
+        Paid: orderRows.filter((r) => r.status === "Paid").length,
+        Fulfilled: orderRows.filter((r) => r.status === "Fulfilled").length,
+        Cancelled: orderRows.filter((r) => r.status === "Cancelled").length,
+      }) as Record<(typeof orderStatusOptions)[number], number>,
+    [orderRows],
+  );
+
   const handleSyncOrders = async () => {
     if (!isStoreConnected || isStoreCheckLoading) return;
     try {
       const response = await syncOrders.mutateAsync();
-      const normalizedOrders = normalizeApiOrders(response);
-      setOrderRows(normalizedOrders);
+      setOrderRows(normalizeApiOrders(response));
     } catch (error) {
       console.error("Failed to sync orders", error);
+    }
+  };
+
+  // ── Toggle: enable → register, disable → unregister ──────────────────────
+  const handleToggleAllWebhooks = async () => {
+    const webhookPayload = {
+      shop: connectedStoreUrl,
+      access_token: storeAccessToken,
+    };
+
+    if (allWebhooksEnabled) {
+      // Currently all ON → turn OFF (unregister)
+      try {
+        await unregisterShopifyWebhooks.mutateAsync(webhookPayload);
+        setWebhookRows((prev) =>
+          prev.map((row) => ({ ...row, registered: false })),
+        );
+      } catch (error) {
+        console.error("Failed to disable all webhooks", error);
+      }
+    } else {
+      // Currently some/all OFF → turn ON (register)
+      try {
+        await registerShopifyWebhooks.mutateAsync(webhookPayload);
+        setWebhookRows((prev) =>
+          prev.map((row) => ({ ...row, registered: true })),
+        );
+      } catch (error) {
+        console.error("Failed to enable all webhooks", error);
+      }
+    }
+  };
+
+  // ── Standalone unregister (Add topic button) ──────────────────────────────
+  const handleUnregisterWebhooks = async () => {
+    try {
+      await unregisterShopifyWebhooks.mutateAsync({
+        shop: connectedStoreUrl,
+        access_token: storeAccessToken,
+      });
+    } catch (error) {
+      console.error("Failed to unregister Shopify webhooks", error);
     }
   };
 
@@ -425,7 +457,7 @@ export default function OrdersPage() {
               disabled={
                 syncOrders.isPending || !isStoreConnected || isStoreCheckLoading
               }
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[#d5d5d0] bg-white px-5 py-3 text-sm font-medium text-[#222] sm:w-auto"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[#d5d5d0] bg-white px-5 py-3 text-sm font-medium text-[#222] sm:w-auto cursor-pointer"
             >
               <RefreshCcw
                 className={`h-5 w-5 ${syncOrders.isPending ? "animate-spin" : ""}`}
@@ -435,9 +467,20 @@ export default function OrdersPage() {
 
             <button
               type="button"
-              className="w-full rounded-2xl border border-[#d5d5d0] bg-white px-5 py-3 text-sm font-semibold text-[#222] sm:w-auto"
+              onClick={handleToggleAllWebhooks}
+              disabled={
+                registerShopifyWebhooks.isPending ||
+                unregisterShopifyWebhooks.isPending ||
+                !isStoreConnected ||
+                isStoreCheckLoading
+              }
+              className="w-full rounded-2xl border border-[#d5d5d0] bg-white px-5 py-3 text-sm font-medium text-[#222] disabled:opacity-60 sm:w-auto cursor-pointer"
             >
-              Manage webhooks
+              {registerShopifyWebhooks.isPending
+                ? "Enabling webhooks..."
+                : unregisterShopifyWebhooks.isPending
+                  ? "Disabling webhooks..."
+                  : "Manage webhooks"}
             </button>
           </div>
         </header>
@@ -447,20 +490,22 @@ export default function OrdersPage() {
             {(syncOrders.error as Error)?.message || "Failed to sync orders"}
           </p>
         )}
+        {registerShopifyWebhooks.isError && (
+          <p className="mt-2 text-xs text-red-600">
+            {(registerShopifyWebhooks.error as Error)?.message ||
+              "Failed to enable webhooks"}
+          </p>
+        )}
+        {unregisterShopifyWebhooks.isError && (
+          <p className="mt-2 text-xs text-red-600">
+            {(unregisterShopifyWebhooks.error as Error)?.message ||
+              "Failed to unregister webhooks"}
+          </p>
+        )}
 
         <div className="mt-6 grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
           {isDisconnectedSkeleton ? (
-            <>
-              {/* {Array.from({ length: 4 }).map((_, index) => (
-                <div
-                  key={`summary-skeleton-${index}`}
-                  className="rounded-xl bg-[#f1f1ed] p-5"
-                >
-                  <div className="h-6 w-28 rounded bg-[#e4e4de] animate-pulse" />
-                  <div className="mt-4 h-10 w-20 rounded bg-[#e4e4de] animate-pulse" />
-                </div>
-              ))} */}
-            </>
+            <></>
           ) : (
             <>
               <SummaryCard
@@ -485,14 +530,14 @@ export default function OrdersPage() {
           )}
         </div>
 
-        <section className="mt-6 rounded-2xl  bg-[#f7f7f5] p-5">
+        <section className="mt-6 rounded-2xl bg-[#f7f7f5] p-5">
           <div className="border-b border-[#dbdbd6] pb-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               {isDisconnectedSkeleton ? (
                 <div className="flex overflow-x-auto rounded-2xl border border-[#cbcbc7] bg-white">
-                  {Array.from({ length: 3 }).map((_, index) => (
+                  {Array.from({ length: 3 }).map((_, i) => (
                     <div
-                      key={`tab-skeleton-${index}`}
+                      key={`tab-skeleton-${i}`}
                       className="flex-shrink-0 border-r border-[#cbcbc7] px-4 py-3 last:border-r-0 sm:px-6"
                     >
                       <div className="h-5 w-16 rounded bg-[#e8e8e3] animate-pulse" />
@@ -538,9 +583,9 @@ export default function OrdersPage() {
               <div className="mb-4">
                 {isDisconnectedSkeleton ? (
                   <div className="inline-flex h-10 min-w-72 items-center gap-2 rounded-xl border border-[#d8d8d3] bg-white px-4">
-                    {Array.from({ length: 3 }).map((_, index) => (
+                    {Array.from({ length: 3 }).map((_, i) => (
                       <div
-                        key={`status-tab-skeleton-${index}`}
+                        key={`status-tab-skeleton-${i}`}
                         className="h-6 w-20 rounded-full bg-[#ecece7] animate-pulse"
                       />
                     ))}
@@ -579,11 +624,12 @@ export default function OrdersPage() {
                 )}
               </div>
 
+              {/* Mobile cards */}
               <div className="space-y-3 md:hidden">
                 {isStoreCheckLoading &&
-                  Array.from({ length: 3 }).map((_, index) => (
+                  Array.from({ length: 3 }).map((_, i) => (
                     <div
-                      key={`mobile-order-skeleton-${index}`}
+                      key={`mobile-order-skeleton-${i}`}
                       className="rounded-xl border border-[#dcdcd7] bg-white p-4 animate-pulse"
                     >
                       <div className="h-4 w-24 rounded bg-[#ececec]" />
@@ -614,7 +660,6 @@ export default function OrdersPage() {
                         </div>
                         <OrderStatusBadge status={order.status} />
                       </div>
-
                       <div className="mt-4 space-y-3 text-sm">
                         <div>
                           <p className="font-medium text-[#222]">
@@ -624,7 +669,6 @@ export default function OrdersPage() {
                             {order.contact}
                           </p>
                         </div>
-
                         <div className="rounded-lg bg-[#f7f7f5] p-3">
                           <p className="text-xs font-medium uppercase tracking-wide text-[#6b6b66]">
                             Product
@@ -633,7 +677,6 @@ export default function OrdersPage() {
                             {order.product}
                           </p>
                         </div>
-
                         <div className="grid grid-cols-2 gap-3">
                           <div className="rounded-lg border border-[#ecece7] p-3">
                             <p className="text-xs font-medium uppercase tracking-wide text-[#6b6b66]">
@@ -655,14 +698,13 @@ export default function OrdersPage() {
                             </div>
                           </div>
                         </div>
-
                         <button
                           type="button"
                           onClick={() => handleMarkConfirmed(order.id)}
                           disabled={order.status !== "Pending"}
                           className={`w-full rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${
                             order.status === "Pending"
-                              ? "bg-linear-to-r from-[#0097b2] to-[#7ed957] text-white hover:bg-[#f9efd9]"
+                              ? "bg-linear-to-r from-[#0097b2] to-[#7ed957] text-white"
                               : "cursor-not-allowed border-[#d8d8d3] bg-[#f4f4f1] text-[#7f7f78]"
                           }`}
                         >
@@ -683,21 +725,17 @@ export default function OrdersPage() {
                   </div>
                 )}
 
+              {/* Desktop table */}
               <div className="hidden md:block overflow-x-auto rounded-xl border border-[#dcdcd7] bg-white">
                 <table className="w-full min-w-[780px] border-collapse">
                   <thead className="border-b border-[#dfdfda]">
                     <tr className="text-left text-sm font-medium text-[#474742]">
                       {isDisconnectedSkeleton ? (
-                        <>
-                          {Array.from({ length: 7 }).map((_, index) => (
-                            <th
-                              key={`head-skeleton-${index}`}
-                              className="px-4 py-3"
-                            >
-                              <div className="h-5 w-16 rounded bg-[#ecece7] animate-pulse" />
-                            </th>
-                          ))}
-                        </>
+                        Array.from({ length: 7 }).map((_, i) => (
+                          <th key={`head-skeleton-${i}`} className="px-4 py-3">
+                            <div className="h-5 w-16 rounded bg-[#ecece7] animate-pulse" />
+                          </th>
+                        ))
                       ) : (
                         <>
                           <th className="px-4 py-3">Order</th>
@@ -713,32 +751,16 @@ export default function OrdersPage() {
                   </thead>
                   <tbody>
                     {isStoreCheckLoading &&
-                      Array.from({ length: 3 }).map((_, index) => (
+                      Array.from({ length: 3 }).map((_, i) => (
                         <tr
-                          key={`skeleton-${index}`}
+                          key={`skeleton-${i}`}
                           className="border-b border-[#e8e8e2] last:border-b-0 animate-pulse"
                         >
-                          <td className="px-4 py-4">
-                            <div className="h-4 w-20 rounded bg-[#ececec]" />
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="h-4 w-28 rounded bg-[#ececec]" />
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="h-4 w-24 rounded bg-[#ececec]" />
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="h-4 w-20 rounded bg-[#ececec]" />
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="h-6 w-16 rounded-full bg-[#ececec]" />
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="h-6 w-20 rounded-full bg-[#ececec]" />
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="h-7 w-28 rounded-lg bg-[#ececec]" />
-                          </td>
+                          {Array.from({ length: 7 }).map((__, j) => (
+                            <td key={j} className="px-4 py-4">
+                              <div className="h-4 w-20 rounded bg-[#ececec]" />
+                            </td>
+                          ))}
                         </tr>
                       ))}
 
@@ -809,7 +831,7 @@ export default function OrdersPage() {
                               disabled={order.status !== "Pending"}
                               className={`rounded-lg border px-3 py-1 text-xs font-semibold transition ${
                                 order.status === "Pending"
-                                  ? "bg-linear-to-r from-[#0097b2] to-[#7ed957] text-white hover:bg-[#f9efd9]"
+                                  ? "bg-linear-to-r from-[#0097b2] to-[#7ed957] text-white"
                                   : "cursor-not-allowed border-[#d8d8d3] bg-[#f4f4f1] text-[#7f7f78]"
                               }`}
                             >
@@ -832,77 +854,122 @@ export default function OrdersPage() {
                 <p className="text-sm font-medium text-[#30302c]">
                   Auto-sync triggers registered on your Shopify store
                 </p>
-                <button
-                  type="button"
-                  className="inline-flex h-10 w-full items-center justify-center gap-1 rounded-xl border border-[#d7d7d2] bg-white px-4 text-sm font-semibold text-[#222] sm:w-auto"
-                >
-                  + Add topic
-                  <ArrowUpRight className="h-4 w-4" />
-                </button>
+                <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+                  {/* ── Enable All Webhooks toggle ── */}
+                  <button
+                    type="button"
+                    onClick={handleToggleAllWebhooks}
+                    disabled={
+                      registerShopifyWebhooks.isPending ||
+                      unregisterShopifyWebhooks.isPending ||
+                      !isStoreConnected ||
+                      isStoreCheckLoading
+                    }
+                    className="inline-flex h-10 items-center justify-between gap-3 rounded-xl border border-[#d7d7d2] bg-white px-3 py-2 text-left disabled:opacity-60 sm:w-[290px]"
+                  >
+                    <span className="inline-flex items-center gap-3">
+                      <span className="inline-flex h-7.5 w-7.5 items-center justify-center rounded-lg bg-[#dceecd] text-[#3f7c25]">
+                        <Power className="h-4 w-4" />
+                      </span>
+                      <span className="block text-sm font-semibold text-[#1f2937]">
+                        {registerShopifyWebhooks.isPending
+                          ? "Enabling…"
+                          : unregisterShopifyWebhooks.isPending
+                            ? "Disabling…"
+                            : "Enable All Webhooks"}
+                      </span>
+                    </span>
+                    <span
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        allWebhooksEnabled ? "bg-[#3f7c25]" : "bg-[#d1d5db]"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                          allWebhooksEnabled ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleUnregisterWebhooks}
+                    disabled={
+                      unregisterShopifyWebhooks.isPending ||
+                      !isStoreConnected ||
+                      isStoreCheckLoading
+                    }
+                    className="inline-flex h-10 w-full items-center justify-center gap-1 rounded-xl border border-[#d7d7d2] bg-white px-4 text-sm font-semibold text-[#222] sm:w-auto disabled:opacity-60"
+                  >
+                    {unregisterShopifyWebhooks.isPending
+                      ? "Unregistering..."
+                      : "+ Add topic"}
+                    <ArrowUpRight className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
 
               <div className="rounded-xl border border-[#ddddda] bg-white">
-                <div>
-                  {webhookRows.map((row) => (
-                    <div
-                      key={row.topic}
-                      className="flex flex-col gap-4 border-b border-[#e7e7e2] px-4 py-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:py-3"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm leading-tight font-semibold text-[#1f1f1f]">
-                          {row.topic}
-                        </p>
-                        <p className="mt-1 break-all text-xs text-[#4e4e49]">
-                          {row.endpoint}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-3 sm:shrink-0 sm:justify-end">
-                        <span
-                          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap ${
-                            row.registered
-                              ? "bg-[#e2efd6] text-[#3f7c25]"
-                              : "bg-[#f0efeb] text-[#75756f]"
-                          }`}
-                        >
-                          <div
-                            className={`m-1 h-2 w-2 rounded-full ${
-                              row.registered ? "bg-[#3f7c25]" : "bg-[#75756f]"
-                            }`}
-                          ></div>
-                          {row.registered ? "Registered" : "Not registered"}
-                        </span>
-
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={row.registered}
-                          aria-label={`Toggle ${row.topic}`}
-                          onClick={() => {
-                            setWebhookRows((prev) =>
-                              prev.map((item) =>
-                                item.topic === row.topic
-                                  ? { ...item, registered: !item.registered }
-                                  : item,
-                              ),
-                            );
-                          }}
-                          className={`relative h-7 w-12 rounded-full border transition-colors ${
-                            row.registered
-                              ? "border-[#9fcb86] bg-[#dceecd]"
-                              : "border-[#c9c9c4] bg-[#f8f8f6]"
-                          }`}
-                        >
-                          <span
-                            className={`absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-white shadow-sm transition-all ${
-                              row.registered ? "left-6" : "left-1"
-                            }`}
-                          />
-                        </button>
-                      </div>
+                {webhookRows.map((row) => (
+                  <div
+                    key={row.topic}
+                    className="flex flex-col gap-4 border-b border-[#e7e7e2] px-4 py-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:py-3"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm leading-tight font-semibold text-[#1f1f1f]">
+                        {row.topic}
+                      </p>
+                      <p className="mt-1 break-all text-xs text-[#4e4e49]">
+                        {row.endpoint}
+                      </p>
                     </div>
-                  ))}
-                </div>
+
+                    <div className="flex items-center justify-between gap-3 sm:shrink-0 sm:justify-end">
+                      <span
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap ${
+                          row.registered
+                            ? "bg-[#e2efd6] text-[#3f7c25]"
+                            : "bg-[#f0efeb] text-[#75756f]"
+                        }`}
+                      >
+                        <div
+                          className={`m-1 h-2 w-2 rounded-full ${
+                            row.registered ? "bg-[#3f7c25]" : "bg-[#75756f]"
+                          }`}
+                        />
+                        {row.registered ? "Registered" : "Not registered"}
+                      </span>
+
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={row.registered}
+                        aria-label={`Toggle ${row.topic}`}
+                        onClick={() =>
+                          setWebhookRows((prev) =>
+                            prev.map((item) =>
+                              item.topic === row.topic
+                                ? { ...item, registered: !item.registered }
+                                : item,
+                            ),
+                          )
+                        }
+                        className={`relative h-7 w-12 rounded-full border transition-colors ${
+                          row.registered
+                            ? "border-[#9fcb86] bg-[#dceecd]"
+                            : "border-[#c9c9c4] bg-[#f8f8f6]"
+                        }`}
+                      >
+                        <span
+                          className={`absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-white shadow-sm transition-all ${
+                            row.registered ? "left-6" : "left-1"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}

@@ -133,7 +133,7 @@ const CartDrawer = ({
     try {
       await apiClient.post("dropshipper/shopify/mrp-update", {
         productId: selectedProduct?.id,
-        newMRP: newPrice,
+        shopifyProductData: newPrice,
       });
     } catch (err) {
       console.error("Failed to update MRP:", err);
@@ -304,9 +304,6 @@ const CartDrawer = ({
       return;
     }
 
-    console.log("Pushing product to Shopify:");
-    console.log("productData", productData);
-    console.log("sellingPrice", sellingPrice);
     productData.data.dropshipperSellingPrice = sellingPrice;
 
     pushProductToShopify.mutate(
@@ -318,9 +315,9 @@ const CartDrawer = ({
       },
       {
         onSuccess: (data) => {
-          console.log("Success:", data);
+          console.log("Success:", data?.data);
 
-          handleSellingPriceUpdate(sellingPrice); // 👈 called after push success
+          handleSellingPriceUpdate(data?.data); // 👈 called after push success
 
           setShowSuccess(true);
 
